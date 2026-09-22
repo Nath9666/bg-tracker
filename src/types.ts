@@ -27,6 +27,37 @@ export interface TierUp {
   turn: number;
 }
 
+/** Un serviteur du plateau, au debut d'un combat. */
+export interface BoardMinion {
+  /** `ZONE_POSITION`, de 1 a 7, de gauche a droite. */
+  position: number;
+  cardId: string;
+  atk: number | null;
+  health: number | null;
+  /** Dore. Lu sur le tag `PREMIUM`, pas sur le suffixe `_G` du cardId. */
+  golden: boolean;
+}
+
+export type CombatResult = 'win' | 'loss' | 'tie';
+
+/** Un tour de jeu : la phase de recrutement puis le combat qui la suit. */
+export interface TurnRecord {
+  turn: number;
+  /** Palier de taverne atteint a la fin du recrutement. */
+  tavernTier: number | null;
+  /** Or total du tour (`RESOURCES`). */
+  gold: number | null;
+  /** PV restants apres le combat, armure comprise. */
+  health: number | null;
+  /** cardId du heros affronte. */
+  opponentHero: string | null;
+  combatResult: CombatResult | null;
+  /** PV et armure perdus pendant le combat. */
+  damageTaken: number | null;
+  /** Plateau au moment ou le combat commence. */
+  board: BoardMinion[];
+}
+
 /** Resume d'une partie de Champs de bataille. */
 export interface GameSummary {
   /** Horodatage ISO 8601 du CREATE_GAME. */
@@ -51,6 +82,8 @@ export interface GameSummary {
   /** Tour de jeu = (TURN + 1) / 2. */
   finalTurn: number | null;
   tierUps: TierUp[];
+  /** Un enregistrement par combat joue, dans l'ordre. */
+  turns: TurnRecord[];
   picks: PickRecord[];
   /** cardIds des heros adverses rencontres dans le lobby. */
   opponents: string[];

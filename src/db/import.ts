@@ -126,6 +126,8 @@ export function importGames(
     heroOffers: db.prepare('DELETE FROM hero_offers WHERE game_id = ?'),
     tierUps: db.prepare('DELETE FROM tier_ups WHERE game_id = ?'),
     picks: db.prepare('DELETE FROM picks WHERE game_id = ?'),
+    turns: db.prepare('DELETE FROM turns WHERE game_id = ?'),
+    boards: db.prepare('DELETE FROM boards WHERE game_id = ?'),
   };
 
   // OR REPLACE : un meme cardId propose deux fois au mulligan ne doit pas faire
@@ -140,6 +142,17 @@ export function importGames(
     INSERT INTO picks (game_id, choice_id, turn, source_card, kind, option_card, position, chosen)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(game_id, choice_id, option_card) DO UPDATE SET chosen = MAX(picks.chosen, excluded.chosen)
+  `);
+
+  const insertTurn = db.prepare(`
+    INSERT INTO turns (game_id, turn, tavern_tier, gold, health, opponent_hero, combat_result, damage_taken)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  // OR REPLACE : deux serviteurs ne devraient pas partager une position, mais
+  // un plateau incoherent ne doit pas faire echouer tout l'import.
+  const insertBoard = db.prepare(`
+    INSERT OR REPLACE INTO boards (game_id, turn, position, card_id, atk, health, golden)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result: ImportResult = { inserted: 0, updated: 0 };
@@ -172,6 +185,8 @@ export function importGames(
       clear.heroOffers.run(id);
       clear.tierUps.run(id);
       clear.picks.run(id);
+      clear.turns.run(id);
+      clear.boards.run(id);
 
       summary.heroOffered.forEach((cardId, position) => {
         insertHeroOffer.run(id, cardId, position, cardId === summary.heroChosen ? 1 : 0);
@@ -179,6 +194,31 @@ export function importGames(
 
       for (const tierUp of summary.tierUps) {
         insertTierUp.run(id, tierUp.tier, tierUp.turn);
+      }
+
+      for (const turn of summary.turns) {
+        insertTurn.run(
+          id,
+          turn.turn,
+          turn.tavernTier,
+          turn.gold,
+          turn.health,
+          turn.opponentHero,
+          turn.combatResult,
+          turn.damageTaken,
+        );
+
+        for (const minion of turn.board) {
+          insertBoard.run(
+            id,
+            turn.turn,
+            minion.position,
+            minion.cardId,
+            minion.atk,
+            minion.health,
+            minion.golden ? 1 : 0,
+          );
+        }
       }
 
       for (const pick of summary.picks) {

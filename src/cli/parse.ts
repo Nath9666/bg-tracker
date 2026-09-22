@@ -98,6 +98,13 @@ function duration(summary: GameSummary): string {
   return `${minutes} min`;
 }
 
+const RESULT_LABEL: Record<string, string> = {
+  win: 'victoire',
+  loss: 'défaite',
+  tie: 'égalité',
+  none: '—',
+};
+
 function ordinal(place: number): string {
   return place === 1 ? '1re' : `${place}e`;
 }
@@ -143,6 +150,24 @@ export function formatSummary(
         : summary.tierUps.map((tier) => `T${tier.tier} au tour ${tier.turn}`).join(' · ')
     }`,
   );
+
+  if (summary.turns.length > 0) {
+    lines.push(`${pad('Tours')}${summary.turns.length}`);
+    for (const turn of summary.turns) {
+      const cell = (value: number | null, unit = ''): string =>
+        value === null ? '—' : `${value}${unit}`;
+      lines.push(
+        `      t${String(turn.turn).padEnd(3)}` +
+          `T${cell(turn.tavernTier).padEnd(2)}` +
+          `${cell(turn.gold, ' or').padStart(6)}` +
+          `${cell(turn.health, ' pv').padStart(7)}` +
+          `  ${(RESULT_LABEL[turn.combatResult ?? 'none'] ?? '—').padEnd(8)}` +
+          `${turn.damageTaken !== null && turn.damageTaken > 0 ? `-${turn.damageTaken}` : '  '}`.padStart(5) +
+          `  ${String(turn.board.length).padStart(1)} serv.` +
+          `  vs ${turn.opponentHero === null ? '—' : name(turn.opponentHero)}`,
+      );
+    }
+  }
 
   lines.push(`${pad('Choix')}${summary.picks.length}`);
   for (const pick of summary.picks) {

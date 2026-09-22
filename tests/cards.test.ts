@@ -197,6 +197,7 @@ describe('affichage des noms dans parse', () => {
     finalPlace: 3,
     finalTurn: 13,
     tierUps: [],
+    turns: [],
     picks: [
       {
         choiceId: 2,

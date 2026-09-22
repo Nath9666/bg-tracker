@@ -96,4 +96,36 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_cards_dbf_id ON cards(dbf_id);
     `,
   },
+  {
+    name: 'turns, boards',
+    sql: `
+      CREATE TABLE turns (
+        game_id       TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        turn          INTEGER NOT NULL,
+        tavern_tier   INTEGER,
+        -- Or total disponible ce tour-la, bonus compris : le log peut
+        -- l'augmenter en cours de tour.
+        gold          INTEGER,
+        health        INTEGER,               -- PV restants apres le combat, armure comprise
+        opponent_hero TEXT,                  -- cardId du heros affronte
+        combat_result TEXT,                  -- 'win' | 'loss' | 'tie'
+        damage_taken  INTEGER,
+        PRIMARY KEY (game_id, turn)
+      );
+
+      CREATE TABLE boards (
+        game_id  TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        turn     INTEGER NOT NULL,
+        position INTEGER NOT NULL,           -- ZONE_POSITION, de 1 a 7
+        card_id  TEXT NOT NULL,
+        atk      INTEGER,
+        health   INTEGER,
+        golden   INTEGER NOT NULL,           -- 0/1, lu sur le tag PREMIUM
+        PRIMARY KEY (game_id, turn, position)
+      );
+
+      CREATE INDEX idx_turns_opponent ON turns(opponent_hero);
+      CREATE INDEX idx_boards_card    ON boards(card_id);
+    `,
+  },
 ];

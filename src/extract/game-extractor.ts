@@ -9,7 +9,14 @@
 import type { LogEvent, EntityRef } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
-import type { GameSummary, PickRecord, TierUp } from '../types.js';
+import type {
+  BoardMinion,
+  CombatResult,
+  GameSummary,
+  PickRecord,
+  TierUp,
+  TurnRecord,
+} from '../types.js';
 import { LogClock } from './log-clock.js';
 
 /** Seules les parties de Champs de bataille nous interessent. */
@@ -38,6 +45,18 @@ interface ChoiceInProgress {
   chosen: string | null;
 }
 
+/** Combat commence, dont on attend l'issue. */
+interface PendingCombat {
+  turn: number;
+  tavernTier: number | null;
+  gold: number | null;
+  /** Armure et degats cumules juste avant le combat, pour en deduire la perte. */
+  armorBefore: number;
+  damageBefore: number;
+  opponentHero: string | null;
+  board: BoardMinion[];
+}
+
 /** Ce qui doit etre observe au vol, faute d'exister dans l'etat final. */
 interface Accumulator {
   startedAt: string | null;
@@ -48,6 +67,18 @@ interface Accumulator {
   choices: Map<number, ChoiceInProgress>;
   /** Identifiant du choix dont `SendChoices` annonce la reponse. */
   answering: number | null;
+  turns: TurnRecord[];
+  combat: PendingCombat | null;
+  inCombat: boolean;
+  /** Or total du tour, lu sur le joueur. */
+  gold: number | null;
+  /**
+   * Entite heros du mandataire hors combat, c'est-a-dire Bob.
+   *
+   * Pendant un combat, le mandataire prend le heros de l'adversaire : toute
+   * autre valeur que celle-ci designe donc l'adversaire du tour.
+   */
+  bobEntityId: number | null;
 }
 
 function newAccumulator(): Accumulator {
@@ -59,6 +90,11 @@ function newAccumulator(): Accumulator {
     tierUps: [],
     choices: new Map(),
     answering: null,
+    turns: [],
+    combat: null,
+    inCombat: false,
+    gold: null,
+    bobEntityId: null,
   };
 }
 
@@ -85,6 +121,10 @@ export class GameExtractor {
         const accumulator = this.#accumulator;
         this.#accumulator = null;
         if (accumulator === null) return;
+
+        // La partie s'arrete pendant le dernier combat quand le joueur est
+        // elimine : ce combat n'a pas de fin de phase, on le cloture ici.
+        if (accumulator.combat !== null) this.#endCombat(game, accumulator);
 
         // Les autres modes de jeu passent par les memes lignes : on les ecarte.
         if (game.meta.get('GameType') !== BATTLEGROUNDS) return;
@@ -179,7 +219,90 @@ export class GameExtractor {
         accumulator.tierUps.push({ tier, turn: gameTurn(accumulator.turn) });
         accumulator.lastTier = tier;
       }
+      return;
     }
+
+    if (tag === 'RESOURCES' && id === game.localPlayerEntityId) {
+      accumulator.gold = Number(value);
+      return;
+    }
+
+    if (tag === 'HERO_ENTITY' && id === game.proxyPlayerEntityId) {
+      this.#observeProxyHero(Number(value), game, accumulator);
+      return;
+    }
+
+    if (tag === 'BACON_IN_COMBAT_PHASE' && id === game.gameEntityId) {
+      if (value === '1') this.#startCombat(game, accumulator);
+      else this.#endCombat(game, accumulator);
+    }
+  }
+
+  /**
+   * Le mandataire change de heros : Bob pendant le recrutement, l'adversaire
+   * pendant le combat. La premiere valeur vue hors combat donne donc Bob, et
+   * toute autre valeur pendant un combat donne l'adversaire du tour.
+   */
+  #observeProxyHero(heroEntityId: number, game: Game, accumulator: Accumulator): void {
+    if (!accumulator.inCombat) {
+      accumulator.bobEntityId = heroEntityId;
+      return;
+    }
+
+    const combat = accumulator.combat;
+    if (combat === null || combat.opponentHero !== null) return;
+    if (heroEntityId === accumulator.bobEntityId) return;
+
+    const cardId = game.entities.get(heroEntityId)?.cardId ?? '';
+    if (cardId.length > 0) combat.opponentHero = cardId;
+  }
+
+  #startCombat(game: Game, accumulator: Accumulator): void {
+    if (accumulator.inCombat) return;
+    accumulator.inCombat = true;
+
+    const hero = game.heroEntityId !== null ? game.entities.get(game.heroEntityId) : undefined;
+    accumulator.combat = {
+      turn: gameTurn(accumulator.turn),
+      tavernTier: hero === undefined ? null : numberTag(hero.tags.get('PLAYER_TECH_LEVEL')),
+      gold: accumulator.gold,
+      armorBefore: Number(hero?.tags.get('ARMOR') ?? 0),
+      damageBefore: Number(hero?.tags.get('DAMAGE') ?? 0),
+      opponentHero: null,
+      board: readBoard(game),
+    };
+  }
+
+  /** Cloture le combat en cours et en tire un `TurnRecord`. */
+  #endCombat(game: Game, accumulator: Accumulator): void {
+    const combat = accumulator.combat;
+    accumulator.inCombat = false;
+    accumulator.combat = null;
+    if (combat === null) return;
+
+    const hero = game.heroEntityId !== null ? game.entities.get(game.heroEntityId) : undefined;
+    const armor = Number(hero?.tags.get('ARMOR') ?? 0);
+    const damage = Number(hero?.tags.get('DAMAGE') ?? 0);
+    const health = hero === undefined ? null : numberTag(hero.tags.get('HEALTH'));
+
+    // L'armure encaisse avant les points de vie : la perte reelle cumule la
+    // baisse d'armure et la hausse des degats.
+    const damageTaken = combat.armorBefore - armor + (damage - combat.damageBefore);
+
+    const player =
+      game.localPlayerEntityId !== null ? game.entities.get(game.localPlayerEntityId) : undefined;
+    const won = player?.tags.get('BACON_WON_LAST_COMBAT') === '1';
+
+    accumulator.turns.push({
+      turn: combat.turn,
+      tavernTier: combat.tavernTier,
+      gold: combat.gold,
+      health: health === null ? null : health - damage + armor,
+      opponentHero: combat.opponentHero,
+      combatResult: combatResult(won, damageTaken),
+      damageTaken: Math.max(damageTaken, 0),
+      board: combat.board,
+    });
   }
 
   #summarize(game: Game, accumulator: Accumulator): GameSummary {
@@ -218,11 +341,60 @@ export class GameExtractor {
       finalPlace: place === undefined ? null : Number(place),
       finalTurn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
       tierUps: accumulator.tierUps,
+      turns: accumulator.turns,
       picks,
       opponents: opponentHeroes(game),
       gameSeed: gameEntity?.tags.get('GAME_SEED') ?? null,
     };
   }
+}
+
+function numberTag(value: string | undefined): number | null {
+  return value === undefined ? null : Number(value);
+}
+
+/**
+ * Issue d'un combat.
+ *
+ * `BACON_WON_LAST_COMBAT` ne vaut que 0 ou 1 : l'egalite ne s'y lit pas. Mais
+ * une egalite ne coute aucun point de vie, alors qu'une defaite en coute
+ * toujours. Attention, ce tag n'est emis qu'aux changements : c'est sa valeur
+ * courante qu'il faut lire, pas l'evenement.
+ */
+export function combatResult(won: boolean, damageTaken: number): CombatResult {
+  if (won) return 'win';
+  return damageTaken > 0 ? 'loss' : 'tie';
+}
+
+/**
+ * Plateau du joueur au moment ou le combat commence.
+ *
+ * On le lit avant que le jeu ne cree ses copies de combat, sinon le plateau
+ * serait pollue par des doublons.
+ */
+export function readBoard(game: Game): BoardMinion[] {
+  const localPlayer =
+    game.localPlayerEntityId !== null ? game.players.get(game.localPlayerEntityId) : undefined;
+  if (localPlayer === undefined) return [];
+  const controller = String(localPlayer.playerId);
+
+  return [...game.entities.values()]
+    .filter(
+      (entity) =>
+        entity.tags.get('CARDTYPE') === 'MINION' &&
+        entity.tags.get('CONTROLLER') === controller &&
+        entity.tags.get('ZONE') === 'PLAY',
+    )
+    .map((entity) => ({
+      position: Number(entity.tags.get('ZONE_POSITION') ?? 0),
+      cardId: entity.cardId,
+      atk: numberTag(entity.tags.get('ATK')),
+      health: numberTag(entity.tags.get('HEALTH')),
+      // Le tag est plus sur que le suffixe `_G` : deux serviteurs dores du log
+      // de reference n'ont pas ce suffixe.
+      golden: entity.tags.get('PREMIUM') === '1',
+    }))
+    .sort((a, b) => a.position - b.position);
 }
 
 /**

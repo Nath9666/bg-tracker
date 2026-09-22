@@ -257,11 +257,42 @@ heros adverses = entites  CARDTYPE=HERO
 Vérifié sur 11 parties : **exactement 7 adversaires à chaque fois**, sans aucune liste noire de
 `cardId`.
 
+### Tours, combats et plateau
+
+Tout se lit autour de `BACON_IN_COMBAT_PHASE`, sur l'entité de jeu :
+
+| Phase | `TURN` | `BACON_IN_COMBAT_PHASE` |
+|---|---|---|
+| Recrutement du tour N | impair, `2N-1` | `0` |
+| Combat du tour N | pair, `2N` | `1` |
+
+Au début d'un combat, le **joueur fictif prend le héros de l'adversaire** (`HERO_ENTITY`), puis reprend
+Bob à la fin. C'est de là que vient l'adversaire de chaque tour, sans avoir à connaître `TB_BaconShopBob` :
+la valeur vue hors combat **est** Bob, toute autre valeur pendant un combat est l'adversaire.
+
+**Issue d'un combat.** `BACON_WON_LAST_COMBAT` (sur le joueur et sur son héros) ne vaut que 0 ou 1 :
+l'égalité ne s'y lit pas. ⚠️ Et ce tag **n'est émis qu'aux changements** : 10 événements seulement pour
+13 combats dans le log de référence. Il faut donc lire sa **valeur courante**, pas l'événement. L'égalité
+se déduit des dégâts : une victoire ou une égalité ne coûte **jamais** de points de vie, une défaite en
+coûte toujours. Vérifié sur 125 combats : dégâts moyens de 0 sur les 48 victoires et les 14 égalités,
+7,4 sur les 63 défaites.
+
+**Points de vie.** Le héros porte `HEALTH` (constant, 30), `DAMAGE` (cumulé) et `ARMOR`. PV restants =
+`HEALTH - DAMAGE + ARMOR`. L'armure encaisse avant les points de vie, donc les dégâts d'un combat valent
+`(armure avant - armure après) + (dégâts après - dégâts avant)`.
+
+**Or.** `RESOURCES` sur le joueur donne l'or total du tour, `RESOURCES_USED` ce qui a été dépensé.
+⚠️ `RESOURCES` peut **augmenter en cours de tour** : dans le log de référence il passe de 6 à 7 au milieu
+du tour 4. Lire sa valeur à la fin du recrutement donne l'or réellement disponible.
+
+**Le dernier combat n'a pas de fin de phase** quand le joueur est éliminé : `BACON_IN_COMBAT_PHASE` ne
+revient jamais à `0`. Il faut le clôturer à la fin de la partie, sinon le tour d'élimination manque.
+
 ### Serviteurs et plateau
 
 - Serviteur : entité avec `CARDTYPE=MINION`, `CONTROLLER`, `ZONE` (`HAND`, `PLAY`, `SETASIDE`, `GRAVEYARD`, `REMOVEDFROMGAME`), `ZONE_POSITION`, `ATK`, `HEALTH`, `TECH_LEVEL`, `CARDRACE`.
-- Doré : suffixe `_G` dans le `cardId` (`BG36_511_G`), avec `BACON_TRIPLED_BASE_MINION_ID` *(à vérifier)*.
-- Pendant les combats, le jeu crée des **copies** des serviteurs (`COPIED_FROM_ENTITY_ID`). Le plateau « réel » du joueur est celui de la phase de recrutement ; utiliser `BACON_IN_COMBAT_PHASE` pour distinguer les phases *(à vérifier)*.
+- Doré : ✅ le tag **`PREMIUM=1`** est le critère fiable. Le suffixe `_G` du `cardId` marche presque toujours, mais dans le log de référence **2 serviteurs dorés ne l'ont pas** (`TB_BaconUps_307`), alors que les 35 cartes en `_G` portent toutes `PREMIUM=1`. Les tags `BACON_TRIPLED_BASE_MINION_ID*` accompagnent les triples et donnent le `dbfId` de la carte de base.
+- Pendant les combats, le jeu crée des **copies** des serviteurs (`COPIED_FROM_ENTITY_ID`). ✅ Le plateau réel se lit **au moment exact où `BACON_IN_COMBAT_PHASE` passe à 1**, avant que les copies n'existent : serviteurs avec `CARDTYPE=MINION`, `CONTROLLER` = le joueur et `ZONE=PLAY`, triés par `ZONE_POSITION` (1 à 7).
 - Boutique de Bob : les serviteurs proposés sont des entités contrôlées par l'autre joueur (`player=15`) en zone `PLAY` pendant le recrutement *(à vérifier)*. Un achat correspond à un changement de `CONTROLLER` vers le joueur.
 - Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby *(à vérifier)*.
 

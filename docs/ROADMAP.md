@@ -32,8 +32,8 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 - [x] Schéma SQLite (voir `docs/ARCHITECTURE.md`) et migrations
 - [x] Table `games` et `hero_offers`
-- [ ] Table `turns` (tier, or, PV, résultat du combat, adversaire)
-- [ ] Table `boards` (plateau au début de chaque combat)
+- [x] Table `turns` (tier, or, PV, résultat du combat, adversaire)
+- [x] Table `boards` (plateau au début de chaque combat)
 - [x] Table `picks` (découvertes, triples, bibelots : options proposées + choix), plus `tier_ups`
 - [x] Import idempotent : réimporter un dossier ne crée pas de doublons (clé = `GAME_SEED` + jour de début)
 - [ ] Import de `data/ratings.csv` et rattachement de la cote à la partie la plus proche dans le temps

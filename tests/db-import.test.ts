@@ -23,6 +23,7 @@ const BASE: GameSummary = {
     { tier: 2, turn: 2 },
     { tier: 3, turn: 5 },
   ],
+  turns: [],
   picks: [
     {
       choiceId: 2,
