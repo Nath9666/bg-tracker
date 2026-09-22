@@ -43,13 +43,13 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 ## Phase 3 — Tableau de bord d'analyse ← EN COURS
 
-- [ ] Application Electron (front React ou Angular)
-- [ ] Évolution de la cote et de la place moyenne dans le temps
-- [ ] Place moyenne par héros, taux de sélection quand il est proposé
-- [ ] Répartition des places finales, taux de top 4
-- [ ] Courbe moyenne de montée de taverne, parties gagnantes vs perdantes
-- [ ] Type dominant du plateau final vs résultat
-- [ ] Filtres : période, mode (Solo/Duo), héros
+- [ ] Application Electron (front React ou Angular) — les analyses existent, il reste l'interface (`npm run stats` les affiche en attendant)
+- [x] Évolution de la cote et de la place moyenne dans le temps
+- [x] Place moyenne par héros, taux de sélection quand il est proposé
+- [x] Répartition des places finales, taux de top 4
+- [x] Courbe moyenne de montée de taverne, parties gagnantes vs perdantes
+- [x] Type dominant du plateau final vs résultat
+- [x] Filtres : période, mode (Solo/Duo), héros
 
 **Critère de fin :** l'utilisateur peut analyser ses parties sans ouvrir la base.
 

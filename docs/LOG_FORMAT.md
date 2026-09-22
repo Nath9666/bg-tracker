@@ -197,11 +197,14 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
   ✅ **`BACON_SKIN_PARENT_ID` sur l'entité héros donne un `dbfId`**, pas un `cardId` : `77987` pour
   `BG22_HERO_000_SKIN_A`, et HearthstoneJSON confirme que `BG22_HERO_000` (Tavish Foudrepique) porte
   bien ce `dbfId`. C'est la source correcte, mais elle **exige la base de cartes**.
-  ⚠️ Retirer le suffixe `_SKIN_x` marche presque toujours, mais pas toujours : sur les **653 héros à
-  skin** de HearthstoneJSON, **16 donnent un `cardId` qui n'existe pas** une fois le suffixe retiré
-  (Sylvanas, Vol'jin, Saurcroc, Noirépine, E.T.C.). Le regroupement reste cohérent, mais l'identifiant
-  obtenu n'est pas une vraie carte. Le tracker préfère donc le `dbfId` et ne retombe sur le retrait du
-  suffixe qu'en dernier recours.
+  ⚠️ **Retirer le suffixe `_SKIN_x` est faux**, et pas seulement incomplet. Sur les 653 héros à skin
+  de HearthstoneJSON, 16 donnent un `cardId` inexistant, et certains désignent un **autre héros** :
+  `TB_BaconShop_HERO_201_SKIN_D` a pour base `BG20_HERO_201` (Vol'jin), que la chaîne ne laisse pas
+  deviner.
+  ✅ HearthstoneJSON porte le même lien sous le nom **`battlegroundsSkinParentId`**, et il couvre
+  **653 héros sur 653**. Le tracker suit donc ce lien (`src/db/hero-base.ts`) : le log d'abord quand il
+  donne `BACON_SKIN_PARENT_ID`, la base de cartes ensuite, le retrait du suffixe en tout dernier
+  recours.
 
 ### Tours
 

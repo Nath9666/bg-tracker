@@ -30,6 +30,7 @@ interface RawCard {
   techLevel?: unknown;
   races?: unknown;
   cardClass?: unknown;
+  battlegroundsSkinParentId?: unknown;
   battlegroundsHero?: unknown;
   isBattlegroundsPoolMinion?: unknown;
 }
@@ -49,6 +50,14 @@ export interface CardInfo {
   /** Types du serviteur : `MURLOC`, `PIRATE`... */
   races: string[];
   cardClass: string;
+  /**
+   * `dbfId` du heros de base quand cette carte est un skin.
+   *
+   * C'est la seule facon sure de regrouper les skins : retirer le suffixe
+   * `_SKIN_x` du cardId donne un resultat faux pour certains heros, par exemple
+   * `TB_BaconShop_HERO_201_SKIN_D` dont la base est `BG20_HERO_201`.
+   */
+  skinParentDbfId: number | null;
   isBgHero: boolean;
   isBgPoolMinion: boolean;
 }
@@ -92,6 +101,8 @@ export function buildIndex(french: readonly RawCard[], english: readonly RawCard
       techLevel: typeof card.techLevel === 'number' ? card.techLevel : null,
       races: Array.isArray(card.races) ? card.races.filter((r): r is string => typeof r === 'string') : [],
       cardClass: asString(card.cardClass),
+      skinParentDbfId:
+        typeof card.battlegroundsSkinParentId === 'number' ? card.battlegroundsSkinParentId : null,
       isBgHero: card.battlegroundsHero === true,
       isBgPoolMinion: card.isBattlegroundsPoolMinion === true,
     });
@@ -139,6 +150,16 @@ export class CardIndex {
 
   byDbfId(dbfId: number): CardInfo | undefined {
     return this.#byDbfId.get(dbfId);
+  }
+
+  /**
+   * Heros de base d'un skin, ou la carte elle-meme si ce n'en est pas un.
+   * Suit `battlegroundsSkinParentId`, qui couvre les 653 heros a skin connus.
+   */
+  baseHero(cardId: string): string {
+    const parent = this.#byCardId.get(cardId)?.skinParentDbfId;
+    if (parent === null || parent === undefined) return cardId;
+    return this.#byDbfId.get(parent)?.cardId ?? cardId;
   }
 
   /** Nom francais, ou le `cardId` lui-meme si la carte est inconnue. */

@@ -81,6 +81,17 @@ chaque extension avec `npm run cards`.
 Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas : sans index, la CLI
 affiche les `cardId` bruts et continue de fonctionner.
 
+### Statistiques
+`src/stats/` ne fait que lire la base et rendre des objets simples : vue d'ensemble, chronologie avec
+moyenne glissante, table des héros, répartition des places, courbe de montée de taverne et type
+dominant du plateau final. Tout accepte les mêmes filtres (période, héros, mode, parties inachevées).
+
+Aucune dépendance à une interface : `npm run stats` les affiche dans le terminal, l'application
+Electron s'en servira telle quelle.
+
+`src/db/hero-base.ts` normalise un héros vers son héros de base. Import et statistiques passent par
+**le même** résolveur, sans quoi un héros à skin apparaîtrait joué mais jamais proposé.
+
 ### Cote (MMR)
 `src/ratings/` tient `data/ratings.csv` à jour : une ligne par partie, la plus ancienne d'abord, avec
 la date de fin déjà remplie et la cote à compléter. `npm run ratings` fait les deux sens en un passage,

@@ -128,4 +128,14 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_boards_card    ON boards(card_id);
     `,
   },
+  {
+    name: 'cards.skin_parent_dbf_id',
+    sql: `
+      -- HearthstoneJSON donne le heros de base d'un skin par son dbfId.
+      -- Indispensable : retirer le suffixe _SKIN_x du cardId donne un resultat
+      -- faux pour certains heros (TB_BaconShop_HERO_201_SKIN_D -> BG20_HERO_201).
+      ALTER TABLE cards ADD COLUMN skin_parent_dbf_id INTEGER;
+      CREATE INDEX idx_cards_skin_parent ON cards(skin_parent_dbf_id);
+    `,
+  },
 ];

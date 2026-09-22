@@ -12,6 +12,7 @@ import { importCards } from '../src/cards/import-cards.js';
 import { parseCardsArgs } from '../src/cli/cards.js';
 import { openDatabase, type Db } from '../src/db/database.js';
 import { resolveHeroBaseId } from '../src/db/import.js';
+import { createHeroBaseResolver, type HeroBaseResolver } from '../src/db/hero-base.js';
 import { formatSummary } from '../src/cli/parse.js';
 import type { GameSummary } from '../src/types.js';
 
@@ -19,7 +20,7 @@ import type { GameSummary } from '../src/types.js';
 const FRENCH = [
   { id: 'BG36_760', dbfId: 133075, name: 'Capitaine Macaron', type: 'MINION', techLevel: 4, races: ['MURLOC', 'PIRATE'], cardClass: 'NEUTRAL', isBattlegroundsPoolMinion: true },
   { id: 'BG22_HERO_000', dbfId: 77987, name: 'Tavish Foudrepique', type: 'HERO', cardClass: 'NEUTRAL', battlegroundsHero: true },
-  { id: 'BG22_HERO_000_SKIN_A', dbfId: 98808, name: 'Maître-éclaireur Tavish', type: 'HERO', cardClass: 'NEUTRAL' },
+  { id: 'BG22_HERO_000_SKIN_A', dbfId: 98808, name: 'Maître-éclaireur Tavish', type: 'HERO', cardClass: 'NEUTRAL', battlegroundsSkinParentId: 77987 },
   { id: 'BG30_MagicItem_547', dbfId: 112399, name: 'Cercueil confortable', type: 'BATTLEGROUND_TRINKET', cardClass: 'NEUTRAL' },
   { name: 'sans identifiant' },
 ];
@@ -47,6 +48,7 @@ describe('buildIndex', () => {
       techLevel: 4,
       races: ['MURLOC', 'PIRATE'],
       cardClass: 'NEUTRAL',
+      skinParentDbfId: null,
       isBgHero: false,
       isBgPoolMinion: true,
     });
@@ -154,31 +156,40 @@ describe('resolveHeroBaseId', () => {
     heroSkinParentDbfId: 77987,
   } as GameSummary;
 
-  const lookup = (dbfId: number): string | undefined => index().byDbfId(dbfId)?.cardId;
+  /** Resolveur adosse a une base contenant les cartes d'exemple. */
+  function resolver(): HeroBaseResolver {
+    const db = openDatabase(':memory:');
+    importCards(db, buildIndex(FRENCH, ENGLISH));
+    return createHeroBaseResolver(db);
+  }
 
   it('prefere le heros designe par BACON_SKIN_PARENT_ID', () => {
-    expect(resolveHeroBaseId(summary, lookup)).toBe('BG22_HERO_000');
+    expect(resolveHeroBaseId(summary, resolver())).toBe('BG22_HERO_000');
   });
 
-  it('retombe sur le retrait du suffixe quand le dbfId est inconnu', () => {
-    // 16 heros sur 653 ne donnent pas une carte existante ainsi, mais le
-    // regroupement reste coherent.
-    expect(resolveHeroBaseId({ ...summary, heroSkinParentDbfId: 999_999 }, lookup)).toBe(
-      'BG22_HERO_000',
-    );
+  it('se rabat sur la base de cartes quand le log ne dit rien', () => {
     expect(
       resolveHeroBaseId(
-        { heroChosen: 'TB_BaconShop_HERO_44_SKIN_C', heroSkinParentDbfId: null } as GameSummary,
-        lookup,
+        { heroChosen: 'BG22_HERO_000_SKIN_A', heroSkinParentDbfId: null } as GameSummary,
+        resolver(),
       ),
-    ).toBe('TB_BaconShop_HERO_44');
+    ).toBe('BG22_HERO_000');
+  });
+
+  it('retombe sur le retrait du suffixe pour une carte inconnue', () => {
+    expect(
+      resolveHeroBaseId(
+        { heroChosen: 'BG99_HERO_001_SKIN_Z', heroSkinParentDbfId: null } as GameSummary,
+        resolver(),
+      ),
+    ).toBe('BG99_HERO_001');
   });
 
   it('laisse intact un heros sans skin', () => {
     expect(
       resolveHeroBaseId(
         { heroChosen: 'BG26_HERO_104', heroSkinParentDbfId: null } as GameSummary,
-        lookup,
+        resolver(),
       ),
     ).toBe('BG26_HERO_104');
   });
