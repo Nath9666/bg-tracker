@@ -21,10 +21,16 @@ Verbose=True
 - Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
 - Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
 - Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier ; probablement un seuil de taille)*.
+- **Un dossier de session ne contient jamais les deux fichiers à la fois.** Relevé sur les 6 sessions
+  présentes : chacune a soit `Power.log`, soit `Power_old.log`. Le renommage a été **observé en direct** :
+  le `Power.log` de `Hearthstone_2026_09_22_00_28_13`, lu à 177 Mo pendant que l'utilisateur jouait, est
+  devenu `Power_old.log` à 226 Mo à la fermeture du jeu, sans qu'un nouveau `Power.log` soit créé. La
+  règle « lire `Power_old.log` puis `Power.log` » reste la bonne, mais en pratique il n'y en a qu'un.
 - ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie. Mesuré sur la session `Hearthstone_2026_09_22_00_28_13` : un seul `Power.log` de **177 Mo** (1 305 659 lignes) contenant **6 `CREATE_GAME` pour 5 `STATE=COMPLETE`** (la 6ᵉ partie était en cours), toutes en `GT_BATTLEGROUNDS`, et **aucun `Power_old.log`**. La rotation n'est donc pas un simple seuil à 150 Mo *(déclencheur toujours à déterminer)*. Le découpage se fait sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
 - Une session peut donc se terminer sur une partie **incomplète** (`CREATE_GAME` sans `STATE=COMPLETE`), si le joueur est encore en partie ou si le jeu a été fermé brutalement.
 - **Règle :** pour une session, lire `Power_old.log` puis `Power.log`, dans cet ordre, comme un seul flux continu.
 - Taille : environ **40 Mo et 300 000 lignes pour une partie de 25 minutes**. Lecture en flux obligatoire.
+- ⚠️ **Hearthstone supprime les anciennes sessions.** Constaté : le dossier `Hearthstone_2026_09_19_02_47_25`, d'où vient le log de référence, a disparu du dossier `Logs\` en quelques jours. C'est toute la raison d'être de la phase 0 : sans archivage, les parties sont perdues.
 - Fins de ligne Windows (`\r\n`). Encodage UTF-8 (noms avec accents, cyrilliques, apostrophes typographiques `’`).
 
 ## Format d'une ligne
@@ -98,12 +104,30 @@ Trois formes coexistent, le parseur doit gérer les trois :
 
 Pour la forme 2, construire une table nom → id de l'entité joueur à partir de `DebugPrintGame` (`PlayerID=…, PlayerName=…`) et des entités `Player` de `CREATE_GAME`. Attention : les noms peuvent contenir des espaces (`Entity=Bob le barman`, 150 lignes) et des caractères non latins.
 
-⚠️ **Tous les noms référencés ne sont pas définis.** Le log de référence référence **10 noms** en forme 2
+✅ **Un nom inconnu désigne toujours le joueur fictif.** Le log de référence référence **10 noms** en forme 2
 (`GameEntity`, `Bob le barman`, `AkiLif#2498`, `LazyTurtle`, `ShadowStorm`, `MarshallMN`, `MrSomething`,
-`SporeGasm`, `CHLAMYDIAE`, `БойцоваяЖаба`) alors qu'il ne définit que **2 entités `Player`**. Les noms d'adversaires
-apparaissent pendant les combats, portent des tags de joueur (`CORPSES`, `NUM_MINIONS_PLAYER_KILLED_THIS_TURN`,
-`BACON_CURRENT_COMBAT_PLAYER_ID`) et n'apparaissent **jamais** dans un `entityName=`. Hypothèse à vérifier :
-l'entité du joueur fictif est réutilisée comme mandataire et change de nom à chaque combat.
+`SporeGasm`, `CHLAMYDIAE`, `БойцоваяЖаба`) alors qu'il ne définit que **2 entités `Player`**
+(2 lignes `tag=CARDTYPE value=PLAYER`, pas une de plus).
+
+L'explication est dans cette ligne :
+
+```
+TAG_CHANGE Entity=LazyTurtle tag=HERO_ENTITY value=80
+```
+
+80 est l'entité de **Bob le barman**. Autrement dit `LazyTurtle` et `Bob le barman` sont **la même entité** :
+celle du joueur fictif, que le log **renomme d'après le héros qu'elle contrôle**. Pendant le recrutement elle
+s'appelle « Bob le barman », pendant un combat elle prend le pseudo de l'adversaire affronté. Les occurrences
+des pseudos se succèdent d'ailleurs par blocs disjoints, un bloc par combat.
+
+**Règle de résolution**, appliquée par le `GameStateMachine` et vérifiée sur 7 parties (0 nom non résolu) :
+
+1. `GameEntity` → l'entité de jeu ;
+2. un nom égal à un `PlayerName` de `DebugPrintGame` → l'entité `Player` correspondante ;
+3. **tout autre nom** → l'entité du joueur fictif.
+
+Conséquence utile pour la phase 2 : le nom courant du joueur fictif **donne l'adversaire du combat en cours**,
+et son tag `HERO_ENTITY` donne l'entité du héros adverse.
 
 ⚠️ **Le bloc de la forme 3 ne se parse pas avec une paire de crochets.** `entityName` peut contenir des
 crochets : `UNKNOWN ENTITY [cardType=INVALID]` (1 313 lignes), `TagTransferPlayerEnchant [DNT]` (220),
@@ -186,7 +210,7 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
 
 - `PLAYER_LEADERBOARD_PLACE` sur l'entité héros : place actuelle, mise à jour en continu.
 - Élimination : `TAG_CHANGE Entity=<joueur> tag=PLAYSTATE value=LOST` (précédé de `LOSING`). **Place finale = dernière valeur de `PLAYER_LEADERBOARD_PLACE` sur le héros du joueur à ce moment.**
-- Victoire (1re place) : `PLAYSTATE value=WON` pour le joueur *(à vérifier sur une partie gagnée)*.
+- Victoire (1re place) : sur une partie gagnée observée (session du 22/09, dernière partie), `PLAYER_LEADERBOARD_PLACE` vaut bien **1** sur le héros du joueur. Le `PLAYSTATE` associé reste *(à confirmer)*, mais la place suffit : c'est la même lecture que pour une défaite.
 - Fin de partie : `TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE`. Des lignes peuvent encore suivre, à ignorer jusqu'au prochain `CREATE_GAME`. Mesuré sur le fichier de référence : **2 lignes traînent 48 secondes après** le `COMPLETE` de 03:13:48, un `DebugPrintPowerList() - Count=1` et un `TAG_CHANGE tag=PLAYER_TRIPLES` sur une copie de héros adverse en `SETASIDE`. Le fichier ne se termine donc pas sur le `COMPLETE`.
 - Dégâts reçus : tag `DAMAGE` sur le héros (valeur cumulée).
 

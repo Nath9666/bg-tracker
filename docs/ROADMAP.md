@@ -19,8 +19,8 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Initialisation du projet (TypeScript strict, ESM, Vitest, scripts npm)
 - [x] Lecteur de session : lit `Power_old.log` puis `Power.log`, en flux
 - [x] Parseur de lignes `GameState` → événements typés
-- [ ] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
-- [ ] Découpage en parties et filtrage Champs de bataille
+- [x] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
+- [x] Découpage en parties (le filtrage Champs de bataille se fait à l'extraction)
 - [ ] Extraction du résumé de partie
 - [ ] CLI `npm run parse -- <dossier>`
 - [ ] Test de référence sur `fixtures/sample-game-1` qui passe
