@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+data/
+
+# Les logs bruts sont trop gros pour Git : seuls les extraits de tests/fixtures/ sont versionnes.
+fixtures/**/*.log
+*.log
+!tests/fixtures/**
+
+.DS_Store
+Thumbs.db

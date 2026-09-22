@@ -1,0 +1,7 @@
+# Normalisation des fins de ligne : LF dans le depot, pour tout le code et la doc.
+* text=auto eol=lf
+
+# Les extraits de log sont compares octet par octet dans les tests : Git ne doit
+# jamais toucher a leurs fins de ligne (les vrais Power.log sont en CRLF).
+*.log -text
+*.gz -text binary

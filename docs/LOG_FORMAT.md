@@ -1,0 +1,141 @@
+# Format de Power.log (mode Champs de bataille)
+
+Ce document rassemble ce qui a été **vérifié sur un vrai log** (build `251952`, client en français). Tout ce qui n'est pas vérifié est marqué *(à vérifier)*. Compléter ce fichier à chaque découverte.
+
+## Activation des logs
+
+Fichier `%LocalAppData%\Blizzard\Hearthstone\log.config`, déjà configuré chez l'utilisateur. La section indispensable :
+
+```ini
+[Power]
+LogLevel=1
+FilePrinting=True
+ConsolePrinting=False
+ScreenPrinting=False
+Verbose=True
+```
+
+## Emplacement et rotation des fichiers
+
+- Les logs sont dans `<dossier d'installation Hearthstone>\Logs\`, avec **un sous-dossier par session de jeu**, nommé `Hearthstone_AAAA_MM_JJ_HH_MM_SS` (vérifié : `Hearthstone_2026_09_22_00_28_13`). C'est la seule source de la **date** des lignes, qui ne portent que l'heure.
+- Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
+- Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
+- Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier)*.
+- **Règle :** pour une session, lire `Power_old.log` puis `Power.log`, dans cet ordre, comme un seul flux continu.
+- Taille : environ **40 Mo et 300 000 lignes pour une partie de 25 minutes**. Lecture en flux obligatoire.
+- Fins de ligne Windows (`\r\n`). Encodage UTF-8 (noms avec accents, cyrilliques, apostrophes typographiques `’`).
+
+## Format d'une ligne
+
+```
+D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=3 
+```
+
+- `D` : niveau de log.
+- `02:48:30.3211164` : heure locale **sans date**. La date vient du nom du dossier de session. Gérer le passage de minuit (si l'heure diminue, on passe au jour suivant).
+- `GameState.DebugPrintPower()` : la source. Voir ci-dessous.
+- L'**indentation** après ` - ` indique l'imbrication (un `TAG_CHANGE` à l'intérieur d'un `BLOCK_START`, ou les tags listés sous un `FULL_ENTITY`).
+- Beaucoup de lignes se terminent par un espace avant `\r`. Toujours faire un `trim`.
+
+## Sources de lignes
+
+| Source | Utilité |
+|---|---|
+| `GameState.DebugPrintPower()` | **Source principale.** Tous les événements de la partie. |
+| `GameState.DebugPrintGame()` | Métadonnées : `BuildNumber`, `GameType`, `FormatType`, `ScenarioID`, `PlayerID=…, PlayerName=…` |
+| `GameState.DebugPrintEntityChoices()` | Un choix proposé au joueur (héros, découverte, triple, bibelot) avec la liste des options |
+| `GameState.SendChoices()` / `GameState.DebugPrintEntitiesChosen()` | L'option choisie |
+| `GameState.DebugPrintOptions()` | Les actions disponibles à un instant donné (fin de tour, pouvoir héroïque, achat…). Très utile pour la phase IA. |
+| `GameState.SendOption()` | L'action effectivement jouée (`selectedOption`, `selectedTarget`, `selectedPosition`) |
+| `PowerTaskList.DebugPrintPower()` | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. |
+| `PowerProcessor.*`, `PowerTaskList.DebugDump()` | Interne. À ignorer. |
+
+## Types d'événements (dans `GameState.DebugPrintPower()`)
+
+Fréquences observées sur une partie : `TAG_CHANGE` ~63 000, `BLOCK_START` ~3 300, `FULL_ENTITY` ~2 450, `SHOW_ENTITY` ~1 200, `HIDE_ENTITY` ~1 100, `META_DATA` ~1 000, `SUB_SPELL_START` ~380, `CHANGE_ENTITY` 2.
+
+- `CREATE_GAME` : début de partie. Suivi de `GameEntity EntityID=…` puis d'une entité `Player EntityID=… PlayerID=… GameAccountId=[hi=… lo=…]` par joueur, chacun avec ses tags indentés.
+- `FULL_ENTITY - Creating ID=37 CardID=TB_BaconShop_HERO_PH` : création d'une entité, suivie de ses tags indentés (`tag=… value=…`). `CardID` peut être vide si la carte est cachée.
+- `SHOW_ENTITY - Updating Entity=247 CardID=…` : révèle ou met à jour la carte d'une entité, suivi de tags.
+- `HIDE_ENTITY - Entity=[…] tag=ZONE value=…` : cache une entité.
+- `CHANGE_ENTITY` : transforme une entité en une autre carte.
+- `TAG_CHANGE Entity=<réf> tag=<nom> value=<valeur>` : modifie un tag.
+- `BLOCK_START BlockType=… Entity=…` / `BLOCK_END` : regroupent des événements (TRIGGER, PLAY, ATTACK, POWER…).
+
+### Formes de référence à une entité (`Entity=`)
+
+Trois formes coexistent, le parseur doit gérer les trois :
+
+1. Un nombre : `Entity=19`
+2. Un nom de joueur ou `GameEntity` : `Entity=AkiLif#2498`, `Entity=GameEntity`, `Entity=Bob le barman`
+3. Un bloc détaillé : `Entity=[entityName=Maître-éclaireur Tavish id=89 zone=PLAY zonePos=0 cardId=BG22_HERO_000_SKIN_A player=7]` → utiliser `id`.
+
+Pour la forme 2, construire une table nom → id de l'entité joueur à partir de `DebugPrintGame` (`PlayerID=…, PlayerName=…`) et des entités `Player` de `CREATE_GAME`. Attention : les noms peuvent contenir des espaces et des caractères non latins.
+
+Tags : certains ont un nom (`ZONE`, `ATK`), d'autres seulement un numéro (`tag=1068`). Garder les deux sous forme de chaîne.
+
+## Faits propres aux Champs de bataille
+
+### Métadonnées
+
+- `GameType=GT_BATTLEGROUNDS` identifie une partie Champs de bataille. `FormatType=FT_WILD` et `ScenarioID=3459` observés en Solo.
+- Mode Solo vs Duo : *(à vérifier)*. Le tag `BACON_DUOS_PUNISH_LEAVERS` est présent sur `GameEntity` même dans une partie qui semble Solo, il ne suffit donc pas. Chercher d'autres indices (`ScenarioID`, nombre de joueurs, tags `BACON_DUO*` sur les joueurs).
+- `GAME_SEED` sur `GameEntity` : candidat pour identifier une partie de façon stable.
+
+### Joueurs
+
+- Deux entités `Player` seulement dans le log. Celle de l'utilisateur a un `GameAccountId` non nul (`PlayerID=7` dans l'exemple). L'autre (`GameAccountId=[hi=0 lo=0]`, `PlayerID=15`) porte Bob et les **copies des héros adverses**.
+- Les héros adverses apparaissent donc comme des entités avec `player=15` (ou parfois `player=7` en zone `SETASIDE`, voir le piège plus bas).
+
+### Choix du héros
+
+- C'est un `DebugPrintEntityChoices` avec `ChoiceType=MULLIGAN`. Les options sont les `Entities[i]`, le choix est dans `SendChoices` (`m_chosenEntities[0]`).
+- Ensuite, `TAG_CHANGE Entity=<joueur> tag=HERO_ENTITY value=<id>` donne l'id de l'entité héros du joueur (`89` dans l'exemple). **Toutes les stats du joueur se lisent sur cette entité héros.**
+- Les skins changent le `cardId` (`BG22_HERO_000_SKIN_A`). Pour regrouper par héros, normaliser vers le héros de base (tag `BACON_SKIN_PARENT_ID` ou suppression du suffixe `_SKIN_X`, *à vérifier*).
+
+### Tours
+
+- `TAG_CHANGE Entity=GameEntity tag=TURN value=N` : le compteur avance à **chaque phase** (recrutement, puis combat).
+- Tour de jeu du joueur ≈ `(TURN + 1) / 2`. Exemple : `TURN=26` à l'élimination = tour 13.
+
+### Tier de taverne
+
+- Tag `PLAYER_TECH_LEVEL` sur **l'entité héros du joueur** (id obtenu via `HERO_ENTITY`).
+- ⚠️ **Piège :** d'autres entités avec `player=7` reçoivent aussi `PLAYER_TECH_LEVEL` : `TagTransferPlayerEnchant` (copie retardée du tier), et des copies de héros adverses en zone `SETASIDE` avec `value=0` à chaque combat. Toujours filtrer sur l'id du héros du joueur.
+- Ne pas confondre avec `TECH_LEVEL`, qui est le tier d'un serviteur.
+
+### Classement et fin de partie
+
+- `PLAYER_LEADERBOARD_PLACE` sur l'entité héros : place actuelle, mise à jour en continu.
+- Élimination : `TAG_CHANGE Entity=<joueur> tag=PLAYSTATE value=LOST` (précédé de `LOSING`). **Place finale = dernière valeur de `PLAYER_LEADERBOARD_PLACE` sur le héros du joueur à ce moment.**
+- Victoire (1re place) : `PLAYSTATE value=WON` pour le joueur *(à vérifier sur une partie gagnée)*.
+- Fin de partie : `TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE`. Des lignes peuvent encore suivre, à ignorer jusqu'au prochain `CREATE_GAME`.
+- Dégâts reçus : tag `DAMAGE` sur le héros (valeur cumulée).
+
+### Ressources
+
+- Or : `TAG_CHANGE Entity=<joueur> tag=RESOURCES` (or total du tour) et `RESOURCES_USED` (or dépensé). Or restant = `RESOURCES - RESOURCES_USED`.
+
+### Choix en cours de partie
+
+- `DebugPrintEntityChoices` avec `ChoiceType=GENERAL`. La source du choix indique son type :
+  - `Source=[… cardId=TB_BaconShop_Triples_01 …]` : récompense de triple (découverte d'un serviteur).
+  - `Source=[… cardId=BG30_Trinket_1st …]` : bibelot inférieur. Options en `BG30_MagicItem_*` / `BG36_MagicItem_*`.
+  - Autres sources à cataloguer au fil des parties.
+
+### Serviteurs et plateau
+
+- Serviteur : entité avec `CARDTYPE=MINION`, `CONTROLLER`, `ZONE` (`HAND`, `PLAY`, `SETASIDE`, `GRAVEYARD`, `REMOVEDFROMGAME`), `ZONE_POSITION`, `ATK`, `HEALTH`, `TECH_LEVEL`, `CARDRACE`.
+- Doré : suffixe `_G` dans le `cardId` (`BG36_511_G`), avec `BACON_TRIPLED_BASE_MINION_ID` *(à vérifier)*.
+- Pendant les combats, le jeu crée des **copies** des serviteurs (`COPIED_FROM_ENTITY_ID`). Le plateau « réel » du joueur est celui de la phase de recrutement ; utiliser `BACON_IN_COMBAT_PHASE` pour distinguer les phases *(à vérifier)*.
+- Boutique de Bob : les serviteurs proposés sont des entités contrôlées par l'autre joueur (`player=15`) en zone `PLAY` pendant le recrutement *(à vérifier)*. Un achat correspond à un changement de `CONTROLLER` vers le joueur.
+- Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby *(à vérifier)*.
+
+## Ce qui n'est PAS dans les logs
+
+- **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.
+- Les types de serviteurs du lobby ne sont pas donnés directement *(à confirmer)*.
+
+## Valeurs de référence (fixtures/sample-game-1)
+
+Voir `docs/phases/phase-1-parser.md`, section « Test de référence ».
