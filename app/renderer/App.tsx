@@ -69,6 +69,8 @@ export default function App(): JSX.Element {
   const [hero, setHero] = useState<string>('');
   const [donnees, setDonnees] = useState<Dashboard | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  /** Incremente pour forcer une relecture de la base. */
+  const [rechargement, setRechargement] = useState(0);
 
   const filtres = useMemo<StatsFilters>(() => {
     const valeur: StatsFilters = {};
@@ -91,7 +93,16 @@ export default function App(): JSX.Element {
     return () => {
       annule = true;
     };
-  }, [filtres]);
+  }, [filtres, rechargement]);
+
+  // La base change sous les pieds de la fenetre : chaque `npm run sync` y ajoute
+  // des parties. On relit en revenant sur la fenetre, ce qui couvre le cas
+  // courant : lancer la commande, puis revenir ici.
+  useEffect(() => {
+    const relire = (): void => setRechargement((valeur) => valeur + 1);
+    window.addEventListener('focus', relire);
+    return () => window.removeEventListener('focus', relire);
+  }, []);
 
   if (erreur !== null) {
     return (
@@ -134,6 +145,9 @@ export default function App(): JSX.Element {
           </button>
         ))}
         <span className="ecart" />
+        <button type="button" onClick={() => setRechargement((valeur) => valeur + 1)}>
+          Rafraîchir
+        </button>
         <select value={hero} onChange={(event) => setHero(event.target.value)}>
           <option value="">Tous les héros</option>
           {playedHeroes.map((option) => (

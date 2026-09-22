@@ -78,11 +78,6 @@ export function parseRatings(csv: string): RatingEntry[] {
   return entries;
 }
 
-/** Cotes deja saisies, indexees par horodatage. */
-function existingRatings(csv: string): Map<string, number> {
-  return new Map(parseRatings(csv).map((entry) => [entry.datetime, entry.rating]));
-}
-
 function quote(value: string): string {
   return value.includes(',') ? `"${value.replace(/"/g, '""')}"` : value;
 }
@@ -97,34 +92,43 @@ export interface TemplateResult {
 /**
  * Ecrit le fichier avec une ligne par partie, la plus ancienne d'abord.
  *
- * Les cotes deja saisies sont **conservees**, rattachees a leur horodatage. Une
- * ligne dont l'horodatage ne correspond a aucune partie connue est gardee elle
- * aussi : elle a pu etre saisie a la main.
+ * Les cotes deja saisies sont **replacees en face de leur partie**, par le meme
+ * rapprochement que `matchRatings`. C'est necessaire : l'horodatage d'une
+ * partie change quand elle se termine, puisqu'on affichait son debut tant
+ * qu'elle etait en cours. Sans ce replacement, une cote saisie entre-temps
+ * resterait orpheline et la partie paraitrait sans cote.
+ *
+ * Une saisie qui ne tombe sur aucune partie n'est pas perdue : elle reste en
+ * fin de fichier, signalee comme telle.
  */
 export async function writeRatingsTemplate(
   path: string,
   games: readonly RatedGame[],
+  toleranceMinutes = 90,
 ): Promise<TemplateResult> {
   const previous = await readFile(path, 'utf8').catch(() => '');
-  const filled = existingRatings(previous);
+  const entries = parseRatings(previous);
+  const matches = matchRatings(games, entries, toleranceMinutes);
 
-  const known = new Set(games.map((game) => game.datetime));
+  const byGame = new Map(matches.map((match) => [match.gameId, match.rating]));
+  // Par horodatage d'origine : deux parties peuvent porter la meme cote.
+  const placed = new Set(matches.map((match) => match.datetime));
+
   const lines: string[] = [HEADER];
   let added = 0;
   let kept = 0;
 
   for (const game of games) {
-    const rating = filled.get(game.datetime);
+    const rating = byGame.get(game.id);
     if (rating === undefined) added += 1;
     else kept += 1;
     lines.push(`${game.datetime},${rating ?? ''},${quote(game.label)}`);
   }
 
-  // Saisies manuelles qui ne tombent sur aucune partie : on ne les perd pas.
-  for (const [datetime, rating] of filled) {
-    if (known.has(datetime)) continue;
+  for (const entry of entries) {
+    if (placed.has(entry.datetime)) continue;
     kept += 1;
-    lines.push(`${datetime},${rating},${quote('saisie manuelle')}`);
+    lines.push(`${entry.datetime},${entry.rating},${quote('sans partie correspondante')}`);
   }
 
   await mkdir(dirname(path), { recursive: true });
@@ -135,6 +139,8 @@ export async function writeRatingsTemplate(
 export interface RatingMatch {
   gameId: string;
   rating: number;
+  /** Horodatage de la ligne d'origine, pour la retrouver dans le fichier. */
+  datetime: string;
   /** Ecart entre la cote saisie et la fin de la partie, en minutes. */
   gapMinutes: number;
 }
@@ -153,11 +159,19 @@ export function matchRatings(
 ): RatingMatch[] {
   const tolerance = toleranceMinutes * 60_000;
 
-  const pairs: { gameId: string; rating: number; gap: number; index: number }[] = [];
+  const pairs: {
+    gameId: string;
+    rating: number;
+    datetime: string;
+    gap: number;
+    index: number;
+  }[] = [];
   ratings.forEach((entry, index) => {
     for (const game of games) {
       const gap = Math.abs(Date.parse(game.datetime) - entry.time);
-      if (gap <= tolerance) pairs.push({ gameId: game.id, rating: entry.rating, gap, index });
+      if (gap <= tolerance) {
+        pairs.push({ gameId: game.id, rating: entry.rating, datetime: entry.datetime, gap, index });
+      }
     }
   });
 
@@ -174,6 +188,7 @@ export function matchRatings(
     matches.push({
       gameId: pair.gameId,
       rating: pair.rating,
+      datetime: pair.datetime,
       gapMinutes: Math.round(pair.gap / 60_000),
     });
   }

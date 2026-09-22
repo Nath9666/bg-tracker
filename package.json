@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "app": "npm run app:build && electron dist/app/main.cjs",
     "app:build": "node app/build.mjs && vite build --config app/vite.config.ts",
+    "sync": "tsx src/cli/sync.ts",
     "parse": "tsx src/cli/parse.ts",
     "import": "tsx src/cli/import.ts",
     "cards": "tsx src/cli/cards.ts",

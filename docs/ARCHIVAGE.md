@@ -123,6 +123,22 @@ schtasks /Delete /TN "BG Tracker - archivage" /F
    `C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker\scripts\archive-logs.cmd`.
 5. Onglet **Conditions** : décocher *N'exécuter que si l'ordinateur est sur secteur* sur un portable.
 
+## Après une session de jeu
+
+Une seule commande enchaîne les trois étapes, dans l'ordre :
+
+```bash
+npm run sync
+```
+
+Archivage, import en base, puis mise à jour et relecture de `data/ratings.csv`. Les étapes restent
+disponibles séparément (`npm run archive`, `npm run import`, `npm run ratings`), mais les oublier dans
+le bon ordre est la source d'erreur la plus courante : une cote saisie sans `npm run ratings` reste
+dans le fichier sans jamais arriver en base.
+
+Le tableau de bord relit la base **en revenant sur sa fenêtre**, et un bouton *Rafraîchir* est là pour
+le forcer : pas besoin de le relancer après un `npm run sync`.
+
 ## Relire l'archive
 
 Une session archivée se lit **exactement comme un dossier de logs d'origine** : le `SessionReader`

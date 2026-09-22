@@ -49,6 +49,7 @@ npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + en
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
 npm run app          # tableau de bord Electron (compile puis lance)
+npm run sync         # archive + importe + rattache les cotes, en une commande
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire
 npm run make-fixture # régénère tests/fixtures/sample-game-1.min.log

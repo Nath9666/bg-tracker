@@ -106,6 +106,37 @@ describe('writeRatingsTemplate', () => {
     expect(second).toEqual({ added: 2, kept: 1 });
   });
 
+  it('replace une cote quand l’horodatage de la partie a change', async () => {
+    // Cas reel : la cote est saisie pendant que la partie est encore en cours,
+    // donc en face de son heure de debut. Une fois la partie terminee, la ligne
+    // porte son heure de fin ; sans replacement, la cote resterait orpheline et
+    // la partie paraitrait sans cote.
+    const path = await tempFile();
+    const enCours: RatedGame = {
+      id: 'z',
+      datetime: '2026-09-22T18:55:40.487+02:00',
+      label: 'Sindragosa 7e (inachevée)',
+    };
+    await writeRatingsTemplate(path, [enCours]);
+    await writeFile(
+      path,
+      (await readFile(path, 'utf8')).replace('487+02:00,,', '487+02:00,4605,'),
+      'utf8',
+    );
+
+    const terminee: RatedGame = {
+      id: 'z',
+      datetime: '2026-09-22T19:13:57.895+02:00',
+      label: 'Sindragosa 7e',
+    };
+    const result = await writeRatingsTemplate(path, [terminee]);
+
+    const text = await readFile(path, 'utf8');
+    expect(text).toContain('2026-09-22T19:13:57.895+02:00,4605,Sindragosa 7e');
+    expect(text).not.toContain('18:55:40');
+    expect(result).toEqual({ added: 0, kept: 1 });
+  });
+
   it('ne perd pas une saisie qui ne correspond a aucune partie', async () => {
     const path = await tempFile();
     await writeFile(path, 'datetime,rating\n2020-01-01T00:00:00+02:00,7000\n', 'utf8');
@@ -114,7 +145,7 @@ describe('writeRatingsTemplate', () => {
     const text = await readFile(path, 'utf8');
 
     expect(text).toContain('2020-01-01T00:00:00+02:00,7000');
-    expect(text).toContain('saisie manuelle');
+    expect(text).toContain('sans partie correspondante');
   });
 });
 
@@ -122,7 +153,9 @@ describe('matchRatings', () => {
   it('rattache une cote a la partie du meme instant', () => {
     const matches = matchRatings(GAMES, parseRatings('2026-09-22T02:29:15.814+02:00,8412'));
 
-    expect(matches).toEqual([{ gameId: 'b', rating: 8412, gapMinutes: 0 }]);
+    expect(matches).toEqual([
+      { gameId: 'b', rating: 8412, datetime: '2026-09-22T02:29:15.814+02:00', gapMinutes: 0 },
+    ]);
   });
 
   it('accepte une saisie approximative, a la partie la plus proche', () => {
