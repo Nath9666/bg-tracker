@@ -1,0 +1,41 @@
+/** Mises en forme partagees par les vues. */
+
+export function place(value: number | null): string {
+  return value === null ? '—' : value.toFixed(2);
+}
+
+export function percent(value: number | null): string {
+  return value === null ? '—' : `${Math.round(value * 100)} %`;
+}
+
+export function turn(value: number | null): string {
+  return value === null ? '—' : value.toFixed(1);
+}
+
+export function shortDate(iso: string): string {
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
+
+export function dateTime(iso: string): string {
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
+}
+
+/** Noms francais des types de serviteur, tels qu'affiches en jeu. */
+const RACES: Record<string, string> = {
+  BEAST: 'bête',
+  DEMON: 'démon',
+  DRAGON: 'dragon',
+  ELEMENTAL: 'élémentaire',
+  MECHANICAL: 'mécanique',
+  MURLOC: 'murloc',
+  NAGA: 'naga',
+  PIRATE: 'pirate',
+  QUILBOAR: 'molosse-épine',
+  UNDEAD: 'mort-vivant',
+  ALL: 'tous types',
+  aucun: 'aucun type',
+};
+
+export function raceName(race: string): string {
+  return RACES[race] ?? race.toLowerCase();
+}

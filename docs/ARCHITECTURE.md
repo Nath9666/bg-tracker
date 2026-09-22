@@ -36,6 +36,8 @@ bg-tracker/
 │   ├── cli/                  # commandes npm run …
 │   └── types.ts
 ├── app/                      # Electron (phases 3-4)
+│   ├── main/                 # processus principal + preload
+│   └── renderer/             # interface React
 ├── ml/                       # Python (phase 5)
 └── tests/
 ```
@@ -80,6 +82,16 @@ chaque extension avec `npm run cards`.
 
 Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas : sans index, la CLI
 affiche les `cardId` bruts et continue de fonctionner.
+
+### Application Electron
+`app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).
+Le rendu n'a **ni Node ni accès à SQLite** : `contextIsolation` est activé, `nodeIntegration`
+désactivé, et le preload n'expose qu'une seule fonction, `dashboard(filtres)`.
+
+Le processus principal appelle les mêmes fonctions de `src/stats` que `npm run stats` : une seule
+source pour les deux surfaces.
+
+`npm run app` compile (esbuild pour le principal et le preload, Vite pour le rendu) puis lance.
 
 ### Statistiques
 `src/stats/` ne fait que lire la base et rendre des objets simples : vue d'ensemble, chronologie avec

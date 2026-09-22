@@ -1,0 +1,180 @@
+:root {
+  --fond: #14121c;
+  --carte: #1d1a29;
+  --bord: #2e2a3f;
+  --texte: #e8e4f2;
+  --attenue: #9a93b3;
+  --accent: #c9a227;
+  --bon: #5ec27a;
+  --mauvais: #d1636b;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  letter-spacing: 0.3px;
+}
+
+header p {
+  margin: 0 0 20px;
+  color: var(--attenue);
+}
+
+/* --- filtres --- */
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.filtres button,
+.filtres select {
+  background: var(--carte);
+  color: var(--texte);
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.filtres button:hover,
+.filtres select:hover {
+  border-color: var(--accent);
+}
+
+.filtres button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1b1608;
+  font-weight: 600;
+}
+
+.filtres .ecart {
+  flex: 1;
+}
+
+/* --- indicateurs --- */
+.indicateurs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.indicateur {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.indicateur .valeur {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.indicateur .libelle {
+  color: var(--attenue);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* --- sections --- */
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: 16px;
+}
+
+section {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+section h2 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+section .aide {
+  margin: 0 0 14px;
+  color: var(--attenue);
+  font-size: 12px;
+}
+
+/* --- tableaux --- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--bord);
+}
+
+/* Les deux premieres colonnes sont du texte : a gauche. Le reste est
+   numerique et se lit mieux aligne a droite. */
+th:first-child,
+td:first-child,
+th:nth-child(2),
+td:nth-child(2) {
+  text-align: left;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 40%;
+}
+
+thead th {
+  color: var(--attenue);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.defile {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.vide {
+  color: var(--attenue);
+  text-align: center;
+  padding: 32px 0;
+}

@@ -21,12 +21,15 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 **Phase en cours : Phase 3 — Tableau de bord d'analyse.**
 Les phases 0 (archivage), 1 (parseur hors ligne) et 2 (base de données) sont terminées.
 
+⚠️ `better-sqlite3` est un module natif. Après un `npm install`, si l'application Electron se plaint
+d'un `NODE_MODULE_VERSION`, le recompiler : `npx @electron/rebuild -f -w better-sqlite3`.
+
 ## Stack
 
 - **Node.js 20+ / TypeScript** en mode `strict`, modules ESM.
 - **Vitest** pour les tests.
 - **better-sqlite3** pour le stockage (à partir de la phase 2).
-- **Electron** pour l'application et l'overlay (phases 3 et 4).
+- **Electron** pour l'application et l'overlay (phases 3 et 4), avec **React**, **Vite** et **Recharts**.
 - **Python** (pandas, PyTorch) pour la phase IA uniquement, qui lit la base SQLite.
 - Données de cartes : **HearthstoneJSON** (base de cartes en JSON, locale `frFR` et `enUS`).
 
@@ -45,6 +48,7 @@ npm run import -- <dossier>                   # importe les parties en base SQLi
 npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
+npm run app          # tableau de bord Electron (compile puis lance)
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire
 npm run make-fixture # régénère tests/fixtures/sample-game-1.min.log

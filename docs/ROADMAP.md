@@ -41,9 +41,9 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 **Critère de fin :** toutes les parties archivées sont en base, sans doublon.
 
-## Phase 3 — Tableau de bord d'analyse ← EN COURS
+## Phase 3 — Tableau de bord d'analyse ✓
 
-- [ ] Application Electron (front React ou Angular) — les analyses existent, il reste l'interface (`npm run stats` les affiche en attendant)
+- [x] Application Electron (front React, Vite, Recharts) — `npm run app`
 - [x] Évolution de la cote et de la place moyenne dans le temps
 - [x] Place moyenne par héros, taux de sélection quand il est proposé
 - [x] Répartition des places finales, taux de top 4
@@ -51,9 +51,9 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Type dominant du plateau final vs résultat
 - [x] Filtres : période, mode (Solo/Duo), héros
 
-**Critère de fin :** l'utilisateur peut analyser ses parties sans ouvrir la base.
+**Critère de fin :** l'utilisateur peut analyser ses parties sans ouvrir la base. ✅
 
-## Phase 4 — Mode en direct et overlay
+## Phase 4 — Mode en direct et overlay ← EN COURS
 
 - [ ] Suivi de `Power.log` en temps réel, avec gestion de la rotation vers `Power_old.log`
 - [ ] Réutilisation du même modèle d'entités qu'en phase 1, alimenté en continu
