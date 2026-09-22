@@ -198,7 +198,9 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
 ### Tours
 
 - `TAG_CHANGE Entity=GameEntity tag=TURN value=N` : le compteur avance à **chaque phase** (recrutement, puis combat).
-- Tour de jeu du joueur ≈ `(TURN + 1) / 2`. Exemple : `TURN=26` à l'élimination = tour 13.
+- Tour de jeu du joueur = `⌊(TURN + 1) / 2⌋`. Vérifié : `TURN=3` → tour 2, `TURN=9` → tour 5,
+  `TURN=13` → tour 7, `TURN=19` → tour 10, `TURN=26` → tour 13. La partie entière est nécessaire :
+  `(26+1)/2` vaut 13,5, c'est bien la partie entière qui donne le 13 attendu.
 
 ### Tier de taverne
 
@@ -224,6 +226,28 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
   - `Source=[… cardId=TB_BaconShop_Triples_01 …]` : récompense de triple (découverte d'un serviteur).
   - `Source=[… cardId=BG30_Trinket_1st …]` : bibelot inférieur. Options en `BG30_MagicItem_*` / `BG36_MagicItem_*`.
   - Autres sources à cataloguer au fil des parties.
+
+### Identifier les héros adverses
+
+Le lobby compte 8 joueurs : l'utilisateur et **7 adversaires**. Leurs héros ne se trouvent ni par le
+contrôleur, ni par le `cardId`.
+
+- **Filtrer sur `CONTROLLER` = joueur fictif ne marche pas.** Ça ramène 9 `cardId` : les 7 adversaires,
+  plus **Bob** (`TB_BaconShopBob`) et le héros de remplacement (`TB_BaconShop_HERO_PH`).
+- **Et les copies de combat portent `CONTROLLER` = joueur.** Chaque héros adverse existe en plusieurs
+  entités (jusqu'à 7 pour une seule carte), certaines contrôlées par l'utilisateur.
+
+✅ **Le bon critère est `PLAYER_LEADERBOARD_PLACE`** : seuls les héros des vrais joueurs du lobby
+portent une place au classement. Ni Bob, ni le remplacement, ni les copies ne l'ont.
+
+```
+heros adverses = entites  CARDTYPE=HERO
+                 et ayant un tag PLAYER_LEADERBOARD_PLACE
+                 et dont le cardId n'est pas celui du heros du joueur
+```
+
+Vérifié sur 11 parties : **exactement 7 adversaires à chaque fois**, sans aucune liste noire de
+`cardId`.
 
 ### Serviteurs et plateau
 

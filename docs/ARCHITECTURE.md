@@ -75,6 +75,11 @@ Maintient l'état d'une partie en cours :
 ### GameExtractor
 Transforme l'état et les événements métier en objets `GameSummary`, `TurnRecord`, `BoardSnapshot`, `PickRecord`.
 
+Il **suit le flux d'événements en parallèle du `GameStateMachine`** plutôt que de lire l'état final :
+le tour d'une montée de palier, ou les options d'une découverte, n'existent qu'à l'instant où la ligne
+passe. `LogClock` date les lignes, qui ne portent que l'heure, à partir de la date du dossier de
+session, en gérant le passage de minuit.
+
 ## Schéma SQLite (phase 2)
 
 ```sql

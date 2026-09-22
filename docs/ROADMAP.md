@@ -22,7 +22,7 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Parseur de lignes `GameState` → événements typés
 - [x] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
 - [x] Découpage en parties (le filtrage Champs de bataille se fait à l'extraction)
-- [ ] Extraction du résumé de partie
+- [x] Extraction du résumé de partie
 - [ ] CLI `npm run parse -- <dossier>`
 - [ ] Test de référence sur `fixtures/sample-game-1` qui passe
 
