@@ -41,6 +41,12 @@ export interface GameSummary {
   heroOffered: string[];
   /** cardId du heros retenu. */
   heroChosen: string;
+  /**
+   * `BACON_SKIN_PARENT_ID` du heros : le `dbfId` du heros de base quand le
+   * joueur a equipe un skin. `null` sinon. C'est la seule facon sure de
+   * regrouper les skins d'un meme heros (voir docs/LOG_FORMAT.md).
+   */
+  heroSkinParentDbfId: number | null;
   finalPlace: number | null;
   /** Tour de jeu = (TURN + 1) / 2. */
   finalTurn: number | null;

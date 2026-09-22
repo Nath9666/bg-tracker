@@ -42,6 +42,7 @@ npm run lint         # ESLint
 npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
 npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
 npm run import -- <dossier>                   # importe les parties en base SQLite
+npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire
 npm run make-fixture # régénère tests/fixtures/sample-game-1.min.log

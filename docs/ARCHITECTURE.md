@@ -72,6 +72,15 @@ Maintient l'état d'une partie en cours :
 
 Émet des événements métier quand une partie commence ou se termine, et à chaque changement significatif (nouveau tour, changement de tier, choix, place). L'extracteur s'abonne à ces événements.
 
+### Base de cartes
+`src/cards/` télécharge HearthstoneJSON (`frFR` et `enUS`), en construit un index réduit dans
+`data/cards/index.json` et l'écrit dans la table `cards`. Les logs ne contiennent que des `cardId` :
+c'est la seule source des noms, du palier de taverne et des types de serviteur. À rafraîchir après
+chaque extension avec `npm run cards`.
+
+Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas : sans index, la CLI
+affiche les `cardId` bruts et continue de fonctionner.
+
 ### GameExtractor
 Transforme l'état et les événements métier en objets `GameSummary`, `TurnRecord`, `BoardSnapshot`, `PickRecord`.
 
@@ -159,6 +168,10 @@ Le schéma réellement créé par `src/db/migrations.ts` s'en écarte sur les po
 
 **`hero_offers`** et **`picks`** gagnent une colonne `position`, l'ordre de présentation des options.
 La phase 5 en aura besoin : la position d'une carte influence le choix.
+
+**Table ajoutée : `cards`** (`card_id`, `dbf_id`, `name`, `name_en`, `type`, `tech_level`, `races`,
+`card_class`, `is_bg_hero`, `is_bg_pool`, `refreshed_at`), remplie depuis HearthstoneJSON. L'index sur
+`dbf_id` sert à remonter d'un skin de héros au héros de base via `BACON_SKIN_PARENT_ID`.
 
 **Table ajoutée : `tier_ups`** (`game_id`, `tier`, `turn`). Le schéma initial rangeait le palier dans
 `turns`, mais `turns` demande aussi l'or, les PV et l'adversaire, qui ne sont pas encore extraits.

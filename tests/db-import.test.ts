@@ -16,6 +16,7 @@ const BASE: GameSummary = {
   playerName: 'AkiLif#2498',
   heroOffered: ['BG22_HERO_002', 'BG22_HERO_000_SKIN_A', 'BG36_HERO_101'],
   heroChosen: 'BG22_HERO_000_SKIN_A',
+  heroSkinParentDbfId: 77987,
   finalPlace: 3,
   finalTurn: 13,
   tierUps: [

@@ -12,6 +12,7 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['fixtures/sample-game-1'])).toEqual({
       folder: 'fixtures/sample-game-1',
       json: false,
+      ids: false,
     });
   });
 
@@ -19,12 +20,17 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['--json', 'fixtures/sample-game-1'])).toEqual({
       folder: 'fixtures/sample-game-1',
       json: true,
+      ids: false,
     });
     expect(parseCliArgs(['fixtures/sample-game-1', '--json']).json).toBe(true);
   });
 
   it('refuse une ligne de commande sans dossier', () => {
     expect(() => parseCliArgs([])).toThrow(/Usage/);
+  });
+
+  it('reconnait --ids, qui garde les cardId bruts', () => {
+    expect(parseCliArgs(['dossier', '--ids']).ids).toBe(true);
   });
 
   it('refuse une option inconnue', () => {
@@ -106,6 +112,7 @@ describe('formatSummary', () => {
     playerName: 'AkiLif#2498',
     heroOffered: ['BG22_HERO_002', 'BG22_HERO_000_SKIN_A'],
     heroChosen: 'BG22_HERO_000_SKIN_A',
+    heroSkinParentDbfId: 77987,
     finalPlace: 3,
     finalTurn: 13,
     tierUps: [{ tier: 2, turn: 2 }],
@@ -135,7 +142,8 @@ describe('formatSummary', () => {
     const text = formatSummary(base, 1).join('\n');
 
     expect(text).toContain('BG22_HERO_000_SKIN_A');
-    expect(text).toContain('#2  TB_BaconShop_Triples_01 → BG36_760');
+    // La colonne du tour precede la source du choix.
+    expect(text).toContain('#2   t4  TB_BaconShop_Triples_01 → BG36_760');
     expect(text).toContain('parmi BG35_143, BG36_760');
   });
 

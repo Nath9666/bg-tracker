@@ -29,16 +29,37 @@ export function gameId(summary: GameSummary): string {
 }
 
 /**
- * Heros normalise, sans son skin.
+ * Heros normalise par retrait du suffixe de skin.
  *
- * `BG22_HERO_000_SKIN_A` -> `BG22_HERO_000`. Verifie sur 11 parties : le tag
- * `BACON_SKIN_PARENT_ID` est present exactement quand le `cardId` porte un
- * suffixe `_SKIN_x`. Ce tag donne un `dbfId` numerique, inutilisable tant que
- * la base de cartes HearthstoneJSON n'est pas en place ; retirer le suffixe
- * donne le meme resultat sans elle.
+ * `BG22_HERO_000_SKIN_A` -> `BG22_HERO_000`.
+ *
+ * Attention : sur 653 heros a skin de HearthstoneJSON, **16 ne donnent pas un
+ * `cardId` existant** une fois le suffixe retire (Sylvanas, Vol'jin, Saurcroc,
+ * Noirepine, E.T.C.). Le regroupement reste coherent, mais l'identifiant obtenu
+ * n'est pas une vraie carte. C'est pourquoi `resolveHeroBaseId` prefere le
+ * `BACON_SKIN_PARENT_ID` quand il est disponible.
  */
 export function heroBaseId(cardId: string): string {
-  return cardId.replace(/_SKIN_[A-Z0-9]+$/, '');
+  return cardId.replace(/_SKIN_[A-Za-z0-9]+$/, '');
+}
+
+/** Retrouve un `cardId` a partir d'un `dbfId`. */
+export type DbfIdLookup = (dbfId: number) => string | undefined;
+
+/**
+ * Heros de base d'une partie.
+ *
+ * Le jeu donne lui-meme la reponse avec `BACON_SKIN_PARENT_ID`, un `dbfId` que
+ * la base de cartes traduit en `cardId`. On ne retombe sur le retrait du
+ * suffixe que si la carte est inconnue, par exemple avant le premier
+ * `npm run cards`.
+ */
+export function resolveHeroBaseId(summary: GameSummary, lookup: DbfIdLookup): string {
+  if (summary.heroSkinParentDbfId !== null) {
+    const parent = lookup(summary.heroSkinParentDbfId);
+    if (parent !== undefined) return parent;
+  }
+  return heroBaseId(summary.heroChosen);
 }
 
 /** Classe un choix d'apres la carte qui l'a declenche. */
@@ -69,6 +90,9 @@ export function importGames(
   sourceFolder: string,
 ): ImportResult {
   const exists = db.prepare('SELECT 1 FROM games WHERE id = ?');
+  const cardByDbfId = db.prepare('SELECT card_id FROM cards WHERE dbf_id = ?');
+  const lookup: DbfIdLookup = (dbfId) =>
+    (cardByDbfId.get(dbfId) as { card_id: string } | undefined)?.card_id;
 
   const upsertGame = db.prepare(`
     INSERT INTO games (
@@ -136,7 +160,7 @@ export function importGames(
         playerName: summary.playerName,
         gameSeed: summary.gameSeed,
         heroCardId: summary.heroChosen,
-        heroBaseId: heroBaseId(summary.heroChosen),
+        heroBaseId: resolveHeroBaseId(summary, lookup),
         finalPlace: summary.finalPlace,
         finalTurn: summary.finalTurn,
         sourceFolder,

@@ -204,6 +204,7 @@ export class GameExtractor {
       }));
 
     const place = hero?.tags.get('PLAYER_LEADERBOARD_PLACE');
+    const skinParent = hero?.tags.get('BACON_SKIN_PARENT_ID');
 
     return {
       startedAt: accumulator.startedAt ?? this.#clock.toIso(game.startedAt) ?? game.startedAt,
@@ -213,6 +214,7 @@ export class GameExtractor {
       playerName: localPlayer?.name ?? '',
       heroOffered: mulligan?.options ?? [],
       heroChosen: mulligan?.chosen ?? hero?.cardId ?? '',
+      heroSkinParentDbfId: skinParent === undefined ? null : Number(skinParent),
       finalPlace: place === undefined ? null : Number(place),
       finalTurn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
       tierUps: accumulator.tierUps,

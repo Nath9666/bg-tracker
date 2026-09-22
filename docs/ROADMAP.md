@@ -37,7 +37,7 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Table `picks` (découvertes, triples, bibelots : options proposées + choix), plus `tier_ups`
 - [x] Import idempotent : réimporter un dossier ne crée pas de doublons (clé = `GAME_SEED` + jour de début)
 - [ ] Import de `data/ratings.csv` et rattachement de la cote à la partie la plus proche dans le temps
-- [ ] Mapping `cardId` → nom, tier, type via HearthstoneJSON, mis en cache localement
+- [x] Mapping `cardId` → nom, tier, type via HearthstoneJSON, mis en cache localement (`npm run cards`)
 
 **Critère de fin :** toutes les parties archivées sont en base, sans doublon.
 

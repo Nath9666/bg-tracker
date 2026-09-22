@@ -193,7 +193,15 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
 
 - C'est un `DebugPrintEntityChoices` avec `ChoiceType=MULLIGAN`. Les options sont les `Entities[i]`, le choix est dans `SendChoices` (`m_chosenEntities[0]`).
 - Ensuite, `TAG_CHANGE Entity=<joueur> tag=HERO_ENTITY value=<id>` donne l'id de l'entité héros du joueur (`89` dans l'exemple). **Toutes les stats du joueur se lisent sur cette entité héros.**
-- Les skins changent le `cardId` (`BG22_HERO_000_SKIN_A`). Pour regrouper par héros, normaliser vers le héros de base (tag `BACON_SKIN_PARENT_ID` ou suppression du suffixe `_SKIN_X`, *à vérifier*).
+- Les skins changent le `cardId` (`BG22_HERO_000_SKIN_A`). Pour regrouper par héros, normaliser vers le héros de base.
+  ✅ **`BACON_SKIN_PARENT_ID` sur l'entité héros donne un `dbfId`**, pas un `cardId` : `77987` pour
+  `BG22_HERO_000_SKIN_A`, et HearthstoneJSON confirme que `BG22_HERO_000` (Tavish Foudrepique) porte
+  bien ce `dbfId`. C'est la source correcte, mais elle **exige la base de cartes**.
+  ⚠️ Retirer le suffixe `_SKIN_x` marche presque toujours, mais pas toujours : sur les **653 héros à
+  skin** de HearthstoneJSON, **16 donnent un `cardId` qui n'existe pas** une fois le suffixe retiré
+  (Sylvanas, Vol'jin, Saurcroc, Noirépine, E.T.C.). Le regroupement reste cohérent, mais l'identifiant
+  obtenu n'est pas une vraie carte. Le tracker préfère donc le `dbfId` et ne retombe sur le retrait du
+  suffixe qu'en dernier recours.
 
 ### Tours
 

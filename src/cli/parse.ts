@@ -5,13 +5,15 @@
  * `Power_old.log`, compresses ou non) ou un dossier qui en contient plusieurs,
  * comme `data/archive`.
  *
- * Les cartes sont designees par leur `cardId` : la correspondance vers les noms
- * lisibles passe par HearthstoneJSON, qui arrive en phase 2.
+ * Les cartes sont affichees par leur nom des que l'index HearthstoneJSON est
+ * present dans `data/cards/` (`npm run cards`). Sans lui, ou avec `--ids`, on
+ * retombe sur les `cardId` bruts.
  */
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { loadIndex, type CardIndex } from '../cards/card-database.js';
 import { extractGames } from '../extract/game-extractor.js';
 import { openSession, readSessionLines, resolveSessionDate } from '../reader/session-reader.js';
 import type { GameSummary } from '../types.js';
@@ -19,16 +21,21 @@ import type { GameSummary } from '../types.js';
 export interface ParseCliOptions {
   folder: string;
   json: boolean;
+  /** Affiche les `cardId` bruts au lieu des noms de cartes. */
+  ids: boolean;
 }
 
 /** Lit les arguments de la ligne de commande. Fonction pure, testable. */
 export function parseCliArgs(argv: readonly string[]): ParseCliOptions {
   const positional: string[] = [];
   let json = false;
+  let ids = false;
 
   for (const arg of argv) {
     if (arg === '--json') {
       json = true;
+    } else if (arg === '--ids') {
+      ids = true;
     } else if (arg.startsWith('-')) {
       throw new Error(`Option inconnue : ${arg}`);
     } else {
@@ -38,13 +45,13 @@ export function parseCliArgs(argv: readonly string[]): ParseCliOptions {
 
   const folder = positional[0];
   if (folder === undefined) {
-    throw new Error('Usage : npm run parse -- <dossier> [--json]');
+    throw new Error('Usage : npm run parse -- <dossier> [--json] [--ids]');
   }
   if (positional.length > 1) {
     throw new Error('Un seul dossier peut etre analyse a la fois.');
   }
 
-  return { folder, json };
+  return { folder, json, ids };
 }
 
 /**
@@ -95,10 +102,23 @@ function ordinal(place: number): string {
   return place === 1 ? '1re' : `${place}e`;
 }
 
-/** Bloc lisible pour une partie. */
-export function formatSummary(summary: GameSummary, index: number): string[] {
+/**
+ * Bloc lisible pour une partie.
+ *
+ * `cards` absent (pas d'index HearthstoneJSON, ou option `--ids`) : les cartes
+ * restent affichees sous leur `cardId`.
+ */
+export function formatSummary(
+  summary: GameSummary,
+  index: number,
+  cards: CardIndex | null = null,
+): string[] {
   const lines: string[] = [];
   const pad = (label: string): string => `    ${label.padEnd(12)}`;
+  /** Nom seul, pour les enumerations. */
+  const name = (cardId: string): string => cards?.name(cardId) ?? cardId;
+  /** Nom detaille (palier, types), pour une carte mise en avant. */
+  const label = (cardId: string): string => cards?.label(cardId) ?? cardId;
 
   lines.push(
     `  Partie ${index}  ${shortDate(summary.startedAt)} ${shortTime(summary.startedAt)} → ` +
@@ -107,9 +127,9 @@ export function formatSummary(summary: GameSummary, index: number): string[] {
   lines.push(
     `${pad('Joueur')}${summary.playerName} · build ${summary.buildNumber} · seed ${summary.gameSeed ?? '—'}`,
   );
-  lines.push(`${pad('Héros')}${summary.heroChosen}`);
+  lines.push(`${pad('Héros')}${name(summary.heroChosen)}`);
   if (summary.heroOffered.length > 0) {
-    lines.push(`${pad('')}proposés : ${summary.heroOffered.join(', ')}`);
+    lines.push(`${pad('')}proposés : ${summary.heroOffered.map(name).join(', ')}`);
   }
 
   const place = summary.finalPlace === null ? 'place inconnue' : `${ordinal(summary.finalPlace)} place`;
@@ -126,13 +146,15 @@ export function formatSummary(summary: GameSummary, index: number): string[] {
 
   lines.push(`${pad('Choix')}${summary.picks.length}`);
   for (const pick of summary.picks) {
-    lines.push(`      #${String(pick.choiceId).padEnd(3)}${pick.sourceCardId || '—'} → ${pick.chosen}`);
+    const source = pick.sourceCardId === '' ? '—' : name(pick.sourceCardId);
+    const turn = pick.turn === null ? '' : ` t${pick.turn}`;
+    lines.push(`      #${String(pick.choiceId).padEnd(3)}${turn.padEnd(5)}${source} → ${label(pick.chosen)}`);
     if (pick.options.length > 0) {
-      lines.push(`           parmi ${pick.options.join(', ')}`);
+      lines.push(`           parmi ${pick.options.map(name).join(', ')}`);
     }
   }
 
-  lines.push(`${pad('Adversaires')}${summary.opponents.join(', ') || '—'}`);
+  lines.push(`${pad('Adversaires')}${summary.opponents.map(name).join(', ') || '—'}`);
   return lines;
 }
 
@@ -145,6 +167,10 @@ async function main(): Promise<void> {
       `Aucun Power.log trouvé dans ${options.folder}, ni directement ni dans ses sous-dossiers.`,
     );
   }
+
+  // Sans index de cartes, l'affichage retombe sur les cardId : c'est une aide,
+  // pas une dependance.
+  const cards = options.ids ? null : await loadIndex();
 
   const all: GameSummary[] = [];
   const blocks: string[] = [];
@@ -165,7 +191,7 @@ async function main(): Promise<void> {
       blocks.push('  Aucune partie de Champs de bataille.');
     }
     summaries.forEach((summary, index) => {
-      blocks.push(...formatSummary(summary, index + 1), '');
+      blocks.push(...formatSummary(summary, index + 1, cards), '');
     });
   }
 

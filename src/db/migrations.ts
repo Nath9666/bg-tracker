@@ -74,4 +74,26 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_picks_option     ON picks(option_card);
     `,
   },
+  {
+    name: 'cards (base HearthstoneJSON)',
+    sql: `
+      CREATE TABLE cards (
+        card_id      TEXT PRIMARY KEY,
+        dbf_id       INTEGER,
+        name         TEXT NOT NULL,        -- frFR
+        name_en      TEXT NOT NULL,
+        type         TEXT,                 -- MINION | HERO | BATTLEGROUND_TRINKET | ...
+        tech_level   INTEGER,              -- palier de taverne, NULL hors serviteur CdB
+        races        TEXT,                 -- types du serviteur, separes par des virgules
+        card_class   TEXT,
+        is_bg_hero   INTEGER NOT NULL,
+        is_bg_pool   INTEGER NOT NULL,
+        refreshed_at TEXT NOT NULL
+      );
+
+      -- BACON_SKIN_PARENT_ID donne un dbfId : c'est par la qu'on remonte d'un
+      -- skin de heros au heros de base.
+      CREATE INDEX idx_cards_dbf_id ON cards(dbf_id);
+    `,
+  },
 ];
