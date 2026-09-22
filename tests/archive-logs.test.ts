@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -195,6 +195,47 @@ describe('retention', () => {
     // Au passage suivant, la session ecartee n'apparait meme plus.
     const second = await archiveLogs(options(source, dest, { keep: 3 }));
     expect(second.files.map((f) => f.session)).toEqual([S3]);
+  });
+});
+
+describe('renommage par le jeu', () => {
+  it('retire la copie de Power.log quand la source ne porte plus que Power_old.log', async () => {
+    // Hearthstone renomme le fichier en fin de session. Sans ce nettoyage,
+    // l'archive garde deux copies du meme contenu et le lecteur relit toute la
+    // session deux fois.
+    const source = await makeLogs({ [S1]: { 'Power.log': logWith(3) } });
+    const dest = await makeDest();
+    await archiveLogs(options(source, dest));
+    expect(await readdir(join(dest, S1))).toEqual(['Power.log.gz']);
+
+    await rename(join(source, S1, 'Power.log'), join(source, S1, 'Power_old.log'));
+    const second = await archiveLogs(options(source, dest));
+
+    expect(second.discarded).toEqual([`${S1}/Power.log`]);
+    expect(await readdir(join(dest, S1))).toEqual(['Power_old.log.gz']);
+    expect((await manifestOf(dest)).files).not.toHaveProperty(`${S1}/Power.log`);
+  });
+
+  it('ne compte plus deux fois les parties de la session renommee', async () => {
+    const source = await makeLogs({ [S1]: { 'Power.log': logWith(3) } });
+    const dest = await makeDest();
+    await archiveLogs(options(source, dest));
+
+    await rename(join(source, S1, 'Power.log'), join(source, S1, 'Power_old.log'));
+    const second = await archiveLogs(options(source, dest));
+
+    expect(second.gamesKept).toBe(3);
+  });
+
+  it('laisse tranquille une session qui porte vraiment les deux fichiers', async () => {
+    const source = await makeLogs({
+      [S1]: { 'Power.log': logWith(1), 'Power_old.log': logWith(2) },
+    });
+    const dest = await makeDest();
+    const result = await archiveLogs(options(source, dest));
+
+    expect(result.discarded).toEqual([]);
+    expect((await readdir(join(dest, S1))).sort()).toEqual(['Power.log.gz', 'Power_old.log.gz']);
   });
 });
 

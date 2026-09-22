@@ -13,13 +13,13 @@ import process from 'node:process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { DEFAULT_DB_PATH, openDatabase, type Db } from '../db/database.js';
+import { DEFAULT_DB_PATH, openDatabase } from '../db/database.js';
 import {
   DEFAULT_RATINGS_PATH,
+  listGames,
   matchRatings,
   parseRatings,
   writeRatingsTemplate,
-  type RatedGame,
 } from '../ratings/ratings.js';
 
 export interface RatingsCliOptions {
@@ -44,28 +44,6 @@ export function parseRatingsArgs(argv: readonly string[]): RatingsCliOptions {
   }
 
   return options;
-}
-
-/** Parties de la base, dans l'ordre chronologique. */
-export function listGames(db: Db): RatedGame[] {
-  const rows = db
-    .prepare(
-      `SELECT g.id,
-              COALESCE(g.ended_at, g.started_at) AS datetime,
-              g.final_place,
-              g.complete,
-              COALESCE(c.name, g.hero_card_id) AS hero
-       FROM games g
-       LEFT JOIN cards c ON c.card_id = g.hero_card_id
-       ORDER BY datetime`,
-    )
-    .all() as { id: string; datetime: string; final_place: number | null; complete: number; hero: string }[];
-
-  return rows.map((row) => ({
-    id: row.id,
-    datetime: row.datetime,
-    label: `${row.hero} ${row.final_place ?? '?'}e${row.complete === 1 ? '' : ' (inachevée)'}`,
-  }));
 }
 
 async function main(): Promise<void> {

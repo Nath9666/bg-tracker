@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { loadDashboard, type Dashboard, type StatsFilters } from './api.js';
+import { loadDashboard, saveRating, type Dashboard, type StatsFilters } from './api.js';
 import { dateTime, percent, place, raceName, shortDate, turn } from './format.js';
 
 const COULEURS = {
@@ -61,6 +61,68 @@ function Section({
       {aide !== undefined && <p className="aide">{aide}</p>}
       {children}
     </section>
+  );
+}
+
+/**
+ * Cote d'une partie, modifiable sur place.
+ *
+ * L'enregistrement se fait a la sortie du champ ou sur Entree, jamais a chaque
+ * frappe : saisir « 4605 » ecrirait sinon 4, 46, 460 puis 4605.
+ */
+function Cote({
+  gameId,
+  valeur,
+  onEnregistre,
+}: {
+  gameId: string;
+  valeur: number | null;
+  onEnregistre: () => void;
+}): JSX.Element {
+  const [texte, setTexte] = useState(valeur === null ? '' : String(valeur));
+  const [etat, setEtat] = useState<'repos' | 'enregistre' | 'erreur'>('repos');
+
+  // La partie peut changer sous le composant (rafraichissement, filtre).
+  useEffect(() => {
+    setTexte(valeur === null ? '' : String(valeur));
+    setEtat('repos');
+  }, [gameId, valeur]);
+
+  const enregistrer = (): void => {
+    const nettoye = texte.trim();
+    const nombre = nettoye === '' ? null : Number(nettoye);
+    if (nombre !== null && !Number.isFinite(nombre)) {
+      setEtat('erreur');
+      return;
+    }
+    if (nombre === valeur) return;
+
+    saveRating(gameId, nombre === null ? null : Math.round(nombre))
+      .then(() => {
+        setEtat('enregistre');
+        onEnregistre();
+      })
+      .catch(() => setEtat('erreur'));
+  };
+
+  return (
+    <input
+      className={`cote ${etat}`}
+      type="text"
+      inputMode="numeric"
+      placeholder="—"
+      aria-label="Cote après cette partie"
+      value={texte}
+      onChange={(event) => {
+        setTexte(event.target.value);
+        setEtat('repos');
+      }}
+      onBlur={enregistrer}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur();
+        if (event.key === 'Escape') setTexte(valeur === null ? '' : String(valeur));
+      }}
+    />
   );
 }
 
@@ -333,7 +395,10 @@ export default function App(): JSX.Element {
             </table>
           </Section>
 
-          <Section titre="Parties">
+          <Section
+            titre="Parties"
+            aide="La cote se saisit directement dans le tableau : Entrée pour valider, Échap pour annuler."
+          >
             <div className="defile">
               <table>
                 <thead>
@@ -351,7 +416,13 @@ export default function App(): JSX.Element {
                       <td>{dateTime(ligne.startedAt)}</td>
                       <td>{ligne.heroName}</td>
                       <td>{ligne.place ?? '—'}</td>
-                      <td>{ligne.rating ?? '—'}</td>
+                      <td>
+                        <Cote
+                          gameId={ligne.gameId}
+                          valeur={ligne.rating}
+                          onEnregistre={() => setRechargement((valeur) => valeur + 1)}
+                        />
+                      </td>
                       <td>{turn(ligne.rollingPlace)}</td>
                     </tr>
                   ))}

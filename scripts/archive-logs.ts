@@ -111,6 +111,10 @@ async function main(): Promise<void> {
     );
   }
 
+  for (const key of result.discarded) {
+    console.log(`  × ${key}  copie perimee retiree (le jeu a renomme le fichier)`);
+  }
+
   for (const session of result.pruned) {
     const verbe = options.dryRun ? 'serait supprimee' : 'supprimee';
     console.log(`  - ${sessionLabel(session)}  ${verbe} de l'archive (hors retenue)`);

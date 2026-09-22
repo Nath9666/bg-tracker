@@ -8,4 +8,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('bgTracker', {
   dashboard: (filters: unknown) => ipcRenderer.invoke('dashboard', filters),
+  setRating: (gameId: string, rating: number | null) =>
+    ipcRenderer.invoke('setRating', gameId, rating),
 });

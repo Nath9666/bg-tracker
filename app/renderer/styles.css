@@ -178,3 +178,38 @@ tbody tr:last-child td {
   text-align: center;
   padding: 32px 0;
 }
+
+/* --- saisie de la cote --- */
+input.cote {
+  width: 5.5em;
+  padding: 3px 6px;
+  text-align: right;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--texte);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+input.cote:hover {
+  border-color: var(--bord);
+}
+
+input.cote:focus {
+  outline: none;
+  background: var(--fond);
+  border-color: var(--accent);
+}
+
+input.cote.enregistre {
+  border-color: var(--bon);
+}
+
+input.cote.erreur {
+  border-color: var(--mauvais);
+}
+
+input.cote::placeholder {
+  color: var(--attenue);
+}

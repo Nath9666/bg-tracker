@@ -10,6 +10,7 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import type { Db } from '../db/database.js';
 
 export const DEFAULT_RATINGS_PATH = 'data/ratings.csv';
 
@@ -31,6 +32,8 @@ export interface RatedGame {
   datetime: string;
   /** Repere lisible : heros et place. */
   label: string;
+  /** Cote deja enregistree en base, saisie dans l'interface ou importee. */
+  rating: number | null;
 }
 
 /**
@@ -92,7 +95,11 @@ export interface TemplateResult {
 /**
  * Ecrit le fichier avec une ligne par partie, la plus ancienne d'abord.
  *
- * Les cotes deja saisies sont **replacees en face de leur partie**, par le meme
+ * La base fait foi : une cote saisie dans l'interface reapparait ici meme si le
+ * fichier ne la connaissait pas. Une cote ecrite a la main dans le fichier la
+ * remplace, puisque c'est la modification la plus recente.
+ *
+ * Les cotes du fichier sont **replacees en face de leur partie**, par le meme
  * rapprochement que `matchRatings`. C'est necessaire : l'horodatage d'une
  * partie change quand elle se termine, puisqu'on affichait son debut tant
  * qu'elle etait en cours. Sans ce replacement, une cote saisie entre-temps
@@ -119,8 +126,8 @@ export async function writeRatingsTemplate(
   let kept = 0;
 
   for (const game of games) {
-    const rating = byGame.get(game.id);
-    if (rating === undefined) added += 1;
+    const rating = byGame.get(game.id) ?? game.rating;
+    if (rating === null || rating === undefined) added += 1;
     else kept += 1;
     lines.push(`${game.datetime},${rating ?? ''},${quote(game.label)}`);
   }
@@ -194,4 +201,35 @@ export function matchRatings(
   }
 
   return matches;
+}
+
+/** Parties de la base, dans l'ordre chronologique. */
+export function listGames(db: Db): RatedGame[] {
+  const rows = db
+    .prepare(
+      `SELECT g.id,
+              COALESCE(g.ended_at, g.started_at) AS datetime,
+              g.final_place,
+              g.complete,
+              g.rating_after,
+              COALESCE(c.name, g.hero_card_id) AS hero
+       FROM games g
+       LEFT JOIN cards c ON c.card_id = g.hero_card_id
+       ORDER BY datetime`,
+    )
+    .all() as {
+    id: string;
+    datetime: string;
+    final_place: number | null;
+    complete: number;
+    rating_after: number | null;
+    hero: string;
+  }[];
+
+  return rows.map((row) => ({
+    id: row.id,
+    datetime: row.datetime,
+    label: `${row.hero} ${row.final_place ?? '?'}e${row.complete === 1 ? '' : ' (inachevée)'}`,
+    rating: row.rating_after,
+  }));
 }

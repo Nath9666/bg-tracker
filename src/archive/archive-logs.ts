@@ -84,6 +84,8 @@ export interface ArchivedFile {
 
 export interface ArchiveResult {
   files: ArchivedFile[];
+  /** Copies devenues caduques, retirees de l'archive. */
+  discarded: string[];
   /** Sessions supprimees par la retention. */
   pruned: string[];
   /** Parties conservees dans l'archive apres passage. */
@@ -164,6 +166,7 @@ export async function archiveLogs(options: ArchiveOptions): Promise<ArchiveResul
   if (!dryRun) await mkdir(dest, { recursive: true });
   const manifest = await readManifest(dest);
   const files: ArchivedFile[] = [];
+  const discarded: string[] = [];
 
   // Retenue relevee depuis le dernier passage : les sessions ecartees
   // redeviennent candidates, leurs logs etant peut-etre encore sur le disque.
@@ -178,6 +181,16 @@ export async function archiveLogs(options: ArchiveOptions): Promise<ArchiveResul
   for (const session of sessions) {
     // Deja ecartee par la retention : inutile de la relire.
     if (pruned.has(session)) continue;
+
+    // Hearthstone renomme `Power.log` en `Power_old.log`. Une copie archivee
+    // sous l'ancien nom fait alors doublon avec le meme contenu : le lecteur
+    // relirait toute la session deux fois. Quand la source ne porte plus que
+    // `Power_old.log`, la copie de `Power.log` est forcement perimee.
+    const superseded = await supersededSnapshot(source, dest, session, dryRun);
+    if (superseded) {
+      delete manifest.files[`${session}/Power.log`];
+      discarded.push(`${session}/Power.log`);
+    }
 
     for (const file of POWER_FILES) {
       const sourcePath = join(source, session, file);
@@ -260,7 +273,37 @@ export async function archiveLogs(options: ArchiveOptions): Promise<ArchiveResul
     await writeFile(join(dest, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   }
 
-  return { files, pruned: pruning.pruned, gamesKept: pruning.gamesKept };
+  return { files, discarded, pruned: pruning.pruned, gamesKept: pruning.gamesKept };
+}
+
+/**
+ * Ecarte la copie archivee de `Power.log` rendue caduque par un renommage.
+ *
+ * Le critere est sur : si la source ne contient plus de `Power.log`, alors la
+ * copie qu'on en avait est necessairement un instantane du fichier qui a ete
+ * renomme, donc un sous-ensemble de `Power_old.log`. Une session qui porterait
+ * vraiment les deux fichiers n'est pas concernee.
+ */
+async function supersededSnapshot(
+  source: string,
+  dest: string,
+  session: string,
+  dryRun: boolean,
+): Promise<boolean> {
+  const hasCurrent = await stat(join(source, session, 'Power.log'))
+    .then(() => true)
+    .catch(() => false);
+  const hasRotated = await stat(join(source, session, 'Power_old.log'))
+    .then(() => true)
+    .catch(() => false);
+  if (hasCurrent || !hasRotated) return false;
+
+  const snapshot = join(dest, session, 'Power.log.gz');
+  const archived = await stat(snapshot).then(() => true).catch(() => false);
+  if (!archived) return false;
+
+  if (!dryRun) await rm(snapshot, { force: true });
+  return true;
 }
 
 /**

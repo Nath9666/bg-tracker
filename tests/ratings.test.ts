@@ -3,20 +3,21 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  listGames,
   matchRatings,
   parseRatings,
   writeRatingsTemplate,
   type RatedGame,
 } from '../src/ratings/ratings.js';
-import { listGames, parseRatingsArgs } from '../src/cli/ratings.js';
+import { parseRatingsArgs } from '../src/cli/ratings.js';
 import { openDatabase, type Db } from '../src/db/database.js';
 import { importGames } from '../src/db/import.js';
 import type { GameSummary } from '../src/types.js';
 
 const GAMES: RatedGame[] = [
-  { id: 'a', datetime: '2026-09-22T02:04:04.660+02:00', label: 'Souveraine Cire-Reine 4e' },
-  { id: 'b', datetime: '2026-09-22T02:29:15.814+02:00', label: 'Guff Totem-Runique 6e' },
-  { id: 'c', datetime: '2026-09-22T02:56:47.033+02:00', label: 'Cénarius, seigneur de la forêt 1e' },
+  { id: 'a', datetime: '2026-09-22T02:04:04.660+02:00', label: 'Souveraine Cire-Reine 4e', rating: null },
+  { id: 'b', datetime: '2026-09-22T02:29:15.814+02:00', label: 'Guff Totem-Runique 6e', rating: null },
+  { id: 'c', datetime: '2026-09-22T02:56:47.033+02:00', label: 'Cénarius, seigneur de la forêt 1e', rating: null },
 ];
 
 async function tempFile(): Promise<string> {
@@ -116,6 +117,7 @@ describe('writeRatingsTemplate', () => {
       id: 'z',
       datetime: '2026-09-22T18:55:40.487+02:00',
       label: 'Sindragosa 7e (inachevée)',
+      rating: null,
     };
     await writeRatingsTemplate(path, [enCours]);
     await writeFile(
@@ -128,6 +130,7 @@ describe('writeRatingsTemplate', () => {
       id: 'z',
       datetime: '2026-09-22T19:13:57.895+02:00',
       label: 'Sindragosa 7e',
+      rating: null,
     };
     const result = await writeRatingsTemplate(path, [terminee]);
 
@@ -135,6 +138,32 @@ describe('writeRatingsTemplate', () => {
     expect(text).toContain('2026-09-22T19:13:57.895+02:00,4605,Sindragosa 7e');
     expect(text).not.toContain('18:55:40');
     expect(result).toEqual({ added: 0, kept: 1 });
+  });
+
+  it('reprend la cote deja en base quand le fichier n’en a pas', async () => {
+    // Cas de la saisie faite dans l'interface : elle va en base, et le fichier
+    // doit la refleter au lieu de rester vide.
+    const path = await tempFile();
+    await writeRatingsTemplate(path, [{ ...GAMES[0]!, rating: 4637 }]);
+
+    expect(await readFile(path, 'utf8')).toContain('02:04:04.660+02:00,4637,');
+  });
+
+  it('laisse le fichier primer sur la base, comme modification la plus recente', async () => {
+    const path = await tempFile();
+    await writeFile(
+      path,
+      `datetime,rating,partie
+${GAMES[0]!.datetime},9000,corrige a la main
+`,
+      'utf8',
+    );
+
+    await writeRatingsTemplate(path, [{ ...GAMES[0]!, rating: 4637 }]);
+    const text = await readFile(path, 'utf8');
+
+    expect(text).toContain(',9000,');
+    expect(text).not.toContain(',4637,');
   });
 
   it('ne perd pas une saisie qui ne correspond a aucune partie', async () => {
@@ -216,6 +245,17 @@ describe('aller-retour avec la base', () => {
     importGames(db, [summary], 'x');
     return db;
   }
+
+  it('rend la cote deja enregistree', () => {
+    const db = seeded();
+    db.prepare('UPDATE games SET rating_after = 4637').run();
+
+    expect(listGames(db)[0]?.rating).toBe(4637);
+  });
+
+  it('rend une cote nulle tant que rien n’est saisi', () => {
+    expect(listGames(seeded())[0]?.rating).toBeNull();
+  });
 
   it('propose la fin de chaque partie comme horodatage', () => {
     const games = listGames(seeded());

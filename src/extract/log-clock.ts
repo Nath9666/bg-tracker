@@ -8,6 +8,9 @@
 
 const TIME = /^(\d{2}):(\d{2}):(\d{2})\.(\d+)$/;
 
+/** Recul minimal pour conclure a un changement de jour : 12 heures. */
+const WRAP_THRESHOLD_SECONDS = 12 * 3600;
+
 /** Secondes ecoulees depuis minuit, pour comparer deux heures. */
 function secondsOfDay(hours: number, minutes: number, seconds: number): number {
   return hours * 3600 + minutes * 60 + seconds;
@@ -66,8 +69,13 @@ export class LogClock {
     const milliseconds = Number(match[4]!.slice(0, 3).padEnd(3, '0'));
 
     const current = secondsOfDay(hours, minutes, seconds);
-    // L'heure recule : on a passe minuit.
-    if (current < this.#lastSeconds) this.#dayOffset += 1;
+
+    // Un vrai passage de minuit fait reculer l'heure de presque 24 heures.
+    // Un recul plus modeste vient d'une relecture : deux fichiers d'une meme
+    // session peuvent se recouvrir, par exemple quand une copie archivee de
+    // `Power.log` cotoie le meme fichier renomme en `Power_old.log`. Compter
+    // cela comme un jour de plus redaterait toute une session.
+    if (this.#lastSeconds - current > WRAP_THRESHOLD_SECONDS) this.#dayOffset += 1;
     this.#lastSeconds = current;
 
     const date = new Date(

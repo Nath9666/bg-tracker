@@ -13,13 +13,13 @@ import { pathToFileURL } from 'node:url';
 import { archiveLogs } from '../archive/archive-logs.js';
 import { parseArchiveArgs } from '../../scripts/archive-logs.js';
 import { findSessions } from './parse.js';
-import { listGames } from './ratings.js';
 import { DEFAULT_DB_PATH, openDatabase } from '../db/database.js';
 import { importGames } from '../db/import.js';
 import { extractGames } from '../extract/game-extractor.js';
 import { openSession, readSessionLines, resolveSessionDate } from '../reader/session-reader.js';
 import {
   DEFAULT_RATINGS_PATH,
+  listGames,
   matchRatings,
   parseRatings,
   writeRatingsTemplate,
@@ -36,6 +36,9 @@ async function main(): Promise<void> {
     `     ${copied.length} fichier(s) archivé(s), ${archived.gamesKept} partie(s) dans l’archive` +
       (archived.pruned.length > 0 ? `, ${archived.pruned.length} session(s) élaguée(s)` : ''),
   );
+  for (const key of archived.discarded) {
+    console.log(`     × ${key} : copie périmée retirée (le jeu a renommé le fichier)`);
+  }
 
   console.log('\n2/3  Import en base');
   const db = openDatabase(DEFAULT_DB_PATH);

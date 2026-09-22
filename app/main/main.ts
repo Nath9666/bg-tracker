@@ -7,6 +7,11 @@
  */
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
+import {
+  DEFAULT_RATINGS_PATH,
+  listGames,
+  writeRatingsTemplate,
+} from '../../src/ratings/ratings.js';
 import { DEFAULT_DB_PATH, openDatabase, type Db } from '../../src/db/database.js';
 import {
   finalBoardRaces,
@@ -71,6 +76,19 @@ function createWindow(): void {
 }
 
 ipcMain.handle('dashboard', (_event, filters: StatsFilters) => buildDashboard(filters ?? {}));
+
+/**
+ * Enregistre la cote d'une partie.
+ *
+ * La base fait foi. `data/ratings.csv` est reecrit dans la foulee pour qu'il
+ * reste le reflet de ce qui est enregistre : sans cela, le fichier et la base
+ * divergeraient des la premiere saisie faite ici.
+ */
+ipcMain.handle('setRating', async (_event, gameId: string, rating: number | null) => {
+  const handle = database();
+  handle.prepare('UPDATE games SET rating_after = ? WHERE id = ?').run(rating, gameId);
+  await writeRatingsTemplate(DEFAULT_RATINGS_PATH, listGames(handle));
+});
 
 void app.whenReady().then(() => {
   createWindow();

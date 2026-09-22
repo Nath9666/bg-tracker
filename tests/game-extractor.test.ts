@@ -76,6 +76,16 @@ describe('LogClock', () => {
     expect(clock.toIso('01:00:00.0000000')).toContain('2026-09-21T01:00:00');
   });
 
+  it('ne change pas de jour sur un recul modere', () => {
+    // Cas reel : deux fichiers d'une meme session se recouvrent, l'heure
+    // repasse de 20:12 a 16:51. Ce n'est pas minuit, c'est une relecture.
+    const clock = new LogClock(new Date(2026, 8, 22, 16, 48, 50));
+
+    expect(clock.toIso('20:12:01.9250000')).toContain('2026-09-22T20:12:01');
+    expect(clock.toIso('16:51:17.5138809')).toContain('2026-09-22T16:51:17');
+    expect(clock.toIso('20:12:01.9250000')).toContain('2026-09-22T20:12:01');
+  });
+
   it('renvoie null pour une heure mal formee', () => {
     expect(new LogClock(SESSION_DATE).toIso('pas une heure')).toBeNull();
   });

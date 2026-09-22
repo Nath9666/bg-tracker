@@ -21,6 +21,13 @@ Verbose=True
 - Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
 - Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
 - Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier ; probablement un seuil de taille)*.
+- ⚠️ **Le renommage fait disparaître `Power.log`, pas son contenu.** Une copie archivée sous l'ancien
+  nom devient donc un doublon exact de `Power_old.log`. Lire les deux à la suite relit toute la
+  session deux fois, et l'heure qui repasse en arrière (20:12 après 20:12… puis 16:51) fait croire à
+  un passage de minuit : toutes les parties se retrouvent datées du lendemain. Deux garde-fous :
+  l'archivage retire la copie périmée dès que la source ne porte plus que `Power_old.log`, et
+  l'horloge n'avance d'un jour que sur un recul de **plus de 12 heures**, un vrai minuit en faisant
+  reculer de près de 24.
 - **Un dossier de session ne contient jamais les deux fichiers à la fois.** Relevé sur les 6 sessions
   présentes : chacune a soit `Power.log`, soit `Power_old.log`. Le renommage a été **observé en direct** :
   le `Power.log` de `Hearthstone_2026_09_22_00_28_13`, lu à 177 Mo pendant que l'utilisateur jouait, est
