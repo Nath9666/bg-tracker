@@ -1,0 +1,295 @@
+/*
+ * Overlay affiche par-dessus le jeu.
+ *
+ * Le fond de page est transparent : seules les cartes ont un fond, sombre et
+ * translucide, pour rester lisibles sans masquer le plateau.
+ */
+:root {
+  --fond: rgba(20, 18, 28, 0.82);
+  --bord: rgba(120, 110, 150, 0.35);
+  --texte: #ece8f5;
+  --attenue: #a79fc0;
+  --accent: #d9b43a;
+  --bon: #6ad18a;
+  --mauvais: #e0757d;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--texte);
+  font: 12px/1.45 "Segoe UI", system-ui, sans-serif;
+  /* La fenetre laisse passer les clics ; rien ne doit paraitre selectionnable. */
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+}
+
+.overlay {
+  height: 100vh;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: none;
+}
+
+.overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.overlay.repos {
+  height: auto;
+  background: var(--fond);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.titre {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.attente {
+  color: var(--attenue);
+}
+
+/* --- en-tete --- */
+.entete,
+.pastilles,
+section {
+  background: var(--fond);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.phase {
+  color: var(--attenue);
+  font-size: 11px;
+}
+
+.pastilles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.pastille .valeur {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pastille .libelle {
+  display: block;
+  font-size: 10px;
+  color: var(--attenue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- sections --- */
+section h2 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--attenue);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.adversaire {
+  padding: 6px 0;
+  border-top: 1px solid var(--bord);
+}
+
+.adversaire:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.adversaire header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.adversaire .nom {
+  font-weight: 600;
+}
+
+.adversaire .meta,
+.adversaire .tour {
+  color: var(--attenue);
+  font-size: 11px;
+}
+
+.adversaire .tour {
+  margin: 0 0 3px;
+}
+
+.plateau {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.plateau li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.plateau .serviteur {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plateau .stats {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.plateau .doré .serviteur {
+  color: var(--accent);
+}
+
+.plateau .rien {
+  color: var(--attenue);
+  font-style: italic;
+}
+
+/* --- combats --- */
+.combats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.combats li {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.combats .tour {
+  color: var(--attenue);
+}
+
+.combats .contre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combats .degats {
+  color: var(--mauvais);
+  font-variant-numeric: tabular-nums;
+}
+
+.combats .win .contre {
+  color: var(--bon);
+}
+
+.combats .loss .contre {
+  color: var(--mauvais);
+}
+
+/* --- saisie de la cote --- */
+.saisie {
+  height: 100vh;
+  padding: 14px 16px;
+  background: #1d1a29;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  user-select: none;
+}
+
+.saisie h1 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.saisie .partie {
+  margin: 2px 0 12px;
+  color: var(--attenue);
+}
+
+.saisie label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--attenue);
+}
+
+.saisie input {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--texte);
+  background: #14121c;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  user-select: text;
+}
+
+.saisie input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.saisie .boutons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.saisie button {
+  padding: 6px 12px;
+  font: inherit;
+  color: var(--texte);
+  background: transparent;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.saisie button.principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1b1608;
+  font-weight: 600;
+}
+
+.saisie .confirme {
+  color: var(--bon);
+  margin-top: 18px;
+}

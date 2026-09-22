@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "app": "npm run app:build && electron dist/app/main.cjs",
+    "overlay": "npm run app:build && electron dist/app/overlay.cjs",
     "app:build": "node app/build.mjs && vite build --config app/vite.config.ts",
     "sync": "tsx src/cli/sync.ts",
     "parse": "tsx src/cli/parse.ts",

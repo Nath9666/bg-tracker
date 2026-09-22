@@ -18,8 +18,8 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 | `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
 | `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
 
-**Phase en cours : Phase 3 — Tableau de bord d'analyse.**
-Les phases 0 (archivage), 1 (parseur hors ligne) et 2 (base de données) sont terminées.
+**Phase en cours : Phase 4 — Mode en direct et overlay.**
+Les phases 0 (archivage), 1 (parseur), 2 (base de données) et 3 (tableau de bord) sont terminées.
 
 ⚠️ `better-sqlite3` est un module natif. Après un `npm install`, si l'application Electron se plaint
 d'un `NODE_MODULE_VERSION`, le recompiler : `npx @electron/rebuild -f -w better-sqlite3`.
@@ -49,6 +49,7 @@ npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + en
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
 npm run app          # tableau de bord Electron (compile puis lance)
+npm run overlay      # overlay transparent à lancer avant de jouer
 npm run sync         # archive + importe + rattache les cotes, en une commande
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire

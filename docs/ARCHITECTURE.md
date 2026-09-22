@@ -92,6 +92,20 @@ chaque extension avec `npm run cards`.
 Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas : sans index, la CLI
 affiche les `cardId` bruts et continue de fonctionner.
 
+### Overlay (phase 4)
+`app/main/overlay-main.ts` suit `Power.log`, alimente le `LiveTracker` et pousse l'état par IPC vers
+deux fenêtres :
+
+- **l'overlay** : transparente, `alwaysOnTop`, `setIgnoreMouseEvents(true)` — les clics la traversent,
+  elle ne gêne jamais le jeu. Comme on ne peut donc pas y faire défiler, tout doit tenir à l'écran :
+  les plateaux ne sont montrés que pour les deux derniers adversaires affrontés ;
+- **la saisie de cote** : fenêtre normale, ouverte à la fin d'une partie, la seule où l'on tape.
+
+Au démarrage, la session est relue **depuis le début** pour rattraper une partie déjà commencée ;
+sans cela, lancer l'overlay en cours de partie laisserait l'écran vide jusqu'à la suivante.
+
+Les deux interfaces React partagent une compilation Vite à deux entrées (`app/renderer`, `app/overlay`).
+
 ### Application Electron
 `app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).
 Le rendu n'a **ni Node ni accès à SQLite** : `contextIsolation` est activé, `nodeIntegration`

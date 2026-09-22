@@ -72,7 +72,7 @@ function createWindow(): void {
   });
 
   window.removeMenu();
-  void window.loadFile(join(__dirname, 'renderer', 'index.html'));
+  void window.loadFile(join(__dirname, 'ui', 'renderer', 'index.html'));
 }
 
 ipcMain.handle('dashboard', (_event, filters: StatsFilters) => buildDashboard(filters ?? {}));

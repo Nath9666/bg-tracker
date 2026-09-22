@@ -1,8 +1,8 @@
 /**
  * Compilation de l'application Electron.
  *
- * esbuild pour le processus principal et le preload (CommonJS, ce qu'Electron
- * charge le plus simplement), Vite pour le rendu React.
+ * esbuild pour les processus principaux et les preloads (CommonJS, ce
+ * qu'Electron charge le plus simplement), Vite pour les interfaces React.
  */
 import { build } from 'esbuild';
 import { rm } from 'node:fs/promises';
@@ -12,7 +12,12 @@ const OUT = 'dist/app';
 await rm(OUT, { recursive: true, force: true });
 
 await build({
-  entryPoints: { main: 'app/main/main.ts', preload: 'app/main/preload.ts' },
+  entryPoints: {
+    main: 'app/main/main.ts',
+    preload: 'app/main/preload.ts',
+    overlay: 'app/main/overlay-main.ts',
+    'overlay-preload': 'app/main/overlay-preload.ts',
+  },
   outdir: OUT,
   outExtension: { '.js': '.cjs' },
   bundle: true,

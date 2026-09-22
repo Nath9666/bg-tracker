@@ -57,9 +57,9 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 - [x] Suivi de `Power.log` en temps réel, avec gestion de la rotation vers `Power_old.log`
 - [x] Réutilisation du même modèle d'entités qu'en phase 1, alimenté en continu (`src/live/live-tracker.ts`)
-- [ ] Fenêtre overlay transparente, toujours au premier plan, qui laisse passer les clics
-- [ ] Affichage : derniers plateaux des adversaires, tier de chacun, historique des combats
-- [ ] Fenêtre de saisie de la cote en fin de partie
+- [x] Fenêtre overlay transparente, toujours au premier plan, qui laisse passer les clics
+- [x] Affichage : derniers plateaux des adversaires, tier de chacun, historique des combats
+- [x] Fenêtre de saisie de la cote en fin de partie
 - [x] Vérifier la politique actuelle de Blizzard sur les outils tiers avant de figer ce qui est affiché
       — critère officiel : « tout ce qu'on peut faire au papier-crayon » (Ben Brode), lecture passive
       uniquement. Les plateaux adverses déjà vus, les tiers et l'historique des combats sont dans ce
