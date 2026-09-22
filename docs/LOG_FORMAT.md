@@ -20,7 +20,8 @@ Verbose=True
 - Les logs sont dans `<dossier d'installation Hearthstone>\Logs\`, avec **un sous-dossier par session de jeu**, nommé `Hearthstone_AAAA_MM_JJ_HH_MM_SS` (vérifié : `Hearthstone_2026_09_22_00_28_13`). C'est la seule source de la **date** des lignes, qui ne portent que l'heure.
 - Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
 - Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
-- Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier)*.
+- Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier ; probablement un seuil de taille)*.
+- ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie : vérifié avec l'utilisateur, un `Power.log` de **150 Mo** correspondait à **4 parties enchaînées** dans la même session. Le découpage se fait donc sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
 - **Règle :** pour une session, lire `Power_old.log` puis `Power.log`, dans cet ordre, comme un seul flux continu.
 - Taille : environ **40 Mo et 300 000 lignes pour une partie de 25 minutes**. Lecture en flux obligatoire.
 - Fins de ligne Windows (`\r\n`). Encodage UTF-8 (noms avec accents, cyrilliques, apostrophes typographiques `’`).
@@ -31,9 +32,11 @@ Verbose=True
 D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=3 
 ```
 
-- `D` : niveau de log.
+- `D` : niveau de log. `E` existe aussi pour les erreurs du client (19 lignes dans le fichier de référence, toutes hors `GameState.*`).
 - `02:48:30.3211164` : heure locale **sans date**. La date vient du nom du dossier de session. Gérer le passage de minuit (si l'heure diminue, on passe au jour suivant).
 - `GameState.DebugPrintPower()` : la source. Voir ci-dessous.
+- ⚠️ Toutes les sources ne suivent pas la forme `Classe.Methode()` : certaines portent un suffixe entre crochets, comme `PowerSpellController [taskListId=1766].InitPowerSpell()`. Une expression régulière naïve sur `\w+\.\w+\(\)` les rate. Sans conséquence pour nous, puisqu'on ne garde que `GameState.`.
+- **Aucune ligne ne s'étale sur plusieurs lignes** : chaque ligne physique porte son propre préfixe, y compris les tags indentés et les options d'un choix. Le découpage par saut de ligne est donc sans piège.
 - L'**indentation** après ` - ` indique l'imbrication (un `TAG_CHANGE` à l'intérieur d'un `BLOCK_START`, ou les tags listés sous un `FULL_ENTITY`).
 - Beaucoup de lignes se terminent par un espace avant `\r`. Toujours faire un `trim`.
 
@@ -45,6 +48,7 @@ D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 t
 | `GameState.DebugPrintGame()` | Métadonnées : `BuildNumber`, `GameType`, `FormatType`, `ScenarioID`, `PlayerID=…, PlayerName=…` |
 | `GameState.DebugPrintEntityChoices()` | Un choix proposé au joueur (héros, découverte, triple, bibelot) avec la liste des options |
 | `GameState.SendChoices()` / `GameState.DebugPrintEntitiesChosen()` | L'option choisie |
+| `GameState.DebugPrintPowerList()` | Marqueur `Count=N` annonçant un lot de N lignes `DebugPrintPower` qui suivent. Sans intérêt pour le parseur. |
 | `GameState.DebugPrintOptions()` | Les actions disponibles à un instant donné (fin de tour, pouvoir héroïque, achat…). Très utile pour la phase IA. |
 | `GameState.SendOption()` | L'action effectivement jouée (`selectedOption`, `selectedTarget`, `selectedPosition`) |
 | `PowerTaskList.DebugPrintPower()` | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. |
@@ -135,6 +139,52 @@ Tags : certains ont un nom (`ZONE`, `ATK`), d'autres seulement un numéro (`tag=
 
 - **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.
 - Les types de serviteurs du lobby ne sont pas donnés directement *(à confirmer)*.
+
+## Mesures sur le fichier de référence
+
+`fixtures/sample-game-1/Power_old.log`, une partie Solo complète de 25 minutes :
+
+| Mesure | Valeur |
+|---|---|
+| Taille | 40 372 216 octets (40 Mo) |
+| Lignes | 298 697, **toutes** terminées par `
+` (298 697 `` pour 298 697 `
+`) |
+| Lignes `GameState.*` | 141 637 (47 %), soit 19 090 124 octets |
+| Idem, compressé en gzip -9 | 857 564 octets |
+
+Répartition des lignes `GameState.*` :
+
+| Source | Lignes |
+|---|---|
+| `DebugPrintPower()` | 125 359 |
+| `DebugPrintOptions()` | 15 394 |
+| `DebugPrintPowerList()` | 651 |
+| `SendOption()` | 134 |
+| `DebugPrintEntityChoices()` | 53 |
+| `SendChoices()` | 20 |
+| `DebugPrintEntitiesChosen()` | 20 |
+| `DebugPrintGame()` | 6 |
+
+Le bloc `DebugPrintGame()` complet, en tête de partie :
+
+```
+GameState.DebugPrintGame() - BuildNumber=251952
+GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS
+GameState.DebugPrintGame() - FormatType=FT_WILD
+GameState.DebugPrintGame() - ScenarioID=3459
+GameState.DebugPrintGame() - PlayerID=7, PlayerName=AkiLif#2498
+GameState.DebugPrintGame() - PlayerID=15, PlayerName=МиниНиндзя
+```
+
+À noter : le joueur `PlayerID=15`, celui qui porte Bob et les copies des héros adverses, a un **vrai nom de joueur**
+(ici en cyrillique), pas un nom technique. Il ne se distingue que par son `GameAccountId=[hi=0 lo=0]`.
+
+## Extrait versionné pour les tests
+
+`tests/fixtures/sample-game-1.min.log.gz` est produit par `npm run make-fixture` à partir du log de référence :
+on ne garde que les lignes `GameState.*`, on compresse en gzip. Le contenu décompressé est **identique octet pour
+octet** à `grep '^[A-Z] [0-9:.]* GameState\.' Power_old.log`, fins de ligne CRLF comprises.
 
 ## Valeurs de référence (fixtures/sample-game-1)
 
