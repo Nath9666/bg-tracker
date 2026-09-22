@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "parse": "tsx src/cli/parse.ts",
+    "archive": "tsx scripts/archive-logs.ts",
     "make-fixture": "tsx scripts/make-fixture.ts"
   },
   "devDependencies": {

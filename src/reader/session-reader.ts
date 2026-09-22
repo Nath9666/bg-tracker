@@ -12,9 +12,20 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { createGunzip } from 'node:zlib';
 
-/** Les fichiers d'une session, dans leur ordre de lecture. */
-export const SESSION_LOG_FILES = ['Power_old.log', 'Power.log'] as const;
+/**
+ * Les fichiers d'une session, dans leur ordre de lecture.
+ *
+ * La variante `.gz` est celle produite par l'archivage (phase 0) : une session
+ * archivee se lit exactement comme un dossier de logs d'origine.
+ */
+export const SESSION_LOG_FILES = [
+  'Power_old.log',
+  'Power_old.log.gz',
+  'Power.log',
+  'Power.log.gz',
+] as const;
 
 /** `Hearthstone_2026_09_22_00_28_13` */
 const SESSION_FOLDER_NAME = /^Hearthstone_(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})$/;
@@ -91,10 +102,13 @@ export async function openSession(folder: string): Promise<Session> {
  * doit etre conservee.
  */
 export async function* readLogFile(path: string): AsyncGenerator<string> {
-  const lines = createInterface({
-    input: createReadStream(path, { encoding: 'utf8' }),
-    crlfDelay: Infinity,
-  });
+  // Un fichier archive est compresse : on le decompresse au fil de l'eau,
+  // sans jamais le materialiser sur disque.
+  const input = path.endsWith('.gz')
+    ? createReadStream(path).pipe(createGunzip()).setEncoding('utf8')
+    : createReadStream(path, { encoding: 'utf8' });
+
+  const lines = createInterface({ input, crlfDelay: Infinity });
 
   for await (const line of lines) {
     yield line.trimEnd();

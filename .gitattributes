@@ -5,3 +5,7 @@
 # jamais toucher a leurs fins de ligne (les vrais Power.log sont en CRLF).
 *.log -text
 *.gz -text binary
+
+# Les scripts Windows doivent garder des fins de ligne CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf

@@ -26,6 +26,7 @@ bg-tracker/
 │   └── sample-game-1/
 ├── scripts/                  # archive-logs, utilitaires
 ├── src/
+│   ├── archive/              # archivage des sessions (phase 0)
 │   ├── reader/               # SessionReader : fichiers → lignes (flux)
 │   ├── parser/               # LineParser : ligne → événement typé
 │   ├── state/                # Entity, GameStateMachine
@@ -41,8 +42,13 @@ bg-tracker/
 
 ## Modules
 
+### Archivage (phase 0)
+`src/archive/` copie les `Power.log` de chaque session vers un dossier d'archive, compressés en gzip,
+et n'y garde que les N dernières parties. Un `manifest.json` évite de refaire le travail à chaque
+passage. Voir `docs/ARCHIVAGE.md`.
+
 ### SessionReader
-Entrée : un dossier de session. Sortie : un itérateur asynchrone de lignes (`AsyncIterable<string>`), `Power_old.log` d'abord puis `Power.log`. Fournit aussi la date de la session (tirée du nom de dossier) pour dater les lignes.
+Entrée : un dossier de session, d'origine ou archivé. Sortie : un itérateur asynchrone de lignes (`AsyncIterable<string>`), `Power_old.log` d'abord puis `Power.log`. Les variantes `.gz` produites par l'archivage sont décompressées au fil de l'eau, sans fichier temporaire. Fournit aussi la date de la session (tirée du nom de dossier) pour dater les lignes.
 
 ### LineParser
 Fonction pure : `parseLine(line: string): LogEvent | null`. Ne garde que les sources `GameState.*`. Renvoie des événements typés (union discriminée) :
