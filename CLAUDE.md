@@ -18,8 +18,8 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 | `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
 | `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
 
-**Phase en cours : Phase 2 — Extraction détaillée et base de données.**
-Les phases 0 (archivage) et 1 (parseur hors ligne) sont terminées.
+**Phase en cours : Phase 3 — Tableau de bord d'analyse.**
+Les phases 0 (archivage), 1 (parseur hors ligne) et 2 (base de données) sont terminées.
 
 ## Stack
 
@@ -43,6 +43,7 @@ npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
 npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
 npm run import -- <dossier>                   # importe les parties en base SQLite
 npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
+npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire
 npm run make-fixture # régénère tests/fixtures/sample-game-1.min.log
@@ -64,7 +65,7 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 
 - Le tracker lit **uniquement les fichiers de log**. Pas de lecture de la mémoire du processus Hearthstone, pas d'interception réseau.
 - Rien ne doit **envoyer d'actions au jeu** (clics simulés, automatisation). L'IA de la phase 5 reste un outil d'analyse et de conseil, jamais un bot.
-- La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur.
+- La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur dans `data/ratings.csv`, pré-rempli par `npm run ratings` avec une ligne par partie.
 
 ## Données de test
 

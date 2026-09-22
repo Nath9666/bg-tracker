@@ -81,6 +81,15 @@ chaque extension avec `npm run cards`.
 Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas : sans index, la CLI
 affiche les `cardId` bruts et continue de fonctionner.
 
+### Cote (MMR)
+`src/ratings/` tient `data/ratings.csv` à jour : une ligne par partie, la plus ancienne d'abord, avec
+la date de fin déjà remplie et la cote à compléter. `npm run ratings` fait les deux sens en un passage,
+ajoute les parties nouvelles sans toucher aux cotes déjà saisies, puis rattache chaque cote à la partie
+la plus proche dans le temps (90 minutes de tolérance, une cote par partie).
+
+Le fichier porte une troisième colonne, `partie`, qui n'est qu'un repère lisible : elle est réécrite à
+chaque passage et jamais relue.
+
 ### GameExtractor
 Transforme l'état et les événements métier en objets `GameSummary`, `TurnRecord`, `BoardSnapshot`, `PickRecord`.
 

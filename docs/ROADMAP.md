@@ -28,7 +28,7 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 **Critère de fin :** la CLI affiche un résumé correct pour chaque partie d'un dossier d'archive.
 
-## Phase 2 — Extraction détaillée et base de données ← EN COURS
+## Phase 2 — Extraction détaillée et base de données ✓
 
 - [x] Schéma SQLite (voir `docs/ARCHITECTURE.md`) et migrations
 - [x] Table `games` et `hero_offers`
@@ -36,12 +36,12 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Table `boards` (plateau au début de chaque combat)
 - [x] Table `picks` (découvertes, triples, bibelots : options proposées + choix), plus `tier_ups`
 - [x] Import idempotent : réimporter un dossier ne crée pas de doublons (clé = `GAME_SEED` + jour de début)
-- [ ] Import de `data/ratings.csv` et rattachement de la cote à la partie la plus proche dans le temps
+- [x] Import de `data/ratings.csv` et rattachement de la cote à la partie la plus proche dans le temps (`npm run ratings`)
 - [x] Mapping `cardId` → nom, tier, type via HearthstoneJSON, mis en cache localement (`npm run cards`)
 
 **Critère de fin :** toutes les parties archivées sont en base, sans doublon.
 
-## Phase 3 — Tableau de bord d'analyse
+## Phase 3 — Tableau de bord d'analyse ← EN COURS
 
 - [ ] Application Electron (front React ou Angular)
 - [ ] Évolution de la cote et de la place moyenne dans le temps
