@@ -24,7 +24,15 @@ import {
 
 const DEFAULT_SOURCE = 'F:\\SteamLibrary\\Hearthstone\\Logs';
 const DEFAULT_DEST = 'data/archive';
-const DEFAULT_KEEP = 10;
+/**
+ * Nombre de parties conservees dans l'archive.
+ *
+ * Environ un mois de jeu, pour 1 Go compresse. Les logs bruts ne servent pas
+ * qu'a l'import : la base garde les resumes, les tours et les plateaux, mais
+ * pas chaque achat, vente ou repositionnement, dont la phase 5 aura besoin.
+ * Elaguer trop tot couterait donc des donnees d'entrainement.
+ */
+const DEFAULT_KEEP = 200;
 const RATINGS = 'data/ratings.csv';
 
 export function parseArchiveArgs(argv: readonly string[]): ArchiveOptions {

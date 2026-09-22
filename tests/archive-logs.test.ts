@@ -198,6 +198,46 @@ describe('retention', () => {
   });
 });
 
+describe('relever la retenue', () => {
+  it('fait revenir une session ecartee dont les logs existent encore', async () => {
+    const source = await makeLogs({
+      [S1]: { 'Power_old.log': logWith(5) },
+      [S3]: { 'Power_old.log': logWith(5) },
+    });
+    const dest = await makeDest();
+
+    const first = await archiveLogs(options(source, dest, { keep: 3 }));
+    expect(first.pruned).toEqual([S1]);
+
+    // Retenue relevee : la session ecartee redevient candidate.
+    const second = await archiveLogs(options(source, dest, { keep: 100 }));
+    expect(second.files.map((f) => f.session).sort()).toEqual([S1, S3]);
+    expect(second.pruned).toEqual([]);
+    expect((await manifestOf(dest)).pruned).toEqual([]);
+  });
+
+  it('ne relit pas les sessions ecartees si la retenue ne bouge pas', async () => {
+    const source = await makeLogs({
+      [S1]: { 'Power_old.log': logWith(5) },
+      [S3]: { 'Power_old.log': logWith(5) },
+    });
+    const dest = await makeDest();
+
+    await archiveLogs(options(source, dest, { keep: 3 }));
+    const second = await archiveLogs(options(source, dest, { keep: 3 }));
+
+    expect(second.files.map((f) => f.session)).toEqual([S3]);
+  });
+
+  it('retient la valeur appliquee', async () => {
+    const source = await makeLogs({ [S1]: { 'Power.log': logWith(1) } });
+    const dest = await makeDest();
+    await archiveLogs(options(source, dest, { keep: 42 }));
+
+    expect((await manifestOf(dest)).keep).toBe(42);
+  });
+});
+
 describe('simulation', () => {
   it('compte les parties et annonce la retention sans rien ecrire', async () => {
     const source = await makeLogs({
@@ -249,6 +289,12 @@ describe('parseArchiveArgs', () => {
   it('lit les options', () => {
     const parsed = parseArchiveArgs(['--dest', 'D:/archive', '--keep', '50', '--dry-run']);
     expect(parsed).toMatchObject({ dest: 'D:/archive', keep: 50, dryRun: true });
+  });
+
+  it('retient 200 parties par defaut', () => {
+    // Environ un mois de jeu. Les logs bruts portent des informations que la
+    // base ne garde pas, dont la phase 5 aura besoin.
+    expect(parseArchiveArgs([]).keep).toBe(200);
   });
 
   it('refuse une retenue invalide ou une option inconnue', () => {

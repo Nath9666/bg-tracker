@@ -47,6 +47,14 @@ export interface Manifest {
    * d'anciennes sessions juste pour les resupprimer.
    */
   pruned: string[];
+  /**
+   * Retenue appliquee au dernier passage.
+   *
+   * La relever doit faire **revenir** les sessions ecartees dont les logs sont
+   * encore dans le dossier de Hearthstone : sans cette memoire, elles
+   * resteraient exclues pour toujours.
+   */
+  keep?: number;
 }
 
 function emptyManifest(): Manifest {
@@ -120,6 +128,7 @@ async function readManifest(dest: string): Promise<Manifest> {
     return {
       files: parsed.files ?? {},
       pruned: parsed.pruned ?? [],
+      ...(parsed.keep === undefined ? {} : { keep: parsed.keep }),
     };
   } catch {
     // Un manifeste illisible ne doit pas bloquer l'archivage : on repart de zero.
@@ -155,6 +164,14 @@ export async function archiveLogs(options: ArchiveOptions): Promise<ArchiveResul
   if (!dryRun) await mkdir(dest, { recursive: true });
   const manifest = await readManifest(dest);
   const files: ArchivedFile[] = [];
+
+  // Retenue relevee depuis le dernier passage : les sessions ecartees
+  // redeviennent candidates, leurs logs etant peut-etre encore sur le disque.
+  // Un manifeste anterieur a cette memoire ne dit pas quelle retenue il a
+  // subie : on repart alors de zero une fois, quitte a relire pour rien, la
+  // retention reecartant aussitot ce qui doit l'etre.
+  if (manifest.keep === undefined || keep > manifest.keep) manifest.pruned = [];
+  manifest.keep = keep;
 
   const pruned = new Set(manifest.pruned);
 

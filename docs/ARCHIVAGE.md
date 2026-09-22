@@ -53,22 +53,34 @@ d'annoncer ce que la rétention supprimerait. **À lancer avant tout changement 
 |---|---|---|
 | Source | `F:\SteamLibrary\Hearthstone\Logs` | `BG_TRACKER_LOGS` |
 | Archive | `data/archive` (dans le projet, ignoré par Git) | `BG_TRACKER_ARCHIVE` |
-| Rétention | 10 parties | — (option `--keep`) |
+| Rétention | 200 parties | — (option `--keep`) |
 
-## ⚠️ Rétention et perte de données
+## Rétention : ce qu'élaguer coûte vraiment
 
-**Tant que la phase 2 n'existe pas, ce que la rétention supprime est perdu définitivement.** Aucune
-base de données ne relit encore les parties archivées.
+La base contient désormais les parties, leurs tours, leurs plateaux et leurs choix. Élaguer un log
+archivé ne fait donc **plus perdre une partie**.
 
-À raison de 6 parties par session, une rétention à 10 parties laisse environ **deux jours de marge**.
-Si la phase 2 prend plus longtemps, des parties seront perdues. Pour supprimer ce risque, il suffit de
-relever la rétention le temps que la base arrive :
+Mais la base ne garde pas **tout** : chaque achat, chaque vente, chaque repositionnement de serviteur
+n'existe que dans le log brut, et la phase 5 en aura besoin pour entraîner l'IA. Un log élagué est
+une donnée d'entraînement perdue.
+
+D'où la valeur par défaut de **200 parties**, environ un mois de jeu pour 1 Go compressé. Pour tout
+garder :
 
 ```bash
-npm run archive -- --keep 500
+npm run archive -- --keep 100000
 ```
 
-Une fois la phase 2 en place, l'ordre correct sera : importer en base, **puis** élaguer.
+⚠️ **Une session élaguée n'est jamais rearchivée**, même si ses logs sont encore dans le dossier de
+Hearthstone : le manifeste retient son nom pour ne pas la relire à chaque passage. Lancer
+`npm run archive -- --dry-run` **avant** de baisser la rétention permet de voir ce qui partirait.
+
+En cas de besoin, les logs encore présents dans le dossier du jeu restent importables directement,
+sans passer par l'archive :
+
+```bash
+npm run import -- "F:\SteamLibrary\Hearthstone\Logs"
+```
 
 ## Lancement automatique (planificateur de tâches Windows)
 
@@ -87,6 +99,10 @@ schtasks /Create /TN "BG Tracker - archivage" /SC MINUTE /MO 30 /F ^
 Toutes les 30 minutes : la session en cours est réarchivée au fur et à mesure que tu joues, et une
 session terminée n'est plus touchée. Un passage sans rien à faire prend environ **1 seconde** ;
 réarchiver une grosse session en cours prend une dizaine de secondes.
+
+⚠️ **Sans cette tâche, rien n'archive.** Une session peut alors disparaître du dossier de Hearthstone
+avant d'avoir été archivée. En attendant de la créer, penser à lancer `npm run archive` à la main
+après chaque session de jeu.
 
 Pour vérifier, lancer à la main ou supprimer :
 
@@ -118,12 +134,14 @@ npm run parse -- data/archive/Hearthstone_2026_09_22_00_28_13
 
 ## La cote (MMR)
 
-Elle n'apparaît nulle part dans les logs. `data/ratings.csv` est là pour la noter à la main en
-attendant la phase 4 :
+Elle n'apparaît nulle part dans les logs : elle se note à la main dans `data/ratings.csv`. Le fichier
+est **pré-rempli** par `npm run ratings`, une ligne par partie, la plus ancienne d'abord :
 
 ```csv
-datetime,rating
-2026-09-22T02:56,8412
+datetime,rating,partie
+2026-09-22T02:56:47.033+02:00,8412,"Cénarius, seigneur de la forêt 1e"
 ```
 
-La phase 2 rattachera chaque cote à la partie la plus proche dans le temps.
+Il n'y a que la colonne `rating` à compléter. La même commande rattache ensuite chaque cote à la
+partie la plus proche dans le temps, et ajoute les parties jouées depuis, sans toucher à ce qui est
+déjà saisi. La troisième colonne n'est qu'un repère lisible : elle est réécrite à chaque passage.
