@@ -17,7 +17,7 @@ But : ne perdre aucune partie. Hearthstone ne conserve pas indéfiniment ses dos
 Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 - [x] Initialisation du projet (TypeScript strict, ESM, Vitest, scripts npm)
-- [ ] Lecteur de session : lit `Power_old.log` puis `Power.log`, en flux
+- [x] Lecteur de session : lit `Power_old.log` puis `Power.log`, en flux
 - [ ] Parseur de lignes `GameState` → événements typés
 - [ ] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
 - [ ] Découpage en parties et filtrage Champs de bataille

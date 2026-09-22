@@ -21,7 +21,8 @@ Verbose=True
 - Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
 - Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
 - Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier ; probablement un seuil de taille)*.
-- ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie : vérifié avec l'utilisateur, un `Power.log` de **150 Mo** correspondait à **4 parties enchaînées** dans la même session. Le découpage se fait donc sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
+- ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie. Mesuré sur la session `Hearthstone_2026_09_22_00_28_13` : un seul `Power.log` de **177 Mo** (1 305 659 lignes) contenant **6 `CREATE_GAME` pour 5 `STATE=COMPLETE`** (la 6ᵉ partie était en cours), toutes en `GT_BATTLEGROUNDS`, et **aucun `Power_old.log`**. La rotation n'est donc pas un simple seuil à 150 Mo *(déclencheur toujours à déterminer)*. Le découpage se fait sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
+- Une session peut donc se terminer sur une partie **incomplète** (`CREATE_GAME` sans `STATE=COMPLETE`), si le joueur est encore en partie ou si le jeu a été fermé brutalement.
 - **Règle :** pour une session, lire `Power_old.log` puis `Power.log`, dans cet ordre, comme un seul flux continu.
 - Taille : environ **40 Mo et 300 000 lignes pour une partie de 25 minutes**. Lecture en flux obligatoire.
 - Fins de ligne Windows (`\r\n`). Encodage UTF-8 (noms avec accents, cyrilliques, apostrophes typographiques `’`).
@@ -51,7 +52,7 @@ D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 t
 | `GameState.DebugPrintPowerList()` | Marqueur `Count=N` annonçant un lot de N lignes `DebugPrintPower` qui suivent. Sans intérêt pour le parseur. |
 | `GameState.DebugPrintOptions()` | Les actions disponibles à un instant donné (fin de tour, pouvoir héroïque, achat…). Très utile pour la phase IA. |
 | `GameState.SendOption()` | L'action effectivement jouée (`selectedOption`, `selectedTarget`, `selectedPosition`) |
-| `PowerTaskList.DebugPrintPower()` | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. |
+| `PowerTaskList.DebugPrintPower()` | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. ⚠️ Piège de comptage : un `grep` qui ne filtre pas sur la source compte **deux fois** chaque événement. |
 | `PowerProcessor.*`, `PowerTaskList.DebugDump()` | Interne. À ignorer. |
 
 ## Types d'événements (dans `GameState.DebugPrintPower()`)
@@ -113,7 +114,7 @@ Tags : certains ont un nom (`ZONE`, `ATK`), d'autres seulement un numéro (`tag=
 - `PLAYER_LEADERBOARD_PLACE` sur l'entité héros : place actuelle, mise à jour en continu.
 - Élimination : `TAG_CHANGE Entity=<joueur> tag=PLAYSTATE value=LOST` (précédé de `LOSING`). **Place finale = dernière valeur de `PLAYER_LEADERBOARD_PLACE` sur le héros du joueur à ce moment.**
 - Victoire (1re place) : `PLAYSTATE value=WON` pour le joueur *(à vérifier sur une partie gagnée)*.
-- Fin de partie : `TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE`. Des lignes peuvent encore suivre, à ignorer jusqu'au prochain `CREATE_GAME`.
+- Fin de partie : `TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE`. Des lignes peuvent encore suivre, à ignorer jusqu'au prochain `CREATE_GAME`. Mesuré sur le fichier de référence : **2 lignes traînent 48 secondes après** le `COMPLETE` de 03:13:48, un `DebugPrintPowerList() - Count=1` et un `TAG_CHANGE tag=PLAYER_TRIPLES` sur une copie de héros adverse en `SETASIDE`. Le fichier ne se termine donc pas sur le `COMPLETE`.
 - Dégâts reçus : tag `DAMAGE` sur le héros (valeur cumulée).
 
 ### Ressources
@@ -148,7 +149,8 @@ Tags : certains ont un nom (`ZONE`, `ATK`), d'autres seulement un numéro (`tag=
 |---|---|
 | Taille | 40 372 216 octets (40 Mo) |
 | Lignes | 298 697, **toutes** terminées par `
-` (298 697 `` pour 298 697 `
+` (298 697 `
+` pour 298 697 `
 `) |
 | Lignes `GameState.*` | 141 637 (47 %), soit 19 090 124 octets |
 | Idem, compressé en gzip -9 | 857 564 octets |
@@ -179,6 +181,18 @@ GameState.DebugPrintGame() - PlayerID=15, PlayerName=МиниНиндзя
 
 À noter : le joueur `PlayerID=15`, celui qui porte Bob et les copies des héros adverses, a un **vrai nom de joueur**
 (ici en cyrillique), pas un nom technique. Il ne se distingue que par son `GameAccountId=[hi=0 lo=0]`.
+
+## Performances de lecture
+
+Mesuré avec le `SessionReader` (`readline` sur un flux, ligne par ligne) :
+
+| Fichier | Lignes | Temps | Heap |
+|---|---|---|---|
+| `sample-game-1/Power_old.log` (40 Mo) | 298 697 | 0,22 s | 17 Mo |
+| `Hearthstone_2026_09_22_00_28_13/Power.log` (177 Mo) | 1 305 659 | 0,83 s | 19 Mo |
+
+La mémoire ne grimpe pas avec la taille du fichier : la lecture est bien en flux. Lire un `Power.log`
+pendant que le jeu écrit dedans ne pose aucun problème.
 
 ## Extrait versionné pour les tests
 
