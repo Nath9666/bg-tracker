@@ -67,6 +67,27 @@ Fréquences observées sur une partie : `TAG_CHANGE` ~63 000, `BLOCK_START` ~3 3
 - `TAG_CHANGE Entity=<réf> tag=<nom> value=<valeur>` : modifie un tag.
 - `BLOCK_START BlockType=… Entity=…` / `BLOCK_END` : regroupent des événements (TRIGGER, PLAY, ATTACK, POWER…).
 
+### ⚠️ Les identifiants de joueur changent à chaque partie
+
+`PlayerID=7` / `PlayerID=15` ne sont **pas** des constantes. Relevé sur les 6 parties de la session
+`Hearthstone_2026_09_22_00_28_13` :
+
+| `Player EntityID` | `PlayerID` | `GameAccountId` |
+|---|---|---|
+| 2 | 1 | réel |
+| 3 | 9 | `hi=0 lo=0` |
+| 8 | 3 | réel |
+| 9 | 11 | `hi=0 lo=0` |
+| 14 | 5 | réel |
+| 15 | 13 | `hi=0 lo=0` |
+| 20 | 7 | réel |
+| 21 | 15 | `hi=0 lo=0` |
+| 23 | 8 | réel |
+| 24 | 16 | `hi=0 lo=0` |
+
+La régularité observée : le joueur fictif porte `PlayerID` + 8 et `EntityID` + 1 par rapport à l'utilisateur.
+**Ne jamais coder en dur 7 et 15.** Le seul critère fiable reste le `GameAccountId` non nul.
+
 ### Formes de référence à une entité (`Entity=`)
 
 Trois formes coexistent, le parseur doit gérer les trois :
@@ -75,9 +96,61 @@ Trois formes coexistent, le parseur doit gérer les trois :
 2. Un nom de joueur ou `GameEntity` : `Entity=AkiLif#2498`, `Entity=GameEntity`, `Entity=Bob le barman`
 3. Un bloc détaillé : `Entity=[entityName=Maître-éclaireur Tavish id=89 zone=PLAY zonePos=0 cardId=BG22_HERO_000_SKIN_A player=7]` → utiliser `id`.
 
-Pour la forme 2, construire une table nom → id de l'entité joueur à partir de `DebugPrintGame` (`PlayerID=…, PlayerName=…`) et des entités `Player` de `CREATE_GAME`. Attention : les noms peuvent contenir des espaces et des caractères non latins.
+Pour la forme 2, construire une table nom → id de l'entité joueur à partir de `DebugPrintGame` (`PlayerID=…, PlayerName=…`) et des entités `Player` de `CREATE_GAME`. Attention : les noms peuvent contenir des espaces (`Entity=Bob le barman`, 150 lignes) et des caractères non latins.
+
+⚠️ **Tous les noms référencés ne sont pas définis.** Le log de référence référence **10 noms** en forme 2
+(`GameEntity`, `Bob le barman`, `AkiLif#2498`, `LazyTurtle`, `ShadowStorm`, `MarshallMN`, `MrSomething`,
+`SporeGasm`, `CHLAMYDIAE`, `БойцоваяЖаба`) alors qu'il ne définit que **2 entités `Player`**. Les noms d'adversaires
+apparaissent pendant les combats, portent des tags de joueur (`CORPSES`, `NUM_MINIONS_PLAYER_KILLED_THIS_TURN`,
+`BACON_CURRENT_COMBAT_PLAYER_ID`) et n'apparaissent **jamais** dans un `entityName=`. Hypothèse à vérifier :
+l'entité du joueur fictif est réutilisée comme mandataire et change de nom à chaque combat.
+
+⚠️ **Le bloc de la forme 3 ne se parse pas avec une paire de crochets.** `entityName` peut contenir des
+crochets : `UNKNOWN ENTITY [cardType=INVALID]` (1 313 lignes), `TagTransferPlayerEnchant [DNT]` (220),
+`Update Damage Cap [DNT]` (91), `Undead Bonus Attack Player Enchant [DNT]` (77). Chercher le premier `]`
+coupe au mauvais endroit. Il faut s'accrocher à la suite de champs fixes, qui ne varie jamais :
+` id=<n> zone=<z> zonePos=<n> cardId=<c> player=<n>]`. `entityName` et `cardId` peuvent aussi être **vides**
+(`cardId=` dans 1 443 lignes).
 
 Tags : certains ont un nom (`ZONE`, `ATK`), d'autres seulement un numéro (`tag=1068`). Garder les deux sous forme de chaîne.
+
+## Pièges de parsing vérifiés
+
+Relevés en passant le LineParser sur 846 830 lignes `GameState.*` (le log de référence, plus une session
+de 6 parties). Toutes ces formes sont couvertes par `tests/line-parser.test.ts`.
+
+- **`TAG_CHANGE` peut porter un suffixe après la valeur.** 15 lignes se terminent par ` DEF CHANGE`
+  (ex. `TAG_CHANGE Entity=2542 tag=1475 value=3 DEF CHANGE`). Capturer `value=(.*)$` avale le suffixe.
+- **`BLOCK_START` : `Target=` n'est pas toujours un nombre.** Sur les actions ciblées (achat, pose, pouvoir
+  héroïque) c'est un bloc d'entité complet :
+  `Target=[entityName=Liche inoffensive id=330 zone=PLAY zonePos=2 cardId=BG28_300 player=15]`.
+  `Target=0` signifie « pas de cible ». Ces lignes sont précieuses pour la phase 5 : elles disent ce que
+  le joueur a acheté ou posé.
+- **`BLOCK_START` : `TriggerKeyword=` est optionnel**, absent sur environ 260 lignes du log de référence.
+- **`EffectCardId` contient des crochets et un accent grave** : `System.Collections.Generic.Listˈ1[System.String]`.
+- **`Info[i]`, `Source` et `Targets[i]` écrivent ` = ` avec des espaces**, contrairement à tout le reste du
+  log qui écrit `clé=valeur`. Ces lignes-là sont des sous-lignes de `META_DATA` et `SUB_SPELL_START`.
+- **L'indentation n'est pas toujours un multiple de 4.** Les sous-lignes `Source` et `Targets[i]` utilisent
+  22, 26, 30 ou 34 espaces.
+- **`TaskList=` peut être vide** sur un `ChoiceType=MULLIGAN` (2 fois sur 6 parties).
+- **`DebugPrintOptions` a trois sortes de sous-lignes** : `option i`, `target i`, et `subOption i`, cette
+  dernière quand une carte propose plusieurs effets (ex. `Bon appétit` / `À table`).
+- **`GameState.OnEntityChoices()`** existe : `id=1 playerId=7 queued`. Une seule ligne sur 6 parties,
+  redondante avec le `DebugPrintEntityChoices` qui suit.
+
+Méthodes `GameState.*` vues sur une session de 6 parties :
+
+| Méthode | Lignes |
+|---|---|
+| `DebugPrintPower()` | 601 951 |
+| `DebugPrintOptions()` | 97 673 |
+| `DebugPrintPowerList()` | 3 835 |
+| `SendOption()` | 936 |
+| `DebugPrintEntityChoices()` | 323 |
+| `SendChoices()` | 122 |
+| `DebugPrintEntitiesChosen()` | 122 |
+| `DebugPrintGame()` | 36 |
+| `OnEntityChoices()` | 1 |
 
 ## Faits propres aux Champs de bataille
 
@@ -190,6 +263,13 @@ Mesuré avec le `SessionReader` (`readline` sur un flux, ligne par ligne) :
 |---|---|---|---|
 | `sample-game-1/Power_old.log` (40 Mo) | 298 697 | 0,22 s | 17 Mo |
 | `Hearthstone_2026_09_22_00_28_13/Power.log` (177 Mo) | 1 305 659 | 0,83 s | 19 Mo |
+
+Lecture **et** parsage des lignes en événements typés :
+
+| Fichier | Lignes | Événements | Temps |
+|---|---|---|---|
+| `sample-game-1/Power_old.log` | 298 697 | 137 186 | 0,31 s |
+| Session de 6 parties (200 Mo) | 1 496 091 | 695 997 | 1,48 s |
 
 La mémoire ne grimpe pas avec la taille du fichier : la lecture est bien en flux. Lire un `Power.log`
 pendant que le jeu écrit dedans ne pose aucun problème.

@@ -18,7 +18,7 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 - [x] Initialisation du projet (TypeScript strict, ESM, Vitest, scripts npm)
 - [x] Lecteur de session : lit `Power_old.log` puis `Power.log`, en flux
-- [ ] Parseur de lignes `GameState` → événements typés
+- [x] Parseur de lignes `GameState` → événements typés
 - [ ] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
 - [ ] Découpage en parties et filtrage Champs de bataille
 - [ ] Extraction du résumé de partie
