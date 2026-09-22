@@ -367,16 +367,19 @@ export function combatResult(won: boolean, damageTaken: number): CombatResult {
 }
 
 /**
- * Plateau du joueur au moment ou le combat commence.
+ * Plateau d'un joueur, range par position.
  *
- * On le lit avant que le jeu ne cree ses copies de combat, sinon le plateau
+ * Par defaut celui de l'utilisateur. Le suivi en direct s'en sert aussi pour le
+ * plateau adverse, porte par le joueur fictif pendant un combat.
+ *
+ * Hors combat, on le lit avant que le jeu ne cree ses copies, sinon le plateau
  * serait pollue par des doublons.
  */
-export function readBoard(game: Game): BoardMinion[] {
-  const localPlayer =
-    game.localPlayerEntityId !== null ? game.players.get(game.localPlayerEntityId) : undefined;
-  if (localPlayer === undefined) return [];
-  const controller = String(localPlayer.playerId);
+export function readBoard(game: Game, playerEntityId?: number | null): BoardMinion[] {
+  const entityId = playerEntityId ?? game.localPlayerEntityId;
+  const owner = entityId !== null && entityId !== undefined ? game.players.get(entityId) : undefined;
+  if (owner === undefined) return [];
+  const controller = String(owner.playerId);
 
   return [...game.entities.values()]
     .filter(

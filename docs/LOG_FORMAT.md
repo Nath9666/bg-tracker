@@ -245,6 +245,23 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
   - `Source=[… cardId=BG30_Trinket_1st …]` : bibelot inférieur. Options en `BG30_MagicItem_*` / `BG36_MagicItem_*`.
   - Autres sources à cataloguer au fil des parties.
 
+### Le plateau adverse pendant un combat
+
+⚠️ **Il n'existe pas au début de la phase de combat.** Au moment exact où `BACON_IN_COMBAT_PHASE`
+passe à 1, seuls les serviteurs du joueur sont en `PLAY` (en copies, `COPIED_FROM_ENTITY_ID`). Ceux
+d'en face arrivent **progressivement** au fil de la phase, parfois après plusieurs centaines
+d'événements.
+
+Mesuré sur les 12 combats du log de référence : le plateau adverse atteint son maximum entre
+l'événement 431 et l'événement 3 229 de la phase, selon le combat.
+
+✅ **L'ancrage utilisable est la première attaque** : au premier `TAG_CHANGE tag=ATTACKING value=1`,
+les effets de début de combat ont eu lieu et c'est ce plateau-là qui se bat. Le plateau se lit alors
+sur les serviteurs contrôlés par le **joueur fictif**.
+
+Limite assumée : un serviteur invoqué plus tard par un râle d'agonie n'y figure pas, et un serviteur
+tué par un effet de début de combat n'y figure plus.
+
 ### Identifier les héros adverses
 
 Le lobby compte 8 joueurs : l'utilisateur et **7 adversaires**. Leurs héros ne se trouvent ni par le
