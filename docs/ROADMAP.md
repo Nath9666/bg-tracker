@@ -13,7 +13,7 @@ But : ne perdre aucune partie. Hearthstone ne conserve pas indéfiniment ses dos
 **Critère de fin :** les sessions sont archivées automatiquement. ✅ Le script et sa documentation sont en
 place ; il reste à créer la tâche planifiée sur la machine (commande donnée dans `docs/ARCHIVAGE.md`).
 
-## Phase 1 — Parseur hors ligne ← EN COURS
+## Phase 1 — Parseur hors ligne ✓
 
 Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
@@ -23,12 +23,12 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 - [x] Modèle d'entités (application des `CREATE_GAME`, `FULL_ENTITY`, `SHOW_ENTITY`, `TAG_CHANGE`…)
 - [x] Découpage en parties (le filtrage Champs de bataille se fait à l'extraction)
 - [x] Extraction du résumé de partie
-- [ ] CLI `npm run parse -- <dossier>`
-- [ ] Test de référence sur `fixtures/sample-game-1` qui passe
+- [x] CLI `npm run parse -- <dossier>`
+- [x] Test de référence sur `fixtures/sample-game-1` qui passe
 
 **Critère de fin :** la CLI affiche un résumé correct pour chaque partie d'un dossier d'archive.
 
-## Phase 2 — Extraction détaillée et base de données
+## Phase 2 — Extraction détaillée et base de données ← EN COURS
 
 - [ ] Schéma SQLite (voir `docs/ARCHITECTURE.md`) et migrations
 - [ ] Table `games` et `hero_offers`

@@ -94,6 +94,33 @@ export async function openSession(folder: string): Promise<Session> {
 }
 
 /**
+ * Date a retenir pour une session, avec replis successifs.
+ *
+ * Le nom du dossier est la source normale. Un dossier qui ne suit pas la
+ * convention (une copie manuelle, un extrait de test) n'en a pas : on se rabat
+ * alors sur la date de modification du premier fichier de log, qui tombe le
+ * bon jour, puis sur la date du jour si le dossier est vide.
+ */
+export async function resolveSessionDate(session: Session): Promise<Date> {
+  if (session.startedAt !== null) return session.startedAt;
+
+  const first = session.files[0];
+  if (first !== undefined) {
+    const stats = await stat(first).catch(() => null);
+    if (stats !== null) {
+      // La date de modification est celle de la *fin* de la session. On n'en
+      // garde que le jour, a minuit : prendre l'heure telle quelle ferait
+      // croire a un passage de minuit des la premiere ligne, qui lui est
+      // anterieure. Une session a cheval sur minuit sera donc mal datee par ce
+      // repli : le nom du dossier reste la seule source vraiment fiable.
+      return new Date(stats.mtime.getFullYear(), stats.mtime.getMonth(), stats.mtime.getDate());
+    }
+  }
+
+  return new Date();
+}
+
+/**
  * Lit un fichier de log ligne par ligne.
  *
  * `readline` decoupe sur `\n` et retire le `\r` final (fins de ligne Windows).

@@ -15,10 +15,11 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 | `docs/ROADMAP.md` | Les phases du projet, avec critères de fin | Toujours, pour savoir où on en est |
 | `docs/LOG_FORMAT.md` | Format de `Power.log`, tags utiles, pièges connus | Avant de toucher au parseur |
 | `docs/ARCHITECTURE.md` | Modules, flux de données, schéma SQLite | Avant de créer un module ou une table |
-| `docs/phases/phase-1-parser.md` | Spécification détaillée de la phase en cours | Pour la tâche en cours |
+| `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
 | `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
 
-**Phase en cours : Phase 1 — Parseur hors ligne.**
+**Phase en cours : Phase 2 — Extraction détaillée et base de données.**
+Les phases 0 (archivage) et 1 (parseur hors ligne) sont terminées.
 
 ## Stack
 
@@ -39,7 +40,7 @@ npm test             # tests Vitest (une passe)
 npm run test:watch   # tests en continu
 npm run lint         # ESLint
 npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
-npm run parse -- <dossier_de_logs> --json     # les GameSummary en JSON
+npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire
 npm run make-fixture # régénère tests/fixtures/sample-game-1.min.log

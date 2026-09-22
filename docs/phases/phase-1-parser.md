@@ -89,8 +89,8 @@ Pour les tier-ups, le tour est calculé à partir du dernier `TURN` vu avant le 
 
 ## Critères de fin
 
-- [ ] `npm test` vert, dont le test de référence ci-dessus
-- [ ] `npm run parse -- fixtures/sample-game-1` affiche le bon résumé
-- [ ] Temps de traitement du fichier de 40 Mo raisonnable (quelques secondes)
-- [ ] `LOG_FORMAT.md` complété avec tout ce qui a été découvert
-- [ ] Cases de la phase 1 cochées dans `ROADMAP.md`
+- [x] `npm test` vert, dont le test de référence ci-dessus — 140 tests
+- [x] `npm run parse -- fixtures/sample-game-1` affiche le bon résumé
+- [x] Temps de traitement du fichier de 40 Mo raisonnable — **1,9 s** de bout en bout, démarrage de `tsx` compris
+- [x] `LOG_FORMAT.md` complété avec tout ce qui a été découvert
+- [x] Cases de la phase 1 cochées dans `ROADMAP.md`
