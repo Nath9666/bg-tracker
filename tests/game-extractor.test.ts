@@ -172,6 +172,7 @@ describe('choix', () => {
       {
         choiceId: 2,
         sourceCardId: 'TB_BaconShop_Triples_01',
+        turn: null,
         options: ['BG35_143', 'BG36_760'],
         chosen: 'BG36_760',
       },
@@ -247,6 +248,7 @@ describe('resume de la partie de reference', () => {
     expect(only.picks[1]).toEqual({
       choiceId: 3,
       sourceCardId: 'BG30_Trinket_1st',
+      turn: 6,
       options: [
         'BG30_MagicItem_703',
         'BG30_MagicItem_547',

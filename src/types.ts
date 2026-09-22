@@ -12,6 +12,8 @@ export interface PickRecord {
   choiceId: number;
   /** cardId de la carte a l'origine du choix, ex. `TB_BaconShop_Triples_01`. */
   sourceCardId: string;
+  /** Tour de jeu ou le choix a ete propose. `null` avant le premier tour. */
+  turn: number | null;
   /** cardIds des options proposees. */
   options: string[];
   /** cardId de l'option retenue. */

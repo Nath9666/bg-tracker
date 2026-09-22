@@ -139,3 +139,28 @@ CREATE TABLE picks (
 ```
 
 Ce schéma est un point de départ : l'ajuster si l'extraction révèle d'autres besoins, et documenter chaque changement ici.
+
+### Écarts au schéma initial (phase 2)
+
+Le schéma réellement créé par `src/db/migrations.ts` s'en écarte sur les points suivants.
+
+**`games`**, colonnes ajoutées :
+
+| Colonne | Pourquoi |
+|---|---|
+| `complete` | Une session peut se terminer sur une partie inachevée. Sans ce drapeau, une partie en cours serait prise pour une partie terminée à la place courante. |
+| `game_type` | Permet de vérifier le filtrage après coup, et de repérer un mode inattendu. |
+| `player_name` | Présent dans le `GameSummary`, utile pour distinguer les comptes. |
+| `game_seed` | Composant de la clef, gardé en clair pour pouvoir le retrouver. |
+| `imported_at` | Savoir quand une ligne a été écrite. |
+
+`mode` reste **toujours `NULL`** : aucun indice fiable ne distingue Solo de Duo dans les logs
+(voir `docs/LOG_FORMAT.md`). La colonne existe, elle attend une partie Duo pour être remplie.
+
+**`hero_offers`** et **`picks`** gagnent une colonne `position`, l'ordre de présentation des options.
+La phase 5 en aura besoin : la position d'une carte influence le choix.
+
+**Table ajoutée : `tier_ups`** (`game_id`, `tier`, `turn`). Le schéma initial rangeait le palier dans
+`turns`, mais `turns` demande aussi l'or, les PV et l'adversaire, qui ne sont pas encore extraits.
+`tier_ups` enregistre la montée de taverne, qui l'est, et sert directement la courbe demandée en
+phase 3.

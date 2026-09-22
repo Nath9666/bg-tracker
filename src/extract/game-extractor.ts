@@ -31,6 +31,8 @@ export function gameTurn(turn: number): number {
 interface ChoiceInProgress {
   id: number;
   choiceType: string;
+  /** Tour de jeu au moment ou le choix a ete propose. */
+  turn: number | null;
   sourceCardId: string;
   options: string[];
   chosen: string | null;
@@ -111,6 +113,7 @@ export class GameExtractor {
         accumulator.choices.set(event.id, {
           id: event.id,
           choiceType: event.choiceType,
+          turn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
           sourceCardId: '',
           options: [],
           chosen: null,
@@ -195,6 +198,7 @@ export class GameExtractor {
       .map((choice) => ({
         choiceId: choice.id,
         sourceCardId: choice.sourceCardId,
+        turn: choice.turn,
         options: choice.options,
         chosen: choice.chosen ?? '',
       }));

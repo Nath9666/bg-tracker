@@ -113,6 +113,7 @@ describe('formatSummary', () => {
       {
         choiceId: 2,
         sourceCardId: 'TB_BaconShop_Triples_01',
+        turn: 4,
         options: ['BG35_143', 'BG36_760'],
         chosen: 'BG36_760',
       },

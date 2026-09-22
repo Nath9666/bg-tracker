@@ -1,0 +1,77 @@
+/**
+ * Migrations du schema SQLite.
+ *
+ * Chaque entree du tableau est une version. `PRAGMA user_version` retient ou en
+ * est la base : on applique les migrations manquantes, dans l'ordre, dans une
+ * transaction. Une migration deja publiee ne se modifie jamais, on en ajoute
+ * une nouvelle.
+ *
+ * Le schema de reference est decrit dans docs/ARCHITECTURE.md.
+ */
+
+export interface Migration {
+  name: string;
+  sql: string;
+}
+
+export const MIGRATIONS: readonly Migration[] = [
+  {
+    name: 'games, hero_offers, tier_ups, picks',
+    sql: `
+      CREATE TABLE games (
+        -- Clef stable : GAME_SEED + jour de debut. Reimporter le meme log
+        -- retombe sur la meme ligne au lieu d'en creer une seconde.
+        id            TEXT PRIMARY KEY,
+        started_at    TEXT NOT NULL,          -- ISO 8601, heure locale
+        ended_at      TEXT,                   -- NULL si la partie n'est pas allee au bout
+        complete      INTEGER NOT NULL,       -- 0/1
+        build_number  INTEGER,
+        game_type     TEXT,                   -- 'GT_BATTLEGROUNDS'
+        -- 'solo' | 'duo' | NULL. Aucun indice fiable trouve dans les logs pour
+        -- distinguer les deux modes : laisse a NULL tant qu'une partie Duo
+        -- n'aura pas permis de trancher (voir docs/LOG_FORMAT.md).
+        mode          TEXT,
+        player_name   TEXT,
+        game_seed     TEXT,
+        hero_card_id  TEXT,                   -- cardId du heros joue, skin compris
+        hero_base_id  TEXT,                   -- heros normalise, sans suffixe _SKIN_x
+        final_place   INTEGER,
+        final_turn    INTEGER,                -- tour de jeu, pas le compteur TURN brut
+        rating_after  INTEGER,                -- saisi par l'utilisateur, phase 4
+        source_folder TEXT,
+        imported_at   TEXT NOT NULL
+      );
+
+      CREATE TABLE hero_offers (
+        game_id  TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        card_id  TEXT NOT NULL,
+        position INTEGER NOT NULL,            -- ordre de presentation au mulligan
+        chosen   INTEGER NOT NULL,            -- 0/1
+        PRIMARY KEY (game_id, card_id)
+      );
+
+      CREATE TABLE tier_ups (
+        game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        tier    INTEGER NOT NULL,
+        turn    INTEGER NOT NULL,
+        PRIMARY KEY (game_id, tier)
+      );
+
+      CREATE TABLE picks (
+        game_id     TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        choice_id   INTEGER NOT NULL,         -- id du choix dans le log
+        turn        INTEGER,
+        source_card TEXT,                     -- ex. TB_BaconShop_Triples_01
+        kind        TEXT NOT NULL,            -- 'hero' | 'triple' | 'trinket' | 'discover' | 'other'
+        option_card TEXT NOT NULL,
+        position    INTEGER NOT NULL,         -- ordre de presentation des options
+        chosen      INTEGER NOT NULL,         -- 0/1
+        PRIMARY KEY (game_id, choice_id, option_card)
+      );
+
+      CREATE INDEX idx_games_started_at ON games(started_at);
+      CREATE INDEX idx_games_hero_base  ON games(hero_base_id);
+      CREATE INDEX idx_picks_option     ON picks(option_card);
+    `,
+  },
+];

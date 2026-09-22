@@ -30,12 +30,12 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 ## Phase 2 — Extraction détaillée et base de données ← EN COURS
 
-- [ ] Schéma SQLite (voir `docs/ARCHITECTURE.md`) et migrations
-- [ ] Table `games` et `hero_offers`
+- [x] Schéma SQLite (voir `docs/ARCHITECTURE.md`) et migrations
+- [x] Table `games` et `hero_offers`
 - [ ] Table `turns` (tier, or, PV, résultat du combat, adversaire)
 - [ ] Table `boards` (plateau au début de chaque combat)
-- [ ] Table `picks` (découvertes, triples, bibelots : options proposées + choix)
-- [ ] Import idempotent : réimporter un dossier ne crée pas de doublons (clé = identifiant de partie stable, par ex. `GAME_SEED` + date)
+- [x] Table `picks` (découvertes, triples, bibelots : options proposées + choix), plus `tier_ups`
+- [x] Import idempotent : réimporter un dossier ne crée pas de doublons (clé = `GAME_SEED` + jour de début)
 - [ ] Import de `data/ratings.csv` et rattachement de la cote à la partie la plus proche dans le temps
 - [ ] Mapping `cardId` → nom, tier, type via HearthstoneJSON, mis en cache localement
 
