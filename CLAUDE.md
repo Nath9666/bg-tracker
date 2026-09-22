@@ -71,6 +71,7 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 
 - Le tracker lit **uniquement les fichiers de log**. Pas de lecture de la mémoire du processus Hearthstone, pas d'interception réseau.
 - Rien ne doit **envoyer d'actions au jeu** (clics simulés, automatisation). L'IA de la phase 5 reste un outil d'analyse et de conseil, jamais un bot.
+- **Critère de Blizzard**, vérifié en septembre 2026 : est acceptable « tout ce qu'on peut déjà faire avec un papier et un crayon » (Ben Brode), en lecture passive. L'overlay n'affiche donc que ce que le joueur a **déjà vu** : plateaux adverses des combats passés, tiers, historique. Un **simulateur de combat** sort de ce cadre et est interdit par certains tournois.
 - La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur dans `data/ratings.csv`, pré-rempli par `npm run ratings` avec une ligne par partie.
 
 ## Données de test

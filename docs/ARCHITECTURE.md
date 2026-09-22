@@ -52,6 +52,15 @@ passage. Voir `docs/ARCHIVAGE.md`.
 ### SessionReader
 Entrée : un dossier de session, d'origine ou archivé. Sortie : un itérateur asynchrone de lignes (`AsyncIterable<string>`), `Power_old.log` d'abord puis `Power.log`. Les variantes `.gz` produites par l'archivage sont décompressées au fil de l'eau, sans fichier temporaire. Fournit aussi la date de la session (tirée du nom de dossier) pour dater les lignes.
 
+### Suivi en direct (phase 4)
+`src/reader/live-reader.ts` relit périodiquement ce que le jeu ajoute à `Power.log`, à partir d'un
+offset en **octets** — jamais le fichier entier, qui dépasse couramment 200 Mo. Il encaisse les trois
+événements qui changent la source : l'ajout de lignes, le renommage en `Power_old.log` à la fin d'une
+session, et l'apparition d'un nouveau dossier quand le joueur relance le jeu.
+
+Une ligne encore incomplète n'est pas rendue : elle attend son saut de ligne, sans quoi on lirait une
+ligne tronquée en cours d'écriture.
+
 ### LineParser
 Fonction pure : `parseLine(line: string): LogEvent | null`. Ne garde que les sources `GameState.*`. Renvoie des événements typés (union discriminée) :
 
