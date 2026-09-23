@@ -12,6 +12,7 @@ import type { LogEvent } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
 import { combatResult, gameTurn, readBoard } from '../extract/game-extractor.js';
+import { readBonuses, type PlayerBonus } from '../extract/player-bonuses.js';
 import type { BoardMinion, CombatResult, TierUp } from '../types.js';
 
 /** Ce qu'on sait d'un adversaire du lobby. */
@@ -72,6 +73,8 @@ export interface LiveState {
    * plateau adverse est revele.
    */
   currentCombat: CombatBoards | null;
+  /** Bonus permanents accumules : gemmes de sang, or en plus, rales doubles. */
+  bonuses: PlayerBonus[];
 }
 
 /** Les deux plateaux d'un combat, figes a son debut. */
@@ -119,6 +122,7 @@ export function emptyState(): LiveState {
     tierUps: [],
     nextOpponentHero: null,
     currentCombat: null,
+    bonuses: [],
   };
 }
 
@@ -233,6 +237,10 @@ export class LiveTracker {
       return;
     }
 
+    // Les bonus cumules sont portes par l'entite **joueur**, pas par le heros :
+    // `#refreshHero` ne les verrait jamais.
+    if (id === game.localPlayerEntityId) this.#refreshBonuses(game);
+
     if (id === game.proxyPlayerEntityId && event.tag === 'HERO_ENTITY') {
       this.#observeProxyHero(Number(event.value), game);
       return;
@@ -302,6 +310,25 @@ export class LiveTracker {
     }
   }
 
+  /**
+   * Relit les bonus cumules.
+   *
+   * Compare avant d'ecrire : un tag du joueur change souvent sans toucher aux
+   * bonus, et publier un nouvel objet a chaque fois ferait recalculer l'overlay
+   * pour rien.
+   */
+  #refreshBonuses(game: Game): void {
+    const bonuses = readBonuses(game);
+    const inchange =
+      bonuses.length === this.#state.bonuses.length &&
+      bonuses.every((bonus, index) => {
+        const ancien = this.#state.bonuses[index];
+        return ancien?.key === bonus.key && ancien.value === bonus.value;
+      });
+
+    if (!inchange) this.#state = { ...this.#state, bonuses };
+  }
+
   #refreshHero(game: Game): void {
     const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
     if (hero === undefined) return;
@@ -313,6 +340,7 @@ export class LiveTracker {
       health: remainingHealth(hero.tags),
       place: numberTag(hero.tags.get('PLAYER_LEADERBOARD_PLACE')),
       board: readBoard(game, game.localPlayerEntityId),
+      bonuses: readBonuses(game),
     };
   }
 

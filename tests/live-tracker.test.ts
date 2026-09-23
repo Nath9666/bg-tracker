@@ -415,3 +415,73 @@ describe('partie de reference', () => {
     }
   });
 });
+
+describe('bonus cumules', () => {
+  const JOUEUR = 'AkiLif#2498';
+
+  it('ne montre rien en debut de partie', () => {
+    expect(tracker(OPENING).state.bonuses).toEqual([]);
+  });
+
+  it('releve les gemmes de sang, qui s’accumulent', () => {
+    const live = tracker([
+      ...OPENING,
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_BLOODGEMBUFFATKVALUE value=2`),
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_BLOODGEMBUFFHEALTHVALUE value=1`),
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_BLOODGEMBUFFATKVALUE value=3`),
+    ]);
+
+    expect(live.state.bonuses).toEqual([
+      { key: 'bloodGem', label: 'Gemme de sang', value: '+3/+1' },
+    ]);
+  });
+
+  it('releve l’or du tour suivant et les actualisations offertes', () => {
+    const live = tracker([
+      ...OPENING,
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_PLAYER_EXTRA_GOLD_NEXT_TURN value=2`),
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_FREE_REFRESH_COUNT value=1`),
+    ]);
+
+    expect(live.state.bonuses.map((b) => `${b.key} ${b.value}`)).toEqual([
+      'extraGold +2',
+      'freeRefresh 1',
+    ]);
+  });
+
+  it('compte les rales d’agonie en declenchements, pas en supplements', () => {
+    // `ADDITIONAL` vaut le nombre de declenchements **en plus** du premier.
+    const live = tracker([
+      ...OPENING,
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=EXTRA_DEATHRATTLES_ADDITIONAL value=1`),
+    ]);
+
+    expect(live.state.bonuses[0]).toEqual({
+      key: 'deathrattles',
+      label: 'Râles d’agonie',
+      value: 'x2',
+    });
+  });
+
+  it('retire un bonus retombe a zero', () => {
+    // L'or supplementaire est consomme au tour suivant : le jeu remet le tag
+    // a zero, la barre doit se vider.
+    const live = tracker([
+      ...OPENING,
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_PLAYER_EXTRA_GOLD_NEXT_TURN value=2`),
+      power(`TAG_CHANGE Entity=${JOUEUR} tag=BACON_PLAYER_EXTRA_GOLD_NEXT_TURN value=0`),
+    ]);
+
+    expect(live.state.bonuses).toEqual([]);
+  });
+
+  it('ignore les bonus des adversaires', () => {
+    // Les adversaires portent les memes tags : seuls les notres comptent.
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=Icenberg tag=BACON_BLOODGEMBUFFATKVALUE value=9'),
+    ]);
+
+    expect(live.state.bonuses).toEqual([]);
+  });
+});

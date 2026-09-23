@@ -72,8 +72,6 @@ let simUnavailable = false;
 /** Derniere estimation, et la signature de l'etat qui l'a produite. */
 let oddsCache: { signature: string; value: CombatEstimate } | null = null;
 
-let overlay: BrowserWindow | null = null;
-let combatBanner: BrowserWindow | null = null;
 let prompt: BrowserWindow | null = null;
 let db: Db | null = null;
 let latest: OverlayPayload | null = null;
@@ -83,14 +81,65 @@ function database(): Db {
   return db;
 }
 
-function createOverlay(): void {
+/**
+ * Fenetres de l'overlay, toutes transparentes et traversantes aux clics.
+ *
+ * Quatre plutot qu'une seule : chaque coin de l'ecran sert a autre chose
+ * pendant une partie, et un panneau unique obligerait a tout lire au meme
+ * endroit. Les clics les traversent, elles ne genent donc jamais le jeu.
+ */
+type OverlayMode = 'left' | 'right' | 'combat' | 'bonus';
+
+const fenetres = new Map<OverlayMode, BrowserWindow>();
+
+/** Geometrie de chaque fenetre, calculee sur la zone de travail de l'ecran. */
+function geometrie(
+  mode: OverlayMode,
+  workArea: Electron.Rectangle,
+): { x: number; y: number; width: number; height: number } {
+  const marge = 12;
+
+  switch (mode) {
+    // Combats passes et a venir : la colonne la plus longue.
+    case 'left':
+      return {
+        x: workArea.x + marge,
+        y: workArea.y + marge,
+        width: 320,
+        height: Math.min(700, workArea.height - 2 * marge),
+      };
+    // Rythme de paliers et jauges : consultes entre deux combats.
+    case 'right':
+      return {
+        x: workArea.x + workArea.width - 300 - marge,
+        y: workArea.y + marge,
+        width: 300,
+        height: Math.min(460, workArea.height - 2 * marge),
+      };
+    // Estimation : au centre, la ou on regarde pendant un combat.
+    case 'combat':
+      return {
+        x: workArea.x + Math.round((workArea.width - 460) / 2),
+        y: workArea.y + 8,
+        width: 460,
+        height: 150,
+      };
+    // Bonus cumules : une bande en bas, hors du champ de jeu.
+    case 'bonus':
+      return {
+        x: workArea.x + Math.round((workArea.width - 720) / 2),
+        y: workArea.y + workArea.height - 64,
+        width: 720,
+        height: 56,
+      };
+  }
+}
+
+function createWindow(mode: OverlayMode): void {
   const { workArea } = screen.getPrimaryDisplay();
 
-  overlay = new BrowserWindow({
-    x: workArea.x + 12,
-    y: workArea.y + 12,
-    width: 340,
-    height: Math.min(760, workArea.height - 24),
+  const window = new BrowserWindow({
+    ...geometrie(mode, workArea),
     transparent: true,
     frame: false,
     resizable: false,
@@ -105,54 +154,17 @@ function createOverlay(): void {
   });
 
   // Au-dessus du jeu, meme en plein ecran fenetre.
-  overlay.setAlwaysOnTop(true, 'screen-saver');
-  overlay.setVisibleOnAllWorkspaces(true);
+  window.setAlwaysOnTop(true, 'screen-saver');
+  window.setVisibleOnAllWorkspaces(true);
   // Les clics traversent la fenetre : l'overlay ne gene jamais le jeu.
-  overlay.setIgnoreMouseEvents(true, { forward: true });
+  window.setIgnoreMouseEvents(true, { forward: true });
 
-  void overlay.loadFile(join(__dirname, 'ui', 'overlay', 'index.html'));
+  void window.loadFile(join(__dirname, 'ui', 'overlay', 'index.html'), { query: { mode } });
+  fenetres.set(mode, window);
 }
 
-/**
- * Bandeau d'estimation du combat, centre en haut de l'ecran.
- *
- * Une fenetre a part, et non un bloc du panneau : celui-ci est colle en haut a
- * gauche, la ou on ne regarde pas pendant un combat. Les pourcentages doivent
- * tomber sous les yeux, au milieu.
- *
- * Elle reste invisible tant qu'il n'y a rien a dire : le fond est transparent
- * et le rendu ne produit rien.
- */
-function createCombatBanner(): void {
-  const { workArea } = screen.getPrimaryDisplay();
-  const width = 460;
-  const height = 150;
-
-  combatBanner = new BrowserWindow({
-    x: workArea.x + Math.round((workArea.width - width) / 2),
-    y: workArea.y + 8,
-    width,
-    height,
-    transparent: true,
-    frame: false,
-    resizable: false,
-    skipTaskbar: true,
-    focusable: false,
-    alwaysOnTop: true,
-    webPreferences: {
-      preload: join(__dirname, 'overlay-preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-
-  combatBanner.setAlwaysOnTop(true, 'screen-saver');
-  combatBanner.setVisibleOnAllWorkspaces(true);
-  combatBanner.setIgnoreMouseEvents(true, { forward: true });
-
-  void combatBanner.loadFile(join(__dirname, 'ui', 'overlay', 'index.html'), {
-    query: { mode: 'combat' },
-  });
+function createOverlay(): void {
+  for (const mode of ['left', 'right', 'combat', 'bonus'] as OverlayMode[]) createWindow(mode);
 }
 
 /**
@@ -286,8 +298,8 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
 
 function broadcast(payload: OverlayPayload): void {
   latest = payload;
-  for (const window of [overlay, combatBanner]) {
-    if (window !== null && !window.isDestroyed()) window.webContents.send('live', payload);
+  for (const window of fenetres.values()) {
+    if (!window.isDestroyed()) window.webContents.send('live', payload);
   }
 }
 
@@ -342,7 +354,6 @@ const controller = new AbortController();
 
 void app.whenReady().then(() => {
   createOverlay();
-  createCombatBanner();
   startSimCards();
   void follow(controller.signal);
 });

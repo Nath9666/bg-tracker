@@ -152,19 +152,36 @@ Le compromis est assumé : l'estimation arrive quand il est **trop tard pour cha
 l'adversaire au dernier affrontement, vieux de plusieurs tours, pendant lesquels il a acheté, vendu
 et amélioré.
 
-### Trois fenêtres
+### Cinq fenêtres
 
-L'overlay en ouvre trois, toutes transparentes et traversantes aux clics :
+L'overlay en ouvre quatre pendant les parties, toutes transparentes et traversantes aux clics, plus
+la saisie de cote en fin de partie :
 
-| Fenêtre | Position | Rôle |
-|---|---|---|
-| panneau | haut gauche, 340 px | plateau, adversaires, historique |
-| bandeau | **haut centre**, 460 px | estimation du combat |
-| saisie de cote | bas droite | seule fenêtre où l'on peut cliquer |
+| Mode | Position | Rôle | Composant |
+|---|---|---|---|
+| `left` | haut gauche, 320 px | combats passés et à venir | `Overlay.tsx` |
+| `right` | haut droite, 300 px | jauges et rythme de paliers | `Side.tsx` |
+| `combat` | **haut centre**, 460 px | estimation du combat | `Combat.tsx` |
+| `bonus` | **bas centre**, 720 px | bonus cumulés | `Bonuses.tsx` |
+| `rating` | bas droite | seule fenêtre où l'on peut cliquer | `RatingPrompt.tsx` |
 
-Le bandeau est une fenêtre à part, et non un bloc du panneau : pendant un combat on regarde le
-milieu de l'écran, pas le coin supérieur gauche. Les trois partagent `app/overlay/index.html`, le
-mode arrivant en paramètre d'URL (`?mode=combat`, `?mode=rating`).
+Quatre fenêtres plutôt qu'un panneau unique parce que chaque coin de l'écran sert à autre chose
+pendant une partie : les combats se consultent avant d'acheter, le rythme quand on hésite à monter
+de palier, l'estimation au centre pendant qu'on regarde le combat. Tout au même endroit obligerait
+à chercher.
+
+Chacune reste **entièrement transparente** tant qu'elle n'a rien à dire : la bande de bonus
+n'existe visuellement qu'à partir du premier bonus actif.
+
+Toutes partagent `app/overlay/index.html`, le mode arrivant en paramètre d'URL, et `commun.tsx`
+pour l'abonnement à l'état et les listes de serviteurs.
+
+### Bonus cumulés
+
+`src/extract/player-bonuses.ts` lit les tags portés par l'**entité joueur** : gemmes de sang, or du
+tour suivant, actualisations offertes, râles d'agonie doublés (voir `docs/LOG_FORMAT.md`). Ils sont
+relus sur tout changement de tag du joueur, et non dans `#refreshHero` qui ne surveille que le
+héros. Un bonus à zéro n'est pas affiché.
 
 ### Limites restantes
 

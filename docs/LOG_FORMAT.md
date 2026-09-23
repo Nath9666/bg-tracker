@@ -407,6 +407,35 @@ TAG_CHANGE Entity=[... cardId=BG31_149 player=5] tag=VENOMOUS value=0
 (rales d'agonie, cris de guerre, auras). Aucun tag ne les declare — ils sont dans le comportement du
 jeu, pas dans le log.
 
+## Bonus cumules par le joueur
+
+Les effets permanents que rien n'affiche sur le plateau. Tous sont portes par l'**entite joueur**
+(`Entity=AkiLif#2498`), pas par le heros ni par un serviteur — `#refreshHero` ne les verrait donc
+jamais. Verifie sur les sessions archivees.
+
+| Tag | Sens | Exemple releve |
+|---|---|---|
+| `BACON_BLOODGEMBUFFATKVALUE` | attaque donnee par une gemme de sang | 1, puis 2, puis 3 |
+| `BACON_BLOODGEMBUFFHEALTHVALUE` | vie donnee par une gemme de sang | 1, puis 2, puis 3 |
+| `BACON_PLAYER_EXTRA_GOLD_NEXT_TURN` | or supplementaire au tour suivant | `value=2`, puis `0` |
+| `BACON_FREE_REFRESH_COUNT` | actualisations offertes | — |
+| `EXTRA_DEATHRATTLES_ADDITIONAL` | rales d'agonie **en plus** du premier | — |
+
+Deux points verifies :
+
+- **Les gemmes de sang s'accumulent** : le tag porte la valeur courante, pas un increment. Releve
+  `1` → `2/1` → `2/2` → `3/3` au fil d'une partie.
+- **Les adversaires portent les memes tags.** `Entity=Icenberg tag=BACON_BLOODGEMBUFFATKVALUE
+  value=3` apparait comme le notre : filtrer sur l'entite du joueur local est indispensable.
+
+Un tag remis a `0` est un bonus consomme, l'or supplementaire par exemple : il doit disparaitre de
+l'affichage.
+
+⚠️ **`EXTRA_BATTLECRIES_BASE` n'est volontairement pas exploite.** Il existe et bascule entre `0`
+et `1` des dizaines de fois par partie, parfois deux fois dans la meme milliseconde. Son nom
+(`BASE`, pas `ADDITIONAL`) et ce comportement ne permettent pas de conclure qu'il signale des cris
+de guerre doubles. A verifier sur une partie ou l'effet est certain avant de s'en servir.
+
 ## Ce qui n'est PAS dans les logs
 
 - **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.
