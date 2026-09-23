@@ -84,43 +84,88 @@ npm run import -- "F:\SteamLibrary\Hearthstone\Logs"
 
 ## Lancement automatique (planificateur de tâches Windows)
 
-`scripts\archive-logs.cmd` se place dans le dossier du projet tout seul : il peut être lancé depuis
-n'importe où.
+**En place sur cette machine** : tâche `BG Tracker - archivage`, toutes les 30 minutes, créée
+**sans élévation** (elle tourne sous le compte de l'utilisateur).
 
-### En une commande
+### Pourquoi `archive` et pas `sync`
 
-Dans un terminal **en administrateur** :
+La tâche lance `npm run archive`, **pas** `npm run sync`. Mesuré sur cette machine, à 28 parties
+archivées :
 
+| Commande | Durée à vide | Effet de bord |
+|---|---|---|
+| `npm run archive` | **0,9 s** | aucun |
+| `npm run sync` | **13,9 s** | réécrit `data/ratings.csv` |
+
+Trois raisons de s'en tenir à l'archivage :
+
+1. c'est la partie **irremplaçable** — les logs bruts disparaissent du dossier de Hearthstone en
+   quelques jours, alors que la base se reconstruit à volonté depuis l'archive ;
+2. `sync` réécrit `data/ratings.csv`, ce qui est pénible si le fichier est ouvert dans un éditeur ;
+3. `sync` **réimporte toute l'archive** à chaque passage : il ralentira à mesure que les parties
+   s'accumulent. À 200 parties conservées, un passage toutes les 30 minutes deviendrait coûteux.
+
+`npm run sync` reste la commande à lancer **à la main** après une session, pour importer et saisir
+les cotes.
+
+### Créer la tâche
+
+En PowerShell, sans élévation :
+
+```powershell
+$projet = "C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker"
+
+$action = New-ScheduledTaskAction -Execute "powershell.exe" `
+  -Argument '-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"' `
+  -WorkingDirectory $projet
+
+# Répétition sans fin : l'intervalle seul, sans durée. Une durée infinie
+# ([TimeSpan]::MaxValue) est refusée par le planificateur.
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
+  -RepetitionInterval (New-TimeSpan -Minutes 30)
+
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden `
+  -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+
+Register-ScheduledTask -TaskName "BG Tracker - archivage" -Action $action `
+  -Trigger $trigger -Settings $settings -Force
 ```
-schtasks /Create /TN "BG Tracker - archivage" /SC MINUTE /MO 30 /F ^
-  /TR "\"C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker\scripts\archive-logs.cmd\""
+
+Points qui ont demandé un essai raté chacun :
+
+- `-WindowStyle Hidden` évite qu'une console clignote toutes les 30 minutes, y compris en pleine
+  partie. C'est la raison de passer par `powershell.exe` plutôt que par `scripts\archive-logs.cmd`,
+  qui reste utilisable pour un lancement manuel.
+- **Pas de `-RepetitionDuration`.** Avec `[TimeSpan]::MaxValue`, le planificateur refuse la tâche
+  (`Duration:P99999999DT23H59M59S` hors limites). Omettre la durée donne une répétition sans fin.
+- **Ne pas passer par un script `.vbs`**, même si c'est la recette classique pour masquer une
+  fenêtre : les antivirus bloquent l'exécution des scripts VBS, à juste titre. Essayé ici, refusé
+  avec « Accès refusé » alors que Windows Script Host n'était pas désactivé par stratégie.
+- `-MultipleInstances IgnoreNew` : si un passage traîne sur une grosse session en cours, le suivant
+  est sauté au lieu de lire les mêmes fichiers en double.
+
+### Vérifier, lancer à la main, supprimer
+
+```powershell
+Get-ScheduledTaskInfo -TaskName "BG Tracker - archivage"   # dernière exécution, code de retour
+Start-ScheduledTask      -TaskName "BG Tracker - archivage"
+Unregister-ScheduledTask -TaskName "BG Tracker - archivage" -Confirm:$false
 ```
 
-Toutes les 30 minutes : la session en cours est réarchivée au fur et à mesure que tu joues, et une
-session terminée n'est plus touchée. Un passage sans rien à faire prend environ **1 seconde** ;
-réarchiver une grosse session en cours prend une dizaine de secondes.
-
-⚠️ **Sans cette tâche, rien n'archive.** Une session peut alors disparaître du dossier de Hearthstone
-avant d'avoir été archivée. En attendant de la créer, penser à lancer `npm run archive` à la main
-après chaque session de jeu.
-
-Pour vérifier, lancer à la main ou supprimer :
-
-```
-schtasks /Run    /TN "BG Tracker - archivage"
-schtasks /Query  /TN "BG Tracker - archivage"
-schtasks /Delete /TN "BG Tracker - archivage" /F
-```
+Un **code de retour `0`** signifie que le passage s'est bien terminé. Autre vérification utile : la
+date de modification de `data/archive/manifest.json`, qui bouge à chaque passage.
 
 ### Par l'interface
 
 1. Ouvrir **Planificateur de tâches** → *Créer une tâche*.
-2. Onglet **Général** : nom `BG Tracker - archivage`, cocher *Exécuter même si l'utilisateur n'est pas
-   connecté* si tu veux qu'elle tourne en session fermée.
-3. Onglet **Déclencheurs** : *Nouveau* → *À l'ouverture de session*, puis cocher *Répéter la tâche
-   toutes les* **30 minutes**, *pendant* **indéfiniment**.
-4. Onglet **Actions** : *Démarrer un programme*, programme
-   `C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker\scripts\archive-logs.cmd`.
+2. Onglet **Général** : nom `BG Tracker - archivage`. *Exécuter avec les autorisations maximales*
+   n'est **pas** nécessaire.
+3. Onglet **Déclencheurs** : *Nouveau* → *À l'ouverture de session*, cocher *Répéter la tâche toutes
+   les* **30 minutes**, *pendant* **indéfiniment**.
+4. Onglet **Actions** : programme `powershell.exe`, arguments
+   `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"`, *Commencer dans* le
+   dossier du projet.
 5. Onglet **Conditions** : décocher *N'exécuter que si l'ordinateur est sur secteur* sur un portable.
 
 ## Après une session de jeu

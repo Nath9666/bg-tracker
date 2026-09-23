@@ -10,8 +10,8 @@ But : ne perdre aucune partie. Hearthstone ne conserve pas indéfiniment ses dos
 - [x] Documentation pour le lancer automatiquement (planificateur de tâches Windows) — voir `docs/ARCHIVAGE.md`
 - [x] Fichier `data/ratings.csv` (`datetime,rating`) pour noter la cote à la main en attendant la phase 4 — créé par le script
 
-**Critère de fin :** les sessions sont archivées automatiquement. ✅ Le script et sa documentation sont en
-place ; il reste à créer la tâche planifiée sur la machine (commande donnée dans `docs/ARCHIVAGE.md`).
+**Critère de fin :** les sessions sont archivées automatiquement. ✅ **Rempli.** La tâche planifiée
+`BG Tracker - archivage` tourne toutes les 30 minutes sur la machine (vérifiée : code de retour 0).
 
 ## Phase 1 — Parseur hors ligne ✓
 
