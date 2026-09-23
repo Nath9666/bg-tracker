@@ -85,8 +85,9 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
     Ce sont **certains tournois**. Si l'utilisateur en joue, l'overlay doit être fermé.
   - Il ne reçoit **que ce que le joueur a déjà vu** : son plateau, et celui du prochain adversaire
     tel qu'il était au dernier affrontement. Aucune donnée cachée n'entre dans l'estimation.
-  - Il se tait sur un adversaire jamais affronté, et affiche toujours l'ancienneté du plateau
-    adverse : c'est la principale raison pour laquelle une estimation peut être fausse.
+  - L'estimation se fait **au début du combat**, sur le vrai plateau d'en face, jamais pendant le
+    recrutement sur le souvenir d'un affrontement précédent. Elle arrive donc trop tard pour
+    changer d'avis, mais elle est juste.
 - **Critère de Blizzard**, vérifié en septembre 2026 : est acceptable « tout ce qu'on peut déjà faire avec un papier et un crayon » (Ben Brode), en lecture passive. L'overlay n'affiche donc que ce que le joueur a **déjà vu** : plateaux adverses des combats passés, tiers, historique. Le simulateur rejoue ce combat à partir de ces mêmes informations : il n'ajoute rien d'invisible, mais il sort du papier-crayon.
 - La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur dans `data/ratings.csv`, pré-rempli par `npm run ratings` avec une ligne par partie.
 

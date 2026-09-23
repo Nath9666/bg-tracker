@@ -136,6 +136,60 @@ describe('combats', () => {
     expect(live.state.opponents[0]?.board.map((m) => m.cardId)).toEqual(['BG35_143', 'BG25_016']);
   });
 
+  it('publie les deux plateaux du combat, figes a la premiere attaque', () => {
+    const live = tracker([
+      ...OPENING,
+      ...minion(700, 'BG26_888', 7, 1),
+      ...COMBAT,
+      ...minion(600, 'BG35_143', 15, 1),
+      power('TAG_CHANGE Entity=600 tag=ATTACKING value=1'),
+    ]);
+
+    const combat = live.state.currentCombat;
+    expect(combat).not.toBeNull();
+    expect(combat?.opponentHero).toBe('BG30_HERO_304');
+    expect(combat?.opponentBoard.map((m) => m.cardId)).toEqual(['BG35_143']);
+    expect(combat?.playerBoard.map((m) => m.cardId)).toEqual(['BG26_888']);
+  });
+
+  it('ne publie rien avant que le plateau adverse soit revele', () => {
+    // Au tout debut du combat, le plateau d'en face n'existe pas encore :
+    // estimer a ce moment-la donnerait un combat contre du vide.
+    const live = tracker([...OPENING, ...minion(700, 'BG26_888', 7, 1), ...COMBAT]);
+
+    expect(live.state.phase).toBe('combat');
+    expect(live.state.currentCombat).toBeNull();
+  });
+
+  it('ne laisse pas le combat degrader les plateaux publies', () => {
+    const live = tracker([
+      ...OPENING,
+      ...minion(700, 'BG26_888', 7, 1),
+      ...COMBAT,
+      ...minion(600, 'BG35_143', 15, 1),
+      power('TAG_CHANGE Entity=600 tag=ATTACKING value=1'),
+      // Le combat se deroule : les serviteurs encaissent puis disparaissent.
+      power('TAG_CHANGE Entity=700 tag=DAMAGE value=2'),
+      power('TAG_CHANGE Entity=700 tag=ZONE value=GRAVEYARD'),
+    ]);
+
+    const combat = live.state.currentCombat;
+    expect(combat?.playerBoard.map((m) => m.cardId)).toEqual(['BG26_888']);
+    expect(combat?.playerBoard[0]?.damage).toBe(0);
+  });
+
+  it('oublie le combat une fois termine', () => {
+    const live = tracker([
+      ...OPENING,
+      ...COMBAT,
+      ...minion(600, 'BG35_143', 15, 1),
+      power('TAG_CHANGE Entity=600 tag=ATTACKING value=1'),
+      ...FIN,
+    ]);
+
+    expect(live.state.currentCombat).toBeNull();
+  });
+
   it('ne prend pas Bob pour un adversaire', () => {
     const live = tracker([...OPENING, ...COMBAT, ...FIN]);
     expect(live.state.opponents[0]?.heroCardId).toBe('BG30_HERO_304');

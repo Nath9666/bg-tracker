@@ -131,15 +131,31 @@ Les deux interfaces React partagent une compilation Vite à deux entrées (`app/
   déclare**. 42 Mo, mis en cache dans `data/cards/firestone-cards.json` par `npm run sim-cards`.
 - `combat.ts` traduit un plateau vers le format du moteur et lance la simulation. **1000
   simulations** par défaut : mesuré à 98 ms, et à un point près du résultat à 5000.
-- `next-combat.ts` choisit l'adversaire (`nextOpponentHero` croisé avec les plateaux déjà vus) et
-  fournit `oddsSignature`, qui évite de relancer 1000 simulations à chaque lot de lignes.
+- `combat-odds.ts` estime le **combat en cours**, et fournit `oddsSignature`, qui évite de
+  relancer 1000 simulations à chaque lot de lignes.
 
-Deux limites portées dans le résultat plutôt que masquées :
+### Quand l'estimation est calculée
+
+Au **début du combat**, pas pendant le recrutement. C'est le seul instant où les deux plateaux sont
+connus exactement : avant, le plateau adverse n'existe pas ; après, il se vide.
+
+`LiveTracker` publie donc `currentCombat`, les **deux** plateaux figés à la première balise
+`ATTACKING`. Le plateau adverse l'était déjà ; celui du joueur ne l'était pas, et `state.board`
+continue de suivre le plateau en train de se battre — il est donc déjà entamé quelques
+millisecondes plus tard. Les deux étant figés, la signature ne bouge qu'au combat suivant : une
+seule série de simulations par combat.
+
+Le compromis est assumé : l'estimation arrive quand il est **trop tard pour changer d'avis**. En
+échange, elle est juste. Une estimation faite pendant le recrutement reposerait sur le plateau de
+l'adversaire au dernier affrontement, vieux de plusieurs tours, pendant lesquels il a acheté, vendu
+et amélioré.
+
+### Limites restantes
 
 | Limite | Conséquence |
 |---|---|
-| Le plateau adverse est celui du **dernier affrontement** | `staleTurns` dit son âge ; entre-temps l'adversaire a acheté et vendu |
 | Les **pouvoirs héroïques** ne sont pas extraits des logs | un héros dont le pouvoir agit en combat est sous-estimé |
+| Les **PV adverses** ne sont connus que s'il a déjà été affronté | le létal infligé est sous-estimé, jamais surestimé |
 
 Sans le cache de cartes, l'estimation est simplement absente : le reste de l'overlay fonctionne.
 

@@ -382,8 +382,10 @@ section h2 {
 
 /* --- estimation du prochain combat --- */
 
-.estimation {
-  margin: 6px 0 8px;
+section.estimation {
+  border-top: 1px solid var(--bord);
+  padding-top: 8px;
+  margin-top: 8px;
 }
 
 /* Une barre vaut mieux que trois nombres : la proportion se lit d'un coup

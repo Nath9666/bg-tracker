@@ -25,7 +25,7 @@ import {
 } from '../../src/ratings/ratings.js';
 import { tierCurve } from '../../src/stats/stats.js';
 import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
-import { nextCombatOdds, oddsSignature, type NextCombatOdds } from '../../src/sim/next-combat.js';
+import { combatOdds, oddsSignature, type CombatEstimate } from '../../src/sim/combat-odds.js';
 
 /** Dossier `Logs` de Hearthstone. */
 const LOGS_FOLDER =
@@ -52,12 +52,12 @@ export interface OverlayPayload {
   cards: Record<string, Pick<CardInfo, 'name' | 'techLevel' | 'races'>>;
   pace: PaceReference[];
   /**
-   * Estimation du prochain combat.
+   * Estimation du combat en cours.
    *
    * `null` quand la base de cartes du simulateur n'est pas installee : le
    * reste de l'overlay continue de fonctionner sans elle.
    */
-  odds: NextCombatOdds | null;
+  odds: CombatEstimate | null;
 }
 
 /** Derniere partie terminee, proposee a la saisie de cote. */
@@ -70,7 +70,7 @@ export interface RatingPrompt {
 let simCards: SimCards | null = null;
 let simUnavailable = false;
 /** Derniere estimation, et la signature de l'etat qui l'a produite. */
-let oddsCache: { signature: string; value: NextCombatOdds } | null = null;
+let oddsCache: { signature: string; value: CombatEstimate } | null = null;
 
 let overlay: BrowserWindow | null = null;
 let prompt: BrowserWindow | null = null;
@@ -182,13 +182,14 @@ function startSimCards(): void {
 }
 
 /**
- * Estimation du prochain combat, mise en cache.
+ * Estimation du combat en cours, mise en cache.
  *
  * Les logs arrivent par lots toutes les 700 ms ; relancer 1000 simulations a
- * chaque lot couterait 100 ms de processus principal pour rien. Tant que la
- * signature de l'etat ne bouge pas, on renvoie la precedente.
+ * chaque lot couterait 100 ms de processus principal pour rien. Les deux
+ * plateaux etant figes au debut du combat, la signature ne bouge qu'au combat
+ * suivant : une seule serie de simulations par combat.
  */
-function computeOdds(state: LiveState): NextCombatOdds | null {
+function computeOdds(state: LiveState): CombatEstimate | null {
   if (simUnavailable) return null;
 
   // Le chargement est lance en tache de fond au demarrage : tant qu'il n'a
@@ -198,7 +199,7 @@ function computeOdds(state: LiveState): NextCombatOdds | null {
   const signature = oddsSignature(state);
   if (oddsCache?.signature === signature) return oddsCache.value;
 
-  const value = nextCombatOdds(simCards, state);
+  const value = combatOdds(simCards, state);
   oddsCache = { signature, value };
   return value;
 }

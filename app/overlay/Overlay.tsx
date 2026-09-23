@@ -34,16 +34,28 @@ function pourcent(valeur: number): string {
 }
 
 /**
- * Bandeau d'estimation du prochain combat.
+ * Bandeau d'estimation, affiche pendant le combat.
  *
- * L'anciennete du plateau adverse est affichee a cote du resultat, jamais
- * cachee : c'est la principale raison pour laquelle une estimation peut etre
- * fausse.
+ * Les deux plateaux sont ceux du debut du combat : le vrai plateau d'en face,
+ * pas le souvenir d'un affrontement precedent. L'estimation ne bouge donc plus
+ * jusqu'au combat suivant, meme quand les serviteurs tombent a l'ecran.
  */
-function Bandeau({ odds }: { odds: NonNullable<OverlayPayload['odds']> }): JSX.Element | null {
+function Bandeau({
+  odds,
+  nom,
+}: {
+  odds: NonNullable<OverlayPayload['odds']>;
+  nom: (cardId: string | null) => string;
+}): JSX.Element | null {
+  // Hors combat il n'y a rien a dire, et le dire ferait clignoter l'overlay.
   if (odds.kind !== 'odds') {
-    if (odds.reason === 'opponentNeverFought') {
-      return <p className="estimation-absente">jamais affronté — rien à estimer</p>;
+    if (odds.reason === 'boardsNotRevealed') {
+      return (
+        <section className="estimation">
+          <h2>Combat</h2>
+          <p className="estimation-note">plateaux en cours de révélation…</p>
+        </section>
+      );
     }
     return null;
   }
@@ -51,7 +63,9 @@ function Bandeau({ odds }: { odds: NonNullable<OverlayPayload['odds']> }): JSX.E
   const { winPercent, tiePercent, lossPercent } = odds.odds;
 
   return (
-    <div className="estimation">
+    <section className="estimation">
+      <h2>Combat en cours{odds.opponentHero === null ? '' : ` · ${nom(odds.opponentHero)}`}</h2>
+
       <div className="barre">
         <span className="part gagne" style={{ width: `${winPercent}%` }} />
         <span className="part nul" style={{ width: `${tiePercent}%` }} />
@@ -79,17 +93,8 @@ function Bandeau({ odds }: { odds: NonNullable<OverlayPayload['odds']> }): JSX.E
         </span>
       </div>
 
-      <p className="estimation-note">
-        {odds.odds.simulations} simulations
-        {odds.odds.staleTurns !== null && odds.odds.staleTurns > 0 && (
-          <span className={odds.odds.staleTurns > 2 ? 'perime' : undefined}>
-            {' '}
-            · plateau vu il y a {odds.odds.staleTurns} tour
-            {odds.odds.staleTurns > 1 ? 's' : ''}
-          </span>
-        )}
-      </p>
-    </div>
+      <p className="estimation-note">{odds.odds.simulations} simulations</p>
+    </section>
   );
 }
 
@@ -167,6 +172,8 @@ export default function Overlay(): JSX.Element | null {
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
       </div>
 
+      {payload.odds !== null && <Bandeau odds={payload.odds} nom={nom} />}
+
       {suivant !== undefined && (
         <section className="suivant">
           <h2>Prochain adversaire</h2>
@@ -178,8 +185,6 @@ export default function Overlay(): JSX.Element | null {
               {suivant.health === null ? '' : `${suivant.health} pv`}
             </span>
           </header>
-          {payload.odds !== null && <Bandeau odds={payload.odds} />}
-
           <p className="comparaison">
             <span>
               toi {maForce.atk}/{maForce.health}

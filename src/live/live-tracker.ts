@@ -61,6 +61,23 @@ export interface LiveState {
    * (premiere rencontre du lobby).
    */
   nextOpponentHero: string | null;
+  /**
+   * Combat en cours, avec les deux plateaux tels qu'ils etaient a son debut.
+   *
+   * `null` hors combat, et pendant les premieres millisecondes d'un combat :
+   * le plateau adverse n'existe pas encore a ce moment-la.
+   */
+  currentCombat: CombatBoards | null;
+}
+
+/** Les deux plateaux d'un combat, figes a son debut. */
+export interface CombatBoards {
+  turn: number;
+  opponentHero: string | null;
+  /** Plateau du joueur au debut du combat, avant la premiere attaque. */
+  playerBoard: BoardMinion[];
+  /** Plateau adverse au debut du combat. */
+  opponentBoard: BoardMinion[];
 }
 
 /** Combat commence, dont on attend l'issue. */
@@ -70,6 +87,13 @@ interface PendingCombat {
   opponentEntityId: number | null;
   /** Plateau adverse fige a la premiere attaque. `null` avant. */
   board: BoardMinion[] | null;
+  /**
+   * Plateau du joueur, fige au meme instant.
+   *
+   * Indispensable : `state.board` continue de suivre le plateau en train de se
+   * battre, donc il est deja entame quelques millisecondes plus tard.
+   */
+  playerBoard: BoardMinion[] | null;
   armorBefore: number;
   damageBefore: number;
 }
@@ -90,6 +114,7 @@ export function emptyState(): LiveState {
     combats: [],
     tierUps: [],
     nextOpponentHero: null,
+    currentCombat: null,
   };
 }
 
@@ -247,6 +272,8 @@ export class LiveTracker {
     // eu lieu, et c'est ce plateau-la qui se bat.
     if (event.tag === 'ATTACKING' && event.value === '1' && this.#combat?.board === null) {
       this.#combat.board = readBoard(game, game.proxyPlayerEntityId);
+      this.#combat.playerBoard = readBoard(game, game.localPlayerEntityId);
+      this.#publishCombat();
     }
   }
 
@@ -301,6 +328,9 @@ export class LiveTracker {
 
     this.#combat.opponentHero = cardId;
     this.#combat.opponentEntityId = heroEntityId;
+    // Le heros peut etre reconnu apres la premiere attaque : on republie pour
+    // que le combat deja publie porte enfin un nom.
+    this.#publishCombat();
   }
 
   #startCombat(game: Game): void {
@@ -310,16 +340,38 @@ export class LiveTracker {
       opponentHero: null,
       opponentEntityId: null,
       board: null,
+      playerBoard: null,
       armorBefore: Number(hero?.tags.get('ARMOR') ?? 0),
       damageBefore: Number(hero?.tags.get('DAMAGE') ?? 0),
     };
-    this.#state = { ...this.#state, phase: 'combat' };
+    this.#state = { ...this.#state, phase: 'combat', currentCombat: null };
+  }
+
+  /**
+   * Publie les deux plateaux du combat qui commence.
+   *
+   * C'est le seul instant ou l'on voit le vrai plateau adverse : avant, il
+   * n'existe pas ; apres, il se vide.
+   */
+  #publishCombat(): void {
+    const combat = this.#combat;
+    if (combat?.board == null || combat.playerBoard == null) return;
+
+    this.#state = {
+      ...this.#state,
+      currentCombat: {
+        turn: combat.turn,
+        opponentHero: combat.opponentHero,
+        playerBoard: combat.playerBoard,
+        opponentBoard: combat.board,
+      },
+    };
   }
 
   #endCombat(game: Game): void {
     const combat = this.#combat;
     this.#combat = null;
-    this.#state = { ...this.#state, phase: 'recruit' };
+    this.#state = { ...this.#state, phase: 'recruit', currentCombat: null };
     if (combat === null) return;
 
     const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
