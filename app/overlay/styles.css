@@ -32,16 +32,28 @@ body {
 
 .overlay {
   height: 100vh;
-  overflow-y: auto;
+  /* `hidden`, pas `auto` : la fenetre laisse passer les clics, donc personne
+     ne pourra jamais faire defiler. Mieux vaut rogner franchement. */
+  overflow: hidden;
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  scrollbar-width: none;
 }
 
-.overlay::-webkit-scrollbar {
-  display: none;
+/* Par defaut une section garde sa taille : c'est le contenu utile, il ne doit
+   pas etre ecrase. */
+.overlay > section {
+  flex: 0 0 auto;
+}
+
+/* Sauf la liste des adversaires, qui grandit a chaque combat jusqu'a sept
+   entrees. C'est elle qui absorbe le debordement, et elle seule : sans ca,
+   le recapitulatif des combats finissait pousse hors de la fenetre. */
+.overlay > section.adversaires {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .overlay.repos {

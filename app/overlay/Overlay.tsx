@@ -26,10 +26,14 @@ export default function Overlay(): JSX.Element | null {
     );
   }
 
-  // La fenetre laisse passer les clics : on ne peut donc pas y faire defiler.
-  // Tout doit tenir a l'ecran, d'ou ces limites.
+  // La fenetre laisse passer les clics : **on ne peut pas y faire defiler**.
+  // Tout ce qui depasse est invisible, donc tout doit tenir. D'ou ces limites,
+  // et l'ordre des sections plus bas : le recapitulatif des combats, compact et
+  // complet, passe avant la liste des adversaires, qui elle grandit a chaque
+  // combat et absorbe le debordement.
   const AVEC_PLATEAU = 2;
   const DERNIERS_COMBATS = 6;
+  const ADVERSAIRES = 4;
 
   // Le jeu annonce le prochain adversaire avant le combat. S'il a deja ete
   // affronte, on ressort son dernier plateau : c'est la meilleure estimation
@@ -84,30 +88,6 @@ export default function Overlay(): JSX.Element | null {
         </section>
       )}
 
-      {state.opponents.length > 0 && (
-        <section>
-          <h2>Adversaires affrontés</h2>
-          {state.opponents
-            .filter((opponent) => opponent.heroCardId !== state.nextOpponentHero)
-            .map((opponent, rang) => (
-              <article key={opponent.heroCardId} className="adversaire">
-                <header>
-                  <span className="nom">{nom(opponent.heroCardId)}</span>
-                  <span className="meta">
-                    {opponent.place === null ? '' : `${opponent.place}e · `}
-                    {opponent.tier === null ? '' : `T${opponent.tier} · `}
-                    {opponent.health === null ? '' : `${opponent.health} pv`}
-                    {` · t${opponent.lastFoughtTurn ?? '?'}`}
-                  </span>
-                </header>
-                {/* Seuls les derniers affrontes montrent leur plateau : au-dela,
-                    l'information est vieille et la place manque. */}
-                {rang < AVEC_PLATEAU && <Plateau board={opponent.board} nom={nom} />}
-              </article>
-            ))}
-        </section>
-      )}
-
       {state.combats.length > 0 && (
         <section>
           <h2>Combats</h2>
@@ -127,6 +107,31 @@ export default function Overlay(): JSX.Element | null {
                 </li>
               ))}
           </ul>
+        </section>
+      )}
+
+      {state.opponents.length > 0 && (
+        <section className="adversaires">
+          <h2>Adversaires affrontés</h2>
+          {state.opponents
+            .filter((opponent) => opponent.heroCardId !== state.nextOpponentHero)
+            .slice(0, ADVERSAIRES)
+            .map((opponent, rang) => (
+              <article key={opponent.heroCardId} className="adversaire">
+                <header>
+                  <span className="nom">{nom(opponent.heroCardId)}</span>
+                  <span className="meta">
+                    {opponent.place === null ? '' : `${opponent.place}e · `}
+                    {opponent.tier === null ? '' : `T${opponent.tier} · `}
+                    {opponent.health === null ? '' : `${opponent.health} pv`}
+                    {` · t${opponent.lastFoughtTurn ?? '?'}`}
+                  </span>
+                </header>
+                {/* Seuls les derniers affrontes montrent leur plateau : au-dela,
+                    l'information est vieille et la place manque. */}
+                {rang < AVEC_PLATEAU && <Plateau board={opponent.board} nom={nom} />}
+              </article>
+            ))}
         </section>
       )}
     </div>

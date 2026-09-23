@@ -100,13 +100,16 @@ function geometrie(
   const marge = 12;
 
   switch (mode) {
-    // Combats passes et a venir : la colonne la plus longue.
+    // Combats passes et a venir : la colonne la plus longue, et la seule qui
+    // grandit sans borne. Toute la hauteur disponible, moins la bande de bonus
+    // du bas : ce qui depasse est invisible, la fenetre laissant passer les
+    // clics.
     case 'left':
       return {
         x: workArea.x + marge,
         y: workArea.y + marge,
         width: 320,
-        height: Math.min(700, workArea.height - 2 * marge),
+        height: workArea.height - 2 * marge - 72,
       };
     // Rythme de paliers et jauges : consultes entre deux combats.
     case 'right':
