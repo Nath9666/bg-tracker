@@ -11,6 +11,7 @@
  * Il ne fait que lire des fichiers et n'envoie jamais rien au jeu (voir les
  * limites dans CLAUDE.md).
  */
+import { existsSync } from 'node:fs';
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'node:path';
 import { followLogs } from '../../src/reader/live-reader.js';
@@ -23,6 +24,8 @@ import {
   writeRatingsTemplate,
 } from '../../src/ratings/ratings.js';
 import { tierCurve } from '../../src/stats/stats.js';
+import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
+import { nextCombatOdds, oddsSignature, type NextCombatOdds } from '../../src/sim/next-combat.js';
 
 /** Dossier `Logs` de Hearthstone. */
 const LOGS_FOLDER =
@@ -48,6 +51,13 @@ export interface OverlayPayload {
   /** cardId -> nom et details, pour les cartes citees par l'etat. */
   cards: Record<string, Pick<CardInfo, 'name' | 'techLevel' | 'races'>>;
   pace: PaceReference[];
+  /**
+   * Estimation du prochain combat.
+   *
+   * `null` quand la base de cartes du simulateur n'est pas installee : le
+   * reste de l'overlay continue de fonctionner sans elle.
+   */
+  odds: NextCombatOdds | null;
 }
 
 /** Derniere partie terminee, proposee a la saisie de cote. */
@@ -56,6 +66,11 @@ export interface RatingPrompt {
   label: string;
   datetime: string;
 }
+
+let simCards: SimCards | null = null;
+let simUnavailable = false;
+/** Derniere estimation, et la signature de l'etat qui l'a produite. */
+let oddsCache: { signature: string; value: NextCombatOdds } | null = null;
 
 let overlay: BrowserWindow | null = null;
 let prompt: BrowserWindow | null = null;
@@ -138,6 +153,56 @@ let cardIndex: Awaited<ReturnType<typeof loadIndex>> = null;
 /** Reference de rythme, calculee une fois : elle ne bouge pas en cours de session. */
 let pace: PaceReference[] | null = null;
 
+/**
+ * Charge la base du simulateur, une fois, en tache de fond.
+ *
+ * On ne la telecharge jamais ici : 42 Mo au milieu d'une partie serait une
+ * mauvaise surprise. Sans le cache, l'estimation reste simplement absente et
+ * le reste de l'overlay fonctionne.
+ */
+function startSimCards(): void {
+  if (!existsSync(SIM_CARDS_PATH)) {
+    simUnavailable = true;
+    console.warn(
+      `Estimation de combat désactivée : ${SIM_CARDS_PATH} absent. Lancer « npm run sim-cards ».`,
+    );
+    return;
+  }
+
+  void loadSimCards()
+    .then((loaded) => {
+      simCards = loaded;
+    })
+    .catch((error: unknown) => {
+      simUnavailable = true;
+      console.warn(
+        `Estimation de combat désactivée : ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
+}
+
+/**
+ * Estimation du prochain combat, mise en cache.
+ *
+ * Les logs arrivent par lots toutes les 700 ms ; relancer 1000 simulations a
+ * chaque lot couterait 100 ms de processus principal pour rien. Tant que la
+ * signature de l'etat ne bouge pas, on renvoie la precedente.
+ */
+function computeOdds(state: LiveState): NextCombatOdds | null {
+  if (simUnavailable) return null;
+
+  // Le chargement est lance en tache de fond au demarrage : tant qu'il n'a
+  // pas fini, l'overlay affiche le reste sans attendre.
+  if (simCards === null) return null;
+
+  const signature = oddsSignature(state);
+  if (oddsCache?.signature === signature) return oddsCache.value;
+
+  const value = nextCombatOdds(simCards, state);
+  oddsCache = { signature, value };
+  return value;
+}
+
 function paceReference(): PaceReference[] {
   pace ??= tierCurve(database()).map((point) => ({
     tier: point.tier,
@@ -171,7 +236,7 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     for (const minion of opponent.board) noter(minion.cardId);
   }
 
-  return { state, cards, pace: paceReference() };
+  return { state, cards, pace: paceReference(), odds: computeOdds(state) };
 }
 
 function broadcast(payload: OverlayPayload): void {
@@ -230,6 +295,7 @@ const controller = new AbortController();
 
 void app.whenReady().then(() => {
   createOverlay();
+  startSimCards();
   void follow(controller.signal);
 });
 

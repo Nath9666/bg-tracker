@@ -20,8 +20,78 @@ function force(board: { atk: number | null; health: number | null }[]): {
  *
  * Il ne montre que ce que le joueur a deja vu : les plateaux des adversaires
  * qu'il a affrontes, leur palier et l'historique des combats. Rien d'invisible
- * en jeu, rien de simule (voir CLAUDE.md).
+ * en jeu.
+ *
+ * Le bandeau d'estimation rejoue ce combat quelques centaines de fois a partir
+ * de ces memes informations. Il n'ajoute donc aucune donnee cachee, mais il
+ * sort du « papier-crayon » : certains tournois l'interdisent (voir CLAUDE.md).
  */
+
+/** Un pourcentage arrondi, jamais « 0% » pour une issue possible. */
+function pourcent(valeur: number): string {
+  if (valeur > 0 && valeur < 1) return '<1%';
+  return `${Math.round(valeur)}%`;
+}
+
+/**
+ * Bandeau d'estimation du prochain combat.
+ *
+ * L'anciennete du plateau adverse est affichee a cote du resultat, jamais
+ * cachee : c'est la principale raison pour laquelle une estimation peut etre
+ * fausse.
+ */
+function Bandeau({ odds }: { odds: NonNullable<OverlayPayload['odds']> }): JSX.Element | null {
+  if (odds.kind !== 'odds') {
+    if (odds.reason === 'opponentNeverFought') {
+      return <p className="estimation-absente">jamais affronté — rien à estimer</p>;
+    }
+    return null;
+  }
+
+  const { winPercent, tiePercent, lossPercent } = odds.odds;
+
+  return (
+    <div className="estimation">
+      <div className="barre">
+        <span className="part gagne" style={{ width: `${winPercent}%` }} />
+        <span className="part nul" style={{ width: `${tiePercent}%` }} />
+        <span className="part perd" style={{ width: `${lossPercent}%` }} />
+      </div>
+
+      <div className="issues">
+        <span className="gagne">victoire {pourcent(winPercent)}</span>
+        <span className="nul">nul {pourcent(tiePercent)}</span>
+        <span className="perd">défaite {pourcent(lossPercent)}</span>
+      </div>
+
+      <div className="degats">
+        <span>
+          inflige <strong>~{Math.round(odds.odds.averageDamageDealt)}</strong>
+          {odds.odds.lethalDealtPercent > 0 && (
+            <em className="letal"> létal {pourcent(odds.odds.lethalDealtPercent)}</em>
+          )}
+        </span>
+        <span>
+          subit <strong>~{Math.round(odds.odds.averageDamageTaken)}</strong>
+          {odds.odds.lethalTakenPercent > 0 && (
+            <em className="letal danger"> létal {pourcent(odds.odds.lethalTakenPercent)}</em>
+          )}
+        </span>
+      </div>
+
+      <p className="estimation-note">
+        {odds.odds.simulations} simulations
+        {odds.odds.staleTurns !== null && odds.odds.staleTurns > 0 && (
+          <span className={odds.odds.staleTurns > 2 ? 'perime' : undefined}>
+            {' '}
+            · plateau vu il y a {odds.odds.staleTurns} tour
+            {odds.odds.staleTurns > 1 ? 's' : ''}
+          </span>
+        )}
+      </p>
+    </div>
+  );
+}
 
 function Pastille({ valeur, libelle }: { valeur: string; libelle: string }): JSX.Element {
   return (
@@ -108,6 +178,8 @@ export default function Overlay(): JSX.Element | null {
               {suivant.health === null ? '' : `${suivant.health} pv`}
             </span>
           </header>
+          {payload.odds !== null && <Bandeau odds={payload.odds} />}
+
           <p className="comparaison">
             <span>
               toi {maForce.atk}/{maForce.health}

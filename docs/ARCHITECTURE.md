@@ -121,6 +121,28 @@ sans cela, lancer l'overlay en cours de partie laisserait l'écran vide jusqu'à
 
 Les deux interfaces React partagent une compilation Vite à deux entrées (`app/renderer`, `app/overlay`).
 
+### Simulateur de combat (phase 4)
+
+`src/sim/` estime le prochain combat.
+
+- `sim-cards.ts` charge la base de cartes de **Firestone**, distincte de celle de `src/cards/`
+  (HearthstoneJSON, qui ne sert qu'à afficher des noms). Le simulateur y lit les effets propres à
+  chaque carte — râles d'agonie, cris de guerre, invocations — que **rien dans les logs ne
+  déclare**. 42 Mo, mis en cache dans `data/cards/firestone-cards.json` par `npm run sim-cards`.
+- `combat.ts` traduit un plateau vers le format du moteur et lance la simulation. **1000
+  simulations** par défaut : mesuré à 98 ms, et à un point près du résultat à 5000.
+- `next-combat.ts` choisit l'adversaire (`nextOpponentHero` croisé avec les plateaux déjà vus) et
+  fournit `oddsSignature`, qui évite de relancer 1000 simulations à chaque lot de lignes.
+
+Deux limites portées dans le résultat plutôt que masquées :
+
+| Limite | Conséquence |
+|---|---|
+| Le plateau adverse est celui du **dernier affrontement** | `staleTurns` dit son âge ; entre-temps l'adversaire a acheté et vendu |
+| Les **pouvoirs héroïques** ne sont pas extraits des logs | un héros dont le pouvoir agit en combat est sous-estimé |
+
+Sans le cache de cartes, l'estimation est simplement absente : le reste de l'overlay fonctionne.
+
 ### Application Electron
 `app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).
 Le rendu n'a **ni Node ni accès à SQLite** : `contextIsolation` est activé, `nodeIntegration`

@@ -379,3 +379,93 @@ section h2 {
   color: var(--attenue);
   font-style: italic;
 }
+
+/* --- estimation du prochain combat --- */
+
+.estimation {
+  margin: 6px 0 8px;
+}
+
+/* Une barre vaut mieux que trois nombres : la proportion se lit d'un coup
+   d'oeil, sans lire. En pleine partie, c'est tout ce qu'on a le temps de
+   faire. */
+.barre {
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(120, 110, 150, 0.25);
+}
+
+.barre .part {
+  display: block;
+  height: 100%;
+}
+
+.barre .gagne {
+  background: var(--bon);
+}
+
+.barre .nul {
+  background: var(--attenue);
+}
+
+.barre .perd {
+  background: var(--mauvais);
+}
+
+.issues {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.issues .gagne {
+  color: var(--bon);
+}
+
+.issues .nul {
+  color: var(--attenue);
+}
+
+.issues .perd {
+  color: var(--mauvais);
+}
+
+.degats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--attenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.degats strong {
+  color: var(--texte);
+  font-weight: 600;
+}
+
+/* Le letal est la seule information qui change vraiment une decision : c'est
+   la seule qui a droit a l'accent. */
+.degats .letal {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.degats .letal.danger {
+  color: var(--mauvais);
+}
+
+.estimation-note,
+.estimation-absente {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--attenue);
+}
+
+.estimation-note .perime {
+  color: var(--mauvais);
+}

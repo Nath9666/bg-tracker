@@ -50,6 +50,7 @@ npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silen
 npm run import -- <dossier>                   # importe les parties en base SQLite
 npm run import -- <dossier> --force           # relit les sessions inchangées
 npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
+npm run sim-cards    # base de cartes du simulateur de combat (42 Mo, mise en cache)
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
 npm run export       # jeu de données JSON Lines pour Python (--top4)
@@ -77,10 +78,16 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 
 - Le tracker lit **uniquement les fichiers de log**. Pas de lecture de la mémoire du processus Hearthstone, pas d'interception réseau.
 - Rien ne doit **envoyer d'actions au jeu** (clics simulés, automatisation). L'IA de la phase 5 reste un outil d'analyse et de conseil, jamais un bot.
-- **Pas de simulateur de combat** (probabilités de victoire, dégâts moyens). Décidé le 23/09/2026 :
-  cela sort du papier-crayon et certains tournois l'interdisent. `@firestone-hs/simulate-bgs-battle`
-  existe si la décision change un jour.
-- **Critère de Blizzard**, vérifié en septembre 2026 : est acceptable « tout ce qu'on peut déjà faire avec un papier et un crayon » (Ben Brode), en lecture passive. L'overlay n'affiche donc que ce que le joueur a **déjà vu** : plateaux adverses des combats passés, tiers, historique. Un **simulateur de combat** sort de ce cadre et est interdit par certains tournois.
+- **Simulateur de combat : activé.** Décidé le 23/09/2026, après avoir d'abord tranché l'inverse le
+  même jour. Le bandeau de l'overlay estime victoire / nul / défaite, létal dans les deux sens et
+  dégâts moyens, via `@firestone-hs/simulate-bgs-battle`.
+  - Ce n'est **pas** Blizzard qui l'interdit : HDT et Firestone en embarquent un depuis des années.
+    Ce sont **certains tournois**. Si l'utilisateur en joue, l'overlay doit être fermé.
+  - Il ne reçoit **que ce que le joueur a déjà vu** : son plateau, et celui du prochain adversaire
+    tel qu'il était au dernier affrontement. Aucune donnée cachée n'entre dans l'estimation.
+  - Il se tait sur un adversaire jamais affronté, et affiche toujours l'ancienneté du plateau
+    adverse : c'est la principale raison pour laquelle une estimation peut être fausse.
+- **Critère de Blizzard**, vérifié en septembre 2026 : est acceptable « tout ce qu'on peut déjà faire avec un papier et un crayon » (Ben Brode), en lecture passive. L'overlay n'affiche donc que ce que le joueur a **déjà vu** : plateaux adverses des combats passés, tiers, historique. Le simulateur rejoue ce combat à partir de ces mêmes informations : il n'ajoute rien d'invisible, mais il sort du papier-crayon.
 - La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur dans `data/ratings.csv`, pré-rempli par `npm run ratings` avec une ligne par partie.
 
 ## Données de test
