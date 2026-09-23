@@ -53,7 +53,7 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 **Critère de fin :** l'utilisateur peut analyser ses parties sans ouvrir la base. ✅
 
-## Phase 4 — Mode en direct et overlay ← EN COURS
+## Phase 4 — Mode en direct et overlay ✓
 
 - [x] Suivi de `Power.log` en temps réel, avec gestion de la rotation vers `Power_old.log`
 - [x] Réutilisation du même modèle d'entités qu'en phase 1, alimenté en continu (`src/live/live-tracker.ts`)
@@ -67,11 +67,15 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 **Critère de fin :** une partie jouée avec le tracker ouvert est suivie en direct et enregistrée.
 
-## Phase 5 — IA d'imitation (plus tard)
+## Phase 5 — IA d'imitation ← EN COURS (collecte)
 
 Prérequis : plusieurs centaines de parties en base.
 
-- [ ] Reconstruction des points de décision : état complet (tour, or, tier, PV, main, plateau, boutique de Bob, types du lobby) + action prise (achat, vente, pose, relance, montée, gel, repositionnement, choix de découverte)
+- [~] Reconstruction des points de décision. **Fait** : l'action (achat, vente, pose, relance, gel,
+      montée, pouvoir héroïque, jeu d'une carte), sa cible, son emplacement, et le contexte scalaire
+      (tour, or, palier, PV). Table `decisions`, 156 lignes par partie en moyenne.
+      **Reste** : l'état visible complet à chaque décision (main, plateau, boutique de Bob) et les
+      types du lobby — ces derniers ne sont pas déclarés dans les logs, piste à creuser.
 - [ ] Export du jeu de données depuis SQLite vers Python
 - [ ] Modèle de référence naïf (statistiques simples) comme score plancher
 - [ ] Modèles supervisés (behavior cloning), dans l'ordre : choix du héros, découvertes, bibelots, puis décisions de boutique

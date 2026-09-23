@@ -239,6 +239,11 @@ Le schéma réellement créé par `src/db/migrations.ts` s'en écarte sur les po
 **`hero_offers`** et **`picks`** gagnent une colonne `position`, l'ordre de présentation des options.
 La phase 5 en aura besoin : la position d'une carte influence le choix.
 
+**Table ajoutée : `decisions`** (`game_id`, `sequence`, `turn`, `action`, `card_id`, `target_card_id`,
+`position`, `gold`, `tavern_tier`, `health`). Une ligne par action du joueur, ~156 par partie. C'est
+la seule donnée du projet qui **n'est pas reconstituable** depuis un résumé de partie : elle n'existe
+que dans les logs bruts, qui sont élagués. La collecter tôt conditionne la phase 5.
+
 **Table ajoutée : `cards`** (`card_id`, `dbf_id`, `name`, `name_en`, `type`, `tech_level`, `races`,
 `card_class`, `is_bg_hero`, `is_bg_pool`, `refreshed_at`), remplie depuis HearthstoneJSON. L'index sur
 `dbf_id` sert à remonter d'un skin de héros au héros de base via `BACON_SKIN_PARENT_ID`.

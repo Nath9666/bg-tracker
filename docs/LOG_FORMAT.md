@@ -245,6 +245,29 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
   - `Source=[… cardId=BG30_Trinket_1st …]` : bibelot inférieur. Options en `BG30_MagicItem_*` / `BG36_MagicItem_*`.
   - Autres sources à cataloguer au fil des parties.
 
+### Les actions du joueur
+
+`DebugPrintOptions` liste ce qui est jouable à un instant donné, `SendOption` dit ce qui a été choisi
+(`selectedOption` renvoie à l'index de l'option, `selectedTarget` à un id d'entité, `selectedPosition`
+à l'emplacement de pose). **134 actions** sur la partie de référence.
+
+⚠️ Le `type=` d'une option ne dit **rien** de l'action : il ne vaut que `POWER` ou `END_TURN`. Tout
+le sens est dans la **carte support** de l'option :
+
+| Carte | Action |
+|---|---|
+| `TB_BaconShop_DragBuy` | acheter un serviteur |
+| `TB_BaconShop_DragBuy_Spell` | acheter un sort |
+| `TB_BaconShop_DragSell` | vendre |
+| `…Reroll_Button` | actualiser la boutique |
+| `…LockAll_Button` | geler |
+| `TB_BaconShopTechUp0N_Button` | monter au palier N |
+| carte de type `HERO_POWER` | pouvoir héroïque |
+| toute autre carte | jouer cette carte |
+
+Le pouvoir héroïque est le seul que le `cardId` ne trahit pas, puisqu'il change avec le héros : il se
+reconnaît à son `CARDTYPE`.
+
 ### Connaître son prochain adversaire
 
 ✅ `NEXT_OPPONENT_PLAYER_ID`, sur l'entité héros du joueur, annonce l'adversaire **avant** le combat,

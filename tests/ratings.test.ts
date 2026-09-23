@@ -235,6 +235,7 @@ describe('aller-retour avec la base', () => {
     finalTurn: 14,
     tierUps: [],
     turns: [],
+    decisions: [],
     picks: [],
     opponents: [],
     gameSeed: '893952471',

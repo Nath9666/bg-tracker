@@ -18,8 +18,10 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 | `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
 | `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
 
-**Phase en cours : Phase 4 — Mode en direct et overlay.**
-Les phases 0 (archivage), 1 (parseur), 2 (base de données) et 3 (tableau de bord) sont terminées.
+**Phase en cours : Phase 5 — IA d'imitation, étape de collecte.**
+Les phases 0 à 4 sont terminées. La phase 5 exige *plusieurs centaines de parties* ; en attendant,
+les **points de décision** sont collectés à chaque import (table `decisions`) car ils n'existent
+que dans les logs bruts, qui sont élagués au-delà de 200 parties.
 
 ⚠️ `better-sqlite3` est un module natif. Après un `npm install`, si l'application Electron se plaint
 d'un `NODE_MODULE_VERSION`, le recompiler : `npx @electron/rebuild -f -w better-sqlite3`.

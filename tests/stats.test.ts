@@ -46,6 +46,7 @@ function game(over: Partial<GameSummary> = {}): GameSummary {
     finalTurn: 12,
     tierUps: [],
     turns: [],
+    decisions: [],
     picks: [],
     opponents: [],
     gameSeed: '1',

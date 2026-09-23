@@ -265,6 +265,86 @@ describe('partie de reference', () => {
   });
 });
 
+describe('decisions', () => {
+  /** Un lot d'options, puis l'action retenue. */
+  function action(index: number, cardId: string, cible = 0, position = 0): string[] {
+    return [
+      'D 02:48:30.3211164 GameState.DebugPrintOptions() - id=1',
+      `D 02:48:30.3211164 GameState.DebugPrintOptions() - option ${index} type=POWER mainEntity=[entityName=x id=90${index} zone=PLAY zonePos=0 cardId=${cardId} player=7] error=NONE errorParam=`,
+      `D 02:48:30.3211164 GameState.SendOption() - selectedOption=${index} selectedSubOption=-1 selectedTarget=${cible} selectedPosition=${position}`,
+    ];
+  }
+
+  it('classe les actions d’apres leur carte support', async () => {
+    const [only] = await runLines([
+      ...OPENING,
+      ...action(1, 'TB_BaconShop_DragBuy'),
+      ...action(2, 'TB_BaconShop_DragSell'),
+      ...action(3, 'TB_BaconShop_8p_Reroll_Button'),
+      ...action(4, 'TB_BaconShopLockAll_Button'),
+      ...action(5, 'TB_BaconShopTechUp03_Button'),
+      ...action(6, 'TB_BaconShop_DragBuy_Spell'),
+      ...action(7, 'BG28_300'),
+      COMPLETE,
+    ]);
+
+    expect(only?.decisions.map((d) => d.action)).toEqual([
+      'buy',
+      'sell',
+      'reroll',
+      'freeze',
+      'tierUp',
+      'buySpell',
+      'play',
+    ]);
+  });
+
+  it('numerote les decisions dans l’ordre', async () => {
+    const [only] = await runLines([
+      ...OPENING,
+      ...action(1, 'TB_BaconShop_DragBuy'),
+      ...action(2, 'TB_BaconShop_DragSell'),
+      COMPLETE,
+    ]);
+
+    expect(only?.decisions.map((d) => d.sequence)).toEqual([1, 2]);
+  });
+
+  it('retient la cible et l’emplacement de pose', async () => {
+    const [only] = await runLines([
+      ...OPENING,
+      power('FULL_ENTITY - Creating ID=777 CardID=BG36_760'),
+      ...action(1, 'TB_BaconShop_DragBuy', 777, 3),
+      COMPLETE,
+    ]);
+
+    expect(only?.decisions[0]).toMatchObject({
+      action: 'buy',
+      targetCardId: 'BG36_760',
+      position: 3,
+    });
+  });
+
+  it('laisse la cible vide quand l’action n’en a pas', async () => {
+    // Le log ecrit `selectedTarget=0` dans ce cas.
+    const [only] = await runLines([...OPENING, ...action(1, 'TB_BaconShopLockAll_Button'), COMPLETE]);
+    expect(only?.decisions[0]?.targetCardId).toBeNull();
+  });
+
+  it('enregistre le contexte de la decision', async () => {
+    const [only] = await runLines([
+      ...OPENING,
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=9'),
+      power('TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=8'),
+      power('TAG_CHANGE Entity=89 tag=PLAYER_TECH_LEVEL value=3'),
+      ...action(1, 'TB_BaconShop_DragBuy'),
+      COMPLETE,
+    ]);
+
+    expect(only?.decisions[0]).toMatchObject({ turn: 5, gold: 8, tavernTier: 3, health: 30 });
+  });
+});
+
 describe('import des tours et des plateaux', () => {
   function freshDb(): Db {
     return openDatabase(':memory:');
@@ -304,12 +384,27 @@ describe('import des tours et des plateaux', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM turns').get() as { n: number }).n).toBe(13);
   });
 
-  it('supprime tours et plateaux en cascade', async () => {
+  it('supprime tours, plateaux et decisions en cascade', async () => {
     const db = freshDb();
     importGames(db, [await referenceSummary()], 'x');
     db.prepare('DELETE FROM games').run();
 
-    expect((db.prepare('SELECT COUNT(*) AS n FROM turns').get() as { n: number }).n).toBe(0);
-    expect((db.prepare('SELECT COUNT(*) AS n FROM boards').get() as { n: number }).n).toBe(0);
+    for (const table of ['turns', 'boards', 'decisions']) {
+      expect((db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n).toBe(0);
+    }
+  });
+
+  it('ecrit les 134 decisions de la partie de reference', async () => {
+    const db = freshDb();
+    const summary = await referenceSummary();
+    importGames(db, [summary], 'x');
+
+    const { n } = db.prepare('SELECT COUNT(*) AS n FROM decisions').get() as { n: number };
+    expect(n).toBe(summary.decisions.length);
+    expect(n).toBe(134);
+
+    // Un reimport ne duplique rien.
+    importGames(db, [summary], 'x');
+    expect((db.prepare('SELECT COUNT(*) AS n FROM decisions').get() as { n: number }).n).toBe(134);
   });
 });

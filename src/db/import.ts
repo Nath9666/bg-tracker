@@ -111,6 +111,7 @@ export function importGames(
     picks: db.prepare('DELETE FROM picks WHERE game_id = ?'),
     turns: db.prepare('DELETE FROM turns WHERE game_id = ?'),
     boards: db.prepare('DELETE FROM boards WHERE game_id = ?'),
+    decisions: db.prepare('DELETE FROM decisions WHERE game_id = ?'),
   };
 
   // OR REPLACE : un meme cardId propose deux fois au mulligan ne doit pas faire
@@ -136,6 +137,13 @@ export function importGames(
   const insertBoard = db.prepare(`
     INSERT OR REPLACE INTO boards (game_id, turn, position, card_id, atk, health, golden)
     VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertDecision = db.prepare(`
+    INSERT INTO decisions (
+      game_id, sequence, turn, action, card_id, target_card_id, position,
+      gold, tavern_tier, health
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result: ImportResult = { inserted: 0, updated: 0 };
@@ -170,6 +178,7 @@ export function importGames(
       clear.picks.run(id);
       clear.turns.run(id);
       clear.boards.run(id);
+      clear.decisions.run(id);
 
       summary.heroOffered.forEach((cardId, position) => {
         insertHeroOffer.run(id, cardId, position, cardId === summary.heroChosen ? 1 : 0);
@@ -177,6 +186,21 @@ export function importGames(
 
       for (const tierUp of summary.tierUps) {
         insertTierUp.run(id, tierUp.tier, tierUp.turn);
+      }
+
+      for (const decision of summary.decisions) {
+        insertDecision.run(
+          id,
+          decision.sequence,
+          decision.turn,
+          decision.action,
+          decision.cardId,
+          decision.targetCardId,
+          decision.position,
+          decision.gold,
+          decision.tavernTier,
+          decision.health,
+        );
       }
 
       for (const turn of summary.turns) {

@@ -117,6 +117,7 @@ describe('formatSummary', () => {
     finalTurn: 13,
     tierUps: [{ tier: 2, turn: 2 }],
     turns: [],
+    decisions: [],
     picks: [
       {
         choiceId: 2,

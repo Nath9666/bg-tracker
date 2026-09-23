@@ -138,4 +138,31 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_cards_skin_parent ON cards(skin_parent_dbf_id);
     `,
   },
+  {
+    name: 'decisions',
+    sql: `
+      -- Chaque action du joueur, avec le contexte ou elle a ete prise.
+      -- Ces lignes n'existent que dans les logs bruts : elles ne sont pas
+      -- reconstituables depuis le resume d'une partie, et les logs sont
+      -- elagues. C'est la matiere premiere de la phase 5.
+      CREATE TABLE decisions (
+        game_id        TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+        sequence       INTEGER NOT NULL,    -- rang dans la partie
+        turn           INTEGER,
+        -- 'buy' | 'buySpell' | 'sell' | 'reroll' | 'freeze' | 'tierUp'
+        -- | 'heroPower' | 'play' | 'endTurn' | 'other'
+        action         TEXT NOT NULL,
+        card_id        TEXT,                -- carte support : bouton, sort, pouvoir
+        target_card_id TEXT,                -- serviteur achete, vendu ou vise
+        position       INTEGER,             -- emplacement de pose
+        gold           INTEGER,
+        tavern_tier    INTEGER,
+        health         INTEGER,
+        PRIMARY KEY (game_id, sequence)
+      );
+
+      CREATE INDEX idx_decisions_action ON decisions(action);
+      CREATE INDEX idx_decisions_target ON decisions(target_card_id);
+    `,
+  },
 ];

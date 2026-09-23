@@ -12,6 +12,8 @@ import { GameStateMachine, type Game } from '../state/game-state.js';
 import type {
   BoardMinion,
   CombatResult,
+  DecisionAction,
+  DecisionRecord,
   GameSummary,
   PickRecord,
   TierUp,
@@ -32,6 +34,41 @@ const MULLIGAN = 'MULLIGAN';
  */
 export function gameTurn(turn: number): number {
   return Math.floor((turn + 1) / 2);
+}
+
+/**
+ * Cartes support qui designent une action de boutique.
+ *
+ * Le log ne distingue que `POWER` et `END_TURN` : c'est la carte portant
+ * l'option qui dit ce que le joueur a fait.
+ */
+const ACTION_CARDS: ReadonlyArray<readonly [RegExp, DecisionAction]> = [
+  [/^TB_BaconShop_DragBuy_Spell$/, 'buySpell'],
+  [/^TB_BaconShop_DragBuy$/, 'buy'],
+  [/^TB_BaconShop_DragSell$/, 'sell'],
+  [/Reroll_Button$/, 'reroll'],
+  [/LockAll_Button$/, 'freeze'],
+  [/^TB_BaconShopTechUp/, 'tierUp'],
+];
+
+/**
+ * Nature d'une action, d'apres sa carte support.
+ *
+ * `cardType` sert au seul cas que la carte ne trahit pas : le pouvoir heroique,
+ * dont le `cardId` change avec le heros.
+ */
+export function decisionAction(cardId: string, cardType: string | undefined): DecisionAction {
+  for (const [pattern, action] of ACTION_CARDS) {
+    if (pattern.test(cardId)) return action;
+  }
+  if (cardType === 'HERO_POWER') return 'heroPower';
+  return cardId.length === 0 ? 'other' : 'play';
+}
+
+/** Une option proposee, retenue jusqu'a ce que le joueur en choisisse une. */
+interface OfferedOption {
+  cardId: string;
+  entityId: number | null;
 }
 
 /** Choix en cours de construction, rempli au fil des lignes. */
@@ -68,6 +105,9 @@ interface Accumulator {
   /** Identifiant du choix dont `SendChoices` annonce la reponse. */
   answering: number | null;
   turns: TurnRecord[];
+  decisions: DecisionRecord[];
+  /** Options du lot courant, par index. */
+  options: Map<number, OfferedOption>;
   combat: PendingCombat | null;
   inCombat: boolean;
   /** Or total du tour, lu sur le joueur. */
@@ -91,6 +131,8 @@ function newAccumulator(): Accumulator {
     choices: new Map(),
     answering: null,
     turns: [],
+    decisions: [],
+    options: new Map(),
     combat: null,
     inCombat: false,
     gold: null,
@@ -176,6 +218,21 @@ export class GameExtractor {
         break;
       }
 
+      case 'optionsOffered':
+        accumulator.options = new Map();
+        break;
+
+      case 'option':
+        accumulator.options.set(event.index, {
+          cardId: event.mainEntity?.kind === 'entity' ? event.mainEntity.cardId : '',
+          entityId: event.mainEntity?.kind === 'entity' ? event.mainEntity.id : null,
+        });
+        break;
+
+      case 'optionSent':
+        this.#recordDecision(event.selectedOption, event.selectedTarget, event.selectedPosition, game, accumulator);
+        break;
+
       case 'choiceMade':
         accumulator.answering = event.id;
         break;
@@ -194,6 +251,37 @@ export class GameExtractor {
   /** Cloture une partie restee ouverte en fin de flux. */
   finish(): void {
     this.#machine.finish();
+  }
+
+  /** Traduit une option retenue en decision, avec son contexte. */
+  #recordDecision(
+    selectedOption: number,
+    selectedTarget: number,
+    selectedPosition: number,
+    game: Game,
+    accumulator: Accumulator,
+  ): void {
+    const option = accumulator.options.get(selectedOption);
+    const cardId = option?.cardId ?? '';
+    const support = option?.entityId === null || option?.entityId === undefined
+      ? undefined
+      : game.entities.get(option.entityId);
+
+    const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
+    // `selectedTarget` vaut 0 quand l'action n'a pas de cible.
+    const target = selectedTarget === 0 ? undefined : game.entities.get(selectedTarget);
+
+    accumulator.decisions.push({
+      sequence: accumulator.decisions.length + 1,
+      turn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
+      action: decisionAction(cardId, support?.tags.get('CARDTYPE')),
+      cardId,
+      targetCardId: target?.cardId ?? null,
+      position: selectedPosition >= 0 ? selectedPosition : null,
+      gold: accumulator.gold,
+      tavernTier: hero === undefined ? null : numberTag(hero.tags.get('PLAYER_TECH_LEVEL')),
+      health: hero === undefined ? null : remainingHealthOf(hero.tags),
+    });
   }
 
   #observeTagChange(
@@ -342,11 +430,19 @@ export class GameExtractor {
       finalTurn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
       tierUps: accumulator.tierUps,
       turns: accumulator.turns,
+      decisions: accumulator.decisions,
       picks,
       opponents: opponentHeroes(game),
       gameSeed: gameEntity?.tags.get('GAME_SEED') ?? null,
     };
   }
+}
+
+/** PV restants d'un heros : l'armure encaisse avant les points de vie. */
+function remainingHealthOf(tags: Map<string, string>): number | null {
+  const health = numberTag(tags.get('HEALTH'));
+  if (health === null) return null;
+  return health - Number(tags.get('DAMAGE') ?? 0) + Number(tags.get('ARMOR') ?? 0);
 }
 
 function numberTag(value: string | undefined): number | null {

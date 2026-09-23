@@ -58,6 +58,46 @@ export interface TurnRecord {
   board: BoardMinion[];
 }
 
+/**
+ * Nature d'une action du joueur.
+ *
+ * Deduite de la carte qui porte l'option : le log n'en donne que deux types
+ * (`POWER` et `END_TURN`), tout le sens est dans la carte support.
+ */
+export type DecisionAction =
+  | 'buy'
+  | 'buySpell'
+  | 'sell'
+  | 'reroll'
+  | 'freeze'
+  | 'tierUp'
+  | 'heroPower'
+  | 'play'
+  | 'endTurn'
+  | 'other';
+
+/**
+ * Une decision du joueur, avec le contexte ou elle a ete prise.
+ *
+ * C'est la matiere premiere de la phase 5 : ces actions n'existent que dans les
+ * logs bruts, jamais reconstituables depuis le resume d'une partie.
+ */
+export interface DecisionRecord {
+  /** Rang de l'action dans la partie, a partir de 1. */
+  sequence: number;
+  turn: number | null;
+  action: DecisionAction;
+  /** cardId de la carte support : bouton, sort joue, pouvoir heroique. */
+  cardId: string;
+  /** cardId de la cible : le serviteur achete, vendu ou vise. */
+  targetCardId: string | null;
+  /** Emplacement de pose sur le plateau, quand l'action en a un. */
+  position: number | null;
+  gold: number | null;
+  tavernTier: number | null;
+  health: number | null;
+}
+
 /** Resume d'une partie de Champs de bataille. */
 export interface GameSummary {
   /** Horodatage ISO 8601 du CREATE_GAME. */
@@ -84,6 +124,8 @@ export interface GameSummary {
   tierUps: TierUp[];
   /** Un enregistrement par combat joue, dans l'ordre. */
   turns: TurnRecord[];
+  /** Toutes les actions du joueur, dans l'ordre. */
+  decisions: DecisionRecord[];
   picks: PickRecord[];
   /** cardIds des heros adverses rencontres dans le lobby. */
   opponents: string[];
