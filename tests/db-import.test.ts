@@ -238,6 +238,7 @@ describe('parseImportArgs', () => {
     expect(parseImportArgs(['data/archive', '--db', 'autre.db'])).toEqual({
       folder: 'data/archive',
       db: 'autre.db',
+      force: false,
     });
   });
 
@@ -245,10 +246,15 @@ describe('parseImportArgs', () => {
     expect(parseImportArgs(['data/archive']).db).toBe('data/bg-tracker.db');
   });
 
+  it('reconnait --force, qui relit les sessions inchangees', () => {
+    expect(parseImportArgs(['data/archive', '--force']).force).toBe(true);
+    expect(parseImportArgs(['--force', 'data/archive']).force).toBe(true);
+  });
+
   it('refuse une commande incomplete ou inconnue', () => {
     expect(() => parseImportArgs([])).toThrow(/Usage/);
     expect(() => parseImportArgs(['a', '--db'])).toThrow(/Valeur manquante/);
-    expect(() => parseImportArgs(['a', '--force'])).toThrow(/Option inconnue/);
+    expect(() => parseImportArgs(['a', '--verbose'])).toThrow(/Option inconnue/);
     expect(() => parseImportArgs(['a', 'b'])).toThrow(/un seul dossier/i);
   });
 });

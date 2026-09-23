@@ -187,4 +187,21 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_decision_cards_card ON decision_cards(card_id, zone);
     `,
   },
+  {
+    name: 'imported_sessions',
+    sql: `
+      -- Empreinte des sessions deja importees : nom, taille et date de
+      -- modification de leurs fichiers de log. Une session inchangee est
+      -- sautee, ce qui rend l'import proportionnel aux nouvelles parties et
+      -- non a la taille de l'archive.
+      --
+      -- La version du schema fait partie de l'empreinte, donc une migration
+      -- invalide tout et force une relecture complete.
+      CREATE TABLE imported_sessions (
+        folder      TEXT PRIMARY KEY,
+        fingerprint TEXT NOT NULL,
+        imported_at TEXT NOT NULL
+      );
+    `,
+  },
 ];

@@ -14,9 +14,7 @@ import { archiveLogs } from '../archive/archive-logs.js';
 import { parseArchiveArgs } from '../../scripts/archive-logs.js';
 import { findSessions } from './parse.js';
 import { DEFAULT_DB_PATH, openDatabase } from '../db/database.js';
-import { importGames } from '../db/import.js';
-import { extractGames } from '../extract/game-extractor.js';
-import { openSession, readSessionLines, resolveSessionDate } from '../reader/session-reader.js';
+import { importSessions } from '../db/import-sessions.js';
 import {
   DEFAULT_RATINGS_PATH,
   listGames,
@@ -24,7 +22,6 @@ import {
   parseRatings,
   writeRatingsTemplate,
 } from '../ratings/ratings.js';
-import type { GameSummary } from '../types.js';
 
 async function main(): Promise<void> {
   const archive = parseArchiveArgs(process.argv.slice(2));
@@ -42,22 +39,13 @@ async function main(): Promise<void> {
 
   console.log('\n2/3  Import en base');
   const db = openDatabase(DEFAULT_DB_PATH);
-  let inserted = 0;
-  let updated = 0;
-
-  for (const session of await findSessions(archive.dest)) {
-    const sessionDate = await resolveSessionDate(await openSession(session));
-    const summaries: GameSummary[] = [];
-    for await (const summary of extractGames(readSessionLines(session), { sessionDate })) {
-      summaries.push(summary);
-    }
-    const result = importGames(db, summaries, session);
-    inserted += result.inserted;
-    updated += result.updated;
-  }
+  const result = await importSessions(db, await findSessions(archive.dest));
 
   const total = db.prepare('SELECT COUNT(*) AS n FROM games').get() as { n: number };
-  console.log(`     ${inserted} nouvelle(s), ${updated} mise(s) à jour, ${total.n} partie(s) en base`);
+  const sautees = result.skipped > 0 ? `, ${result.skipped} session(s) inchangée(s)` : '';
+  console.log(
+    `     ${result.inserted} nouvelle(s), ${result.updated} mise(s) à jour${sautees}, ${total.n} partie(s) en base`,
+  );
 
   console.log('\n3/3  Cotes');
   const games = listGames(db);
@@ -69,7 +57,10 @@ async function main(): Promise<void> {
     for (const match of matches) update.run(match.rating, match.gameId);
   })();
 
-  console.log(`     ${matches.length} cote(s) rattachée(s), ${template.added} partie(s) sans cote`);
+  console.log(
+    `     ${matches.length} cote(s) rattachée(s), ${template.added} partie(s) sans cote` +
+      (template.written ? '' : ', fichier inchangé'),
+  );
   if (template.added > 0) {
     console.log(`\nÀ compléter : ${DEFAULT_RATINGS_PATH}`);
   }

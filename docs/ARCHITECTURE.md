@@ -254,6 +254,14 @@ Environ 10 cartes par décision, soit 1 800 lignes par partie.
 la seule donnée du projet qui **n'est pas reconstituable** depuis un résumé de partie : elle n'existe
 que dans les logs bruts, qui sont élagués. La collecter tôt conditionne la phase 5.
 
+**Table ajoutée : `imported_sessions`** (`folder`, `fingerprint`, `imported_at`). L'empreinte d'une
+session déjà importée : nom, taille et date de modification de ses fichiers de log, précédés de la
+version du schéma. Sans elle, `npm run import` relisait **toute l'archive** à chaque passage.
+Une session encore en cours grossit, donc son empreinte change, donc elle est relue — ce qui est
+bien le comportement voulu. La version du schéma en fait partie pour qu'une migration invalide tout
+et force une relecture complète : sans ça, une colonne ajoutée resterait vide sur les anciennes
+parties. `npm run import -- --force` ignore les empreintes.
+
 **Table ajoutée : `cards`** (`card_id`, `dbf_id`, `name`, `name_en`, `type`, `tech_level`, `races`,
 `card_class`, `is_bg_hero`, `is_bg_pool`, `refreshed_at`), remplie depuis HearthstoneJSON. L'index sur
 `dbf_id` sert à remonter d'un skin de héros au héros de base via `BACON_SKIN_PARENT_ID`.

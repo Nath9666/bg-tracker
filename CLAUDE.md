@@ -48,6 +48,7 @@ npm run lint         # ESLint
 npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
 npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
 npm run import -- <dossier>                   # importe les parties en base SQLite
+npm run import -- <dossier> --force           # relit les sessions inchangées
 npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)

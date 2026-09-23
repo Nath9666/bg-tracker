@@ -105,26 +105,33 @@ Le coût d'un passage fréquent n'est pas nul non plus : **0,9 s à vide**, mais
 secondes **pendant qu'on joue**, le temps de relire et recompresser la session en cours. Autant ne
 pas s'y exposer en pleine partie.
 
-### Pourquoi `archive` et pas `sync`
+### `archive` ou `sync` ?
 
-La tâche lance `npm run archive`, **pas** `npm run sync`. Mesuré sur cette machine, à 28 parties
-archivées :
+Les deux sont planifiables. Ça n'a pas toujours été vrai : `sync` mettait **13,9 s** et réécrivait
+`data/ratings.csv` à chaque passage. Deux corrections l'ont rendu utilisable en tâche de fond.
 
-| Commande | Durée à vide | Effet de bord |
-|---|---|---|
-| `npm run archive` | **0,9 s** | aucun |
-| `npm run sync` | **13,9 s** | réécrit `data/ratings.csv` |
+| Commande | À vide | Pendant qu'on joue | Effet de bord |
+|---|---|---|---|
+| `npm run archive` | 0,9 s | ~10 s | aucun |
+| `npm run sync` | ~1 s | 2,8 s | réécrit `ratings.csv` **seulement** si une partie s'ajoute |
 
-Trois raisons de s'en tenir à l'archivage :
+Ce qui a changé :
 
-1. c'est la partie **irremplaçable** — les logs bruts disparaissent du dossier de Hearthstone en
-   quelques jours, alors que la base se reconstruit à volonté depuis l'archive ;
-2. `sync` réécrit `data/ratings.csv`, ce qui est pénible si le fichier est ouvert dans un éditeur ;
-3. `sync` **réimporte toute l'archive** à chaque passage : il ralentira à mesure que les parties
-   s'accumulent.
+- **L'import est incrémental.** Une session dont les fichiers n'ont pas bougé depuis le dernier
+  import est sautée (table `imported_sessions`, voir `docs/ARCHITECTURE.md`). Seule la session en
+  cours est relue, puisqu'elle grossit.
+- **`ratings.csv` n'est réécrit que si son contenu change.** Le fichier est fait pour rester ouvert
+  dans un éditeur : une tâche qui le touche toutes les heures écraserait une saisie en cours.
 
-`npm run sync` reste la commande à lancer **à la main** après une session, pour importer et saisir
-les cotes.
+Reste que la **cote elle-même ne s'automatise pas** : elle n'apparaît nulle part dans les logs. Tout
+ce que `sync` peut faire, c'est préparer la ligne vide plus tôt.
+
+Le tableau de bord lit la base en WAL, donc il peut rester ouvert pendant qu'une tâche planifiée
+écrit.
+
+**En pratique** : planifier `sync` donne une base et un tableau de bord toujours à jour sans y
+penser. Planifier `archive` seul suffit si on préfère ne rien voir bouger entre deux sessions et
+lancer `npm run sync` à la main.
 
 ### Créer la tâche
 

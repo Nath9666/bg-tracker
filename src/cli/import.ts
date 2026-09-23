@@ -1,32 +1,37 @@
 /**
- * CLI : `npm run import -- <dossier> [--db <fichier>]`
+ * CLI : `npm run import -- <dossier> [--db <fichier>] [--force]`
  *
  * Lit un dossier de session ou un dossier d'archive, en extrait les parties de
  * Champs de bataille et les ecrit en base. L'operation est idempotente :
  * relancer la meme commande ne cree pas de doublon.
+ *
+ * Une session dont les fichiers n'ont pas bouge depuis le dernier import est
+ * sautee. `--force` la relit quand meme.
  */
 import process from 'node:process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { findSessions } from './parse.js';
 import { DEFAULT_DB_PATH, openDatabase, schemaVersion } from '../db/database.js';
-import { importGames } from '../db/import.js';
-import { extractGames } from '../extract/game-extractor.js';
-import { openSession, readSessionLines, resolveSessionDate } from '../reader/session-reader.js';
-import type { GameSummary } from '../types.js';
+import { importSessions } from '../db/import-sessions.js';
 
 export interface ImportCliOptions {
   folder: string;
   db: string;
+  /** Relire toutes les sessions, meme inchangees. */
+  force: boolean;
 }
 
 export function parseImportArgs(argv: readonly string[]): ImportCliOptions {
   const positional: string[] = [];
   let db = DEFAULT_DB_PATH;
+  let force = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
-    if (arg === '--db') {
+    if (arg === '--force') {
+      force = true;
+    } else if (arg === '--db') {
       const next = argv[i + 1];
       if (next === undefined) throw new Error('Valeur manquante apres --db');
       db = next;
@@ -40,13 +45,13 @@ export function parseImportArgs(argv: readonly string[]): ImportCliOptions {
 
   const folder = positional[0];
   if (folder === undefined) {
-    throw new Error('Usage : npm run import -- <dossier> [--db <fichier>]');
+    throw new Error('Usage : npm run import -- <dossier> [--db <fichier>] [--force]');
   }
   if (positional.length > 1) {
     throw new Error('Un seul dossier peut etre importe a la fois.');
   }
 
-  return { folder, db };
+  return { folder, db, force };
 }
 
 async function main(): Promise<void> {
@@ -62,27 +67,24 @@ async function main(): Promise<void> {
   console.log(`Source  : ${options.folder}`);
   console.log();
 
-  let inserted = 0;
-  let updated = 0;
+  const result = await importSessions(db, sessions, { force: options.force });
 
-  for (const session of sessions) {
-    const sessionDate = await resolveSessionDate(await openSession(session));
-    const summaries: GameSummary[] = [];
-    for await (const summary of extractGames(readSessionLines(session), { sessionDate })) {
-      summaries.push(summary);
+  for (const session of result.sessions) {
+    if (session.skipped) {
+      console.log(`  ${session.folder}  inchangée, sautée`);
+    } else {
+      console.log(
+        `  ${session.folder}  ${session.games} partie(s) : ${session.inserted} nouvelle(s), ${session.updated} mise(s) à jour`,
+      );
     }
-
-    const result = importGames(db, summaries, session);
-    inserted += result.inserted;
-    updated += result.updated;
-    console.log(
-      `  ${session}  ${summaries.length} partie(s) : ${result.inserted} nouvelle(s), ${result.updated} mise(s) à jour`,
-    );
   }
 
   const total = db.prepare('SELECT COUNT(*) AS n FROM games').get() as { n: number };
   console.log();
-  console.log(`${inserted} nouvelle(s), ${updated} mise(s) à jour. ${total.n} partie(s) en base.`);
+  const sautees = result.skipped > 0 ? `, ${result.skipped} session(s) inchangée(s)` : '';
+  console.log(
+    `${result.inserted} nouvelle(s), ${result.updated} mise(s) à jour${sautees}. ${total.n} partie(s) en base.`,
+  );
   db.close();
 }
 
