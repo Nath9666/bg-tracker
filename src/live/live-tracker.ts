@@ -12,7 +12,7 @@ import type { LogEvent } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
 import { combatResult, gameTurn, readBoard } from '../extract/game-extractor.js';
-import type { BoardMinion, CombatResult } from '../types.js';
+import type { BoardMinion, CombatResult, TierUp } from '../types.js';
 
 /** Ce qu'on sait d'un adversaire du lobby. */
 export interface OpponentSnapshot {
@@ -52,6 +52,8 @@ export interface LiveState {
   /** Adversaires rencontres, du plus recemment affronte au plus ancien. */
   opponents: OpponentSnapshot[];
   combats: CombatLog[];
+  /** Montees de palier de la partie en cours, dans l'ordre. */
+  tierUps: TierUp[];
   /**
    * Heros du prochain adversaire, annonce par le jeu avant le combat.
    *
@@ -86,6 +88,7 @@ export function emptyState(): LiveState {
     board: [],
     opponents: [],
     combats: [],
+    tierUps: [],
     nextOpponentHero: null,
   };
 }
@@ -204,6 +207,19 @@ export class LiveTracker {
     if (id === game.proxyPlayerEntityId && event.tag === 'HERO_ENTITY') {
       this.#observeProxyHero(Number(event.value), game);
       return;
+    }
+
+    // Montee de taverne : on garde le tour de chacune, pour comparer le rythme
+    // de cette partie a celui des parties reussies.
+    if (event.tag === 'PLAYER_TECH_LEVEL' && id === game.heroEntityId) {
+      const tier = Number(event.value);
+      const dernier = this.#state.tierUps.at(-1)?.tier ?? 1;
+      if (tier > dernier && this.#state.turn !== null) {
+        this.#state = {
+          ...this.#state,
+          tierUps: [...this.#state.tierUps, { tier, turn: this.#state.turn }],
+        };
+      }
     }
 
     // Les entites heros portent le PLAYER_ID de leur joueur : on s'en sert pour

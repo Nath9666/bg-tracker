@@ -345,3 +345,37 @@ section h2 {
   color: var(--attenue);
   font-style: italic;
 }
+
+/* --- rythme de paliers --- */
+.rythme ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rythme li {
+  display: grid;
+  grid-template-columns: 26px 58px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.rythme .palier {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rythme .quand {
+  color: var(--texte);
+}
+
+/* Ni vert ni rouge : monter plus tot n'est pas toujours mieux. */
+.rythme .ecart {
+  color: var(--attenue);
+}
+
+.rythme .perime {
+  color: var(--attenue);
+  font-style: italic;
+}

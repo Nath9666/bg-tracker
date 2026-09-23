@@ -22,16 +22,32 @@ import {
   listGames,
   writeRatingsTemplate,
 } from '../../src/ratings/ratings.js';
+import { tierCurve } from '../../src/stats/stats.js';
 
 /** Dossier `Logs` de Hearthstone. */
 const LOGS_FOLDER =
   process.env['BG_TRACKER_LOGS'] ?? 'F:\\SteamLibrary\\Hearthstone\\Logs';
+
+/**
+ * Rythme de montee de taverne dans les parties reussies, tire de la base.
+ *
+ * Sert de reference a la partie en cours : « tu es T5 au tour 10, dans tes
+ * tops 4 tu y etais au tour 9 ». Le nombre de parties est transmis aussi : sur
+ * un historique mince, la reference ne vaut pas grand-chose et il faut le dire.
+ */
+export interface PaceReference {
+  tier: number;
+  /** Tour moyen d'arrivee a ce palier dans les tops 4. */
+  top4Turn: number | null;
+  top4Games: number;
+}
 
 /** Ce que l'overlay recoit : l'etat, plus de quoi nommer les cartes. */
 export interface OverlayPayload {
   state: LiveState;
   /** cardId -> nom et details, pour les cartes citees par l'etat. */
   cards: Record<string, Pick<CardInfo, 'name' | 'techLevel' | 'races'>>;
+  pace: PaceReference[];
 }
 
 /** Derniere partie terminee, proposee a la saisie de cote. */
@@ -119,6 +135,18 @@ function openRatingPrompt(game: RatingPrompt): void {
 /** Index des cartes, charge une seule fois : le fichier fait plusieurs Mo. */
 let cardIndex: Awaited<ReturnType<typeof loadIndex>> = null;
 
+/** Reference de rythme, calculee une fois : elle ne bouge pas en cours de session. */
+let pace: PaceReference[] | null = null;
+
+function paceReference(): PaceReference[] {
+  pace ??= tierCurve(database()).map((point) => ({
+    tier: point.tier,
+    top4Turn: point.top4Turn,
+    top4Games: point.top4Games,
+  }));
+  return pace;
+}
+
 /** Prepare le lot envoye a l'overlay : l'etat et le nom des cartes citees. */
 async function buildPayload(state: LiveState): Promise<OverlayPayload> {
   cardIndex ??= await loadIndex();
@@ -143,7 +171,7 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     for (const minion of opponent.board) noter(minion.cardId);
   }
 
-  return { state, cards };
+  return { state, cards, pace: paceReference() };
 }
 
 function broadcast(payload: OverlayPayload): void {

@@ -182,6 +182,45 @@ describe('combats', () => {
   });
 });
 
+describe('rythme de paliers', () => {
+  it('retient le tour de chaque montee', () => {
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=3'),
+      power('TAG_CHANGE Entity=89 tag=PLAYER_TECH_LEVEL value=2'),
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=9'),
+      power('TAG_CHANGE Entity=89 tag=PLAYER_TECH_LEVEL value=3'),
+    ]);
+
+    expect(live.state.tierUps).toEqual([
+      { tier: 2, turn: 2 },
+      { tier: 3, turn: 5 },
+    ]);
+  });
+
+  it('ne compte pas le palier 1 de depart', () => {
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=1'),
+      power('TAG_CHANGE Entity=89 tag=PLAYER_TECH_LEVEL value=1'),
+    ]);
+
+    expect(live.state.tierUps).toEqual([]);
+  });
+
+  it('ignore le PLAYER_TECH_LEVEL des autres entites', () => {
+    // Piege connu : les copies de heros adverses recoivent aussi ce tag.
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=3'),
+      power('FULL_ENTITY - Creating ID=444 CardID=TB_BaconShop_HERO_16'),
+      power('TAG_CHANGE Entity=444 tag=PLAYER_TECH_LEVEL value=6'),
+    ]);
+
+    expect(live.state.tierUps).toEqual([]);
+  });
+});
+
 describe('prochain adversaire', () => {
   /** Le jeu annonce le prochain adversaire par son PLAYER_ID. */
   const ANNONCE = (playerId: number): string =>
@@ -264,6 +303,14 @@ describe('partie de reference', () => {
     // Le plus recemment affronte est celui du dernier combat.
     expect(state.opponents[0]?.heroCardId).toBe(state.combats.at(-1)?.opponentHero);
     expect(state.opponents[0]?.lastFoughtTurn).toBe(13);
+
+    // Les memes montees que l'extraction hors ligne.
+    expect(state.tierUps).toEqual([
+      { tier: 2, turn: 2 },
+      { tier: 3, turn: 5 },
+      { tier: 4, turn: 7 },
+      { tier: 5, turn: 10 },
+    ]);
   });
 
   it('annonce le bon adversaire avant chaque combat', async () => {

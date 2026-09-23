@@ -97,10 +97,16 @@ Ce qu'il affiche reste dans la limite « papier-crayon » : uniquement des infor
 **déjà eues sous les yeux**. Pas de simulation de combat — décision prise le 23/09/2026, voir
 `CLAUDE.md`.
 
-Deux garde-fous d'honnêteté dans l'affichage : le plateau d'un adversaire est daté du tour où il a
-été vu, et la comparaison de force n'est **tranchée que si ce plateau a moins de trois tours**.
-Au-delà, on affiche son âge sans conclure : comparer un plateau vieux de sept tours au sien ne veut
-rien dire.
+Trois garde-fous d'honnêteté dans l'affichage :
+
+- le plateau d'un adversaire est daté du tour où il a été vu, et la comparaison de force n'est
+  **tranchée que si ce plateau a moins de trois tours** ; au-delà on affiche son âge sans conclure,
+  comparer un plateau vieux de sept tours au sien ne voulant rien dire ;
+- le **rythme de paliers** confronte la montée de la partie en cours à celle des tops 4 du joueur,
+  lue dans la base. Il n'est affiché qu'à partir de **trois parties de référence** pour ce palier ;
+- ce rythme est montré **sans vert ni rouge**. Sur l'historique réel, T4 arrive plus tôt dans les
+  tops 4 (6,4 contre 7,1) mais T5 et T6 plus **tard** (10,1 contre 9,7). « Plus tôt = mieux » est
+  donc faux : l'overlay montre l'écart, il ne le juge pas.
 
 `app/main/overlay-main.ts` suit `Power.log`, alimente le `LiveTracker` et pousse l'état par IPC vers
 deux fenêtres :

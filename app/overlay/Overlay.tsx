@@ -44,7 +44,7 @@ export default function Overlay(): JSX.Element | null {
 
   if (payload === null) return null;
 
-  const { state, cards } = payload;
+  const { state, cards, pace } = payload;
   const nom = (cardId: string | null): string =>
     cardId === null ? '—' : (cards[cardId]?.name ?? cardId);
 
@@ -171,6 +171,45 @@ export default function Overlay(): JSX.Element | null {
               )}
               </article>
             ))}
+        </section>
+      )}
+
+      {state.tierUps.length > 0 && (
+        <section className="rythme">
+          <h2>Rythme de paliers</h2>
+          <ul>
+            {state.tierUps.map((montee) => {
+              const reference = pace.find((point) => point.tier === montee.tier);
+              // Sans reference, ou sur un historique trop mince, on affiche la
+              // montee sans la juger.
+              const fiable =
+                reference !== undefined &&
+                reference.top4Turn !== null &&
+                reference.top4Games >= 3;
+              const ecart = fiable ? montee.turn - (reference.top4Turn ?? 0) : null;
+
+              return (
+                <li key={montee.tier}>
+                  <span className="palier">T{montee.tier}</span>
+                  <span className="quand">tour {montee.turn}</span>
+                  {ecart === null ? (
+                    <span className="perime">pas assez de parties</span>
+                  ) : (
+                    // Volontairement sans vert ni rouge : « plus tot » n'est pas
+                    // toujours mieux. Sur l'historique du joueur, T4 arrive plus
+                    // tot dans les tops 4, mais T5 et T6 plus tard. On montre
+                    // l'ecart, on ne le juge pas.
+                    <span className="ecart">
+                      {Math.abs(ecart) < 0.5
+                        ? 'comme tes tops 4'
+                        : `${Math.round(Math.abs(ecart))} tour${Math.round(Math.abs(ecart)) > 1 ? 's' : ''} ${ecart < 0 ? 'plus tôt' : 'plus tard'}`}
+                      {` (${reference?.top4Turn?.toFixed(1)})`}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 
