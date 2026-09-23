@@ -8,6 +8,7 @@ import { openDatabase, type Db } from '../src/db/database.js';
 import { importGames } from '../src/db/import.js';
 import { importCards } from '../src/cards/import-cards.js';
 import { buildIndex } from '../src/cards/card-database.js';
+import { emptyKeywords } from '../src/types.js';
 import type { BoardMinion, DecisionRecord, GameSummary } from '../src/types.js';
 
 const CARDS = buildIndex(
@@ -20,7 +21,7 @@ const CARDS = buildIndex(
 );
 
 function minion(cardId: string, position: number): BoardMinion {
-  return { position, cardId, atk: 3, health: 2, golden: false };
+  return { position, cardId, atk: 3, health: 2, damage: 0, golden: false, keywords: emptyKeywords() };
 }
 
 function decision(over: Partial<DecisionRecord> = {}): DecisionRecord {

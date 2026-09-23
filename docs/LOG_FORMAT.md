@@ -364,6 +364,49 @@ revient jamais à `0`. Il faut le clôturer à la fin de la partie, sinon le tou
   la lire hors combat uniquement, sinon on prend les serviteurs de l'adversaire pour une offre.
 - Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby *(à vérifier)*.
 
+## Mots-cles des serviteurs et degats subis
+
+Verifie par `grep` sur une session reelle (`Hearthstone_2026_09_23_03_26_12`, 102 Mo) et sur
+l'extrait versionne. Frequences sur la session reelle, source `GameState` uniquement :
+
+| Tag | Occurrences | Remarque |
+|---|---|---|
+| `HEALTH` | 8 645 | vie **maximale**, pas les PV restants |
+| `ATK` | 8 629 | |
+| `DAMAGE` | 1 674 | degats subis ; PV restants = `HEALTH - DAMAGE` |
+| `TAUNT` | 595 | |
+| `PREMIUM` | 535 | dore |
+| `REBORN` | 479 | |
+| `DIVINE_SHIELD` | 479 | |
+| `VENOMOUS` | 438 | |
+| `WINDFURY` | 110 | |
+| `STEALTH` | 104 | |
+| `POISONOUS` | **0** | remplace par `VENOMOUS` |
+| `MEGA_WINDFURY` | **0** | absent de cette session |
+
+Trois points qui ont demande une verification :
+
+- **`HEALTH` n'est pas la vie restante.** C'est la vie maximale ; les degats s'accumulent dans
+  `DAMAGE`, remis a zero quand le serviteur est soigne. Un plateau lu sur le seul `HEALTH` montre
+  donc des serviteurs intacts alors qu'ils sont a l'agonie.
+- **`POISONOUS` a disparu** au profit de `VENOMOUS` dans les Champs de bataille modernes. Les deux
+  sont lus, l'ancien pouvant reapparaitre sur une carte ancienne.
+- **Les mots-cles arrivent par `TAG_CHANGE`**, sous les trois formes de reference d'entite deja
+  gerees, et par `tag=X value=Y` a l'interieur d'un bloc d'entite. Rien de nouveau a parser : ils
+  etaient deja dans l'etat, ils n'etaient simplement pas lus.
+
+Un tag remis a `0` compte comme absent : c'est ainsi que le jeu signale un Bouclier divin consomme
+ou un venin depense. Exemple releve :
+
+```
+TAG_CHANGE Entity=[... cardId=BG31_149 player=5] tag=VENOMOUS value=1
+TAG_CHANGE Entity=[... cardId=BG31_149 player=5] tag=VENOMOUS value=0
+```
+
+⚠️ Ce qui **manque encore** pour simuler un combat : les effets propres a chaque carte
+(rales d'agonie, cris de guerre, auras). Aucun tag ne les declare — ils sont dans le comportement du
+jeu, pas dans le log.
+
 ## Ce qui n'est PAS dans les logs
 
 - **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.

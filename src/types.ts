@@ -28,14 +28,64 @@ export interface TierUp {
 }
 
 /** Un serviteur du plateau, au debut d'un combat. */
+/**
+ * Mots-cles d'un serviteur, lus sur ses tags.
+ *
+ * Ce sont eux qui decident la plupart des combats : un Bouclier divin absorbe
+ * une attaque entiere, une Provocation impose la cible, un Venimeux tue
+ * n'importe quoi. Un plateau reduit a l'attaque et la vie ne dit presque rien.
+ *
+ * `POISONOUS` a laisse la place a `VENOMOUS` dans les Champs de bataille
+ * modernes (verifie : 438 `VENOMOUS` et 0 `POISONOUS` sur une session reelle).
+ * Les deux sont lus, l'ancien pouvant reapparaitre sur une carte ancienne.
+ */
+export interface MinionKeywords {
+  divineShield: boolean;
+  taunt: boolean;
+  venomous: boolean;
+  poisonous: boolean;
+  reborn: boolean;
+  windfury: boolean;
+  megaWindfury: boolean;
+  stealth: boolean;
+}
+
+/** Aucun mot-cle : l'etat par defaut d'un serviteur. */
+export function emptyKeywords(): MinionKeywords {
+  return {
+    divineShield: false,
+    taunt: false,
+    venomous: false,
+    poisonous: false,
+    reborn: false,
+    windfury: false,
+    megaWindfury: false,
+    stealth: false,
+  };
+}
+
 export interface BoardMinion {
   /** `ZONE_POSITION`, de 1 a 7, de gauche a droite. */
   position: number;
   cardId: string;
   atk: number | null;
+  /**
+   * Vie **maximale**, tag `HEALTH`.
+   *
+   * Ce n'est pas la vie restante : les degats subis sont comptes a part, dans
+   * `damage`. Les PV courants valent `health - damage`.
+   */
   health: number | null;
+  /** Degats subis, tag `DAMAGE`. `0` pour un serviteur intact. */
+  damage: number;
   /** Dore. Lu sur le tag `PREMIUM`, pas sur le suffixe `_G` du cardId. */
   golden: boolean;
+  keywords: MinionKeywords;
+}
+
+/** PV restants d'un serviteur : vie maximale moins degats subis. */
+export function currentHealth(minion: BoardMinion): number | null {
+  return minion.health === null ? null : minion.health - minion.damage;
 }
 
 export type CombatResult = 'win' | 'loss' | 'tie';

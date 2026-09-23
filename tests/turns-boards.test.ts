@@ -3,6 +3,7 @@ import { combatResult, extractGames } from '../src/extract/game-extractor.js';
 import { readSessionLines } from '../src/reader/session-reader.js';
 import { openDatabase, type Db } from '../src/db/database.js';
 import { importGames } from '../src/db/import.js';
+import { emptyKeywords } from '../src/types.js';
 import type { GameSummary } from '../src/types.js';
 import { sampleSessionFolder } from './helpers/sample-session.js';
 
@@ -190,8 +191,24 @@ describe('capture du plateau', () => {
     ]);
 
     expect(only?.turns[0]?.board).toEqual([
-      { position: 1, cardId: 'BG36_760', atk: 5, health: 3, golden: true },
-      { position: 2, cardId: 'BG28_300', atk: 3, health: 2, golden: false },
+      {
+        position: 1,
+        cardId: 'BG36_760',
+        atk: 5,
+        health: 3,
+        damage: 0,
+        golden: true,
+        keywords: emptyKeywords(),
+      },
+      {
+        position: 2,
+        cardId: 'BG28_300',
+        atk: 3,
+        health: 2,
+        damage: 0,
+        golden: false,
+        keywords: emptyKeywords(),
+      },
     ]);
   });
 

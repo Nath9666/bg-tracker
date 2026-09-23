@@ -15,6 +15,7 @@ import type {
   DecisionAction,
   DecisionRecord,
   GameSummary,
+  MinionKeywords,
   PickRecord,
   TierUp,
   TurnRecord,
@@ -512,11 +513,34 @@ export function readZone(
       cardId: entity.cardId,
       atk: numberTag(entity.tags.get('ATK')),
       health: numberTag(entity.tags.get('HEALTH')),
+      damage: numberTag(entity.tags.get('DAMAGE')) ?? 0,
       // Le tag est plus sur que le suffixe `_G` : deux serviteurs dores du log
       // de reference n'ont pas ce suffixe.
       golden: entity.tags.get('PREMIUM') === '1',
+      keywords: readKeywords(entity),
     }))
     .sort((a, b) => a.position - b.position);
+}
+
+/**
+ * Mots-cles d'un serviteur.
+ *
+ * Tous arrivent par `TAG_CHANGE`, sous les trois formes de reference que le
+ * parseur sait deja lire, et sont donc deja dans l'etat. Un tag absent vaut
+ * faux ; un tag remis a `0` (bouclier consomme, venin depense) aussi.
+ */
+function readKeywords(entity: { tags: Map<string, string> }): MinionKeywords {
+  const has = (tag: string): boolean => entity.tags.get(tag) === '1';
+  return {
+    divineShield: has('DIVINE_SHIELD'),
+    taunt: has('TAUNT'),
+    venomous: has('VENOMOUS'),
+    poisonous: has('POISONOUS'),
+    reborn: has('REBORN'),
+    windfury: has('WINDFURY'),
+    megaWindfury: has('MEGA_WINDFURY'),
+    stealth: has('STEALTH'),
+  };
 }
 
 /**

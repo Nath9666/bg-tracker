@@ -14,6 +14,7 @@ import {
   tierCurve,
   timeline,
 } from '../src/stats/stats.js';
+import { emptyKeywords } from '../src/types.js';
 import type { GameSummary } from '../src/types.js';
 
 // Cartes reelles. Vol'jin est le cas qui piege : son heros de base est
@@ -208,7 +209,17 @@ describe('finalBoardRaces', () => {
           opponentHero: null,
           combatResult: 'win',
           damageTaken: 0,
-          board: [{ position: 1, cardId: 'BG28_300', atk: 1, health: 1, golden: false }],
+          board: [
+            {
+              position: 1,
+              cardId: 'BG28_300',
+              atk: 1,
+              health: 1,
+              damage: 0,
+              golden: false,
+              keywords: emptyKeywords(),
+            },
+          ],
         },
         {
           turn: 2,
@@ -223,6 +234,8 @@ describe('finalBoardRaces', () => {
             cardId,
             atk: 1,
             health: 1,
+            damage: 0,
+            keywords: emptyKeywords(),
             golden: false,
           })),
         },
