@@ -13,7 +13,8 @@ import {
   YAxis,
 } from 'recharts';
 import { loadDashboard, saveRating, type Dashboard, type StatsFilters } from './api.js';
-import { dateTime, percent, place, raceName, shortDate, turn } from './format.js';
+import { dateTime, percent, periodLabel, place, raceName, turn } from './format.js';
+import { aggregateTimeline, type TimelineGranularity } from '../../src/stats/stats.js';
 
 const COULEURS = {
   accent: '#c9a227',
@@ -22,6 +23,20 @@ const COULEURS = {
   grille: '#2e2a3f',
   attenue: '#9a93b3',
 };
+
+/**
+ * Finesse du graphique de cote.
+ *
+ * Au bout de quelques centaines de parties, un point par partie devient
+ * illisible : regrouper par jour ou par mois donne la meme lecture qu'un cours
+ * de bourse.
+ */
+const FINESSES: { libelle: string; valeur: TimelineGranularity }[] = [
+  { libelle: 'Par partie', valeur: 'game' },
+  { libelle: 'Par jour', valeur: 'day' },
+  { libelle: 'Par mois', valeur: 'month' },
+  { libelle: 'Par année', valeur: 'year' },
+];
 
 /** Periodes proposees, en jours. `null` = tout l'historique. */
 const PERIODES: { libelle: string; jours: number | null }[] = [
@@ -128,6 +143,7 @@ function Cote({
 
 export default function App(): JSX.Element {
   const [jours, setJours] = useState<number | null>(null);
+  const [finesse, setFinesse] = useState<TimelineGranularity>('game');
   const [hero, setHero] = useState<string>('');
   const [donnees, setDonnees] = useState<Dashboard | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -165,6 +181,14 @@ export default function App(): JSX.Element {
     window.addEventListener('focus', relire);
     return () => window.removeEventListener('focus', relire);
   }, []);
+
+  // Avant les retours anticipes : un hook ne peut pas etre appele par
+  // intermittence. Le regroupement se fait ici plutot qu'en base, pour que
+  // changer de finesse soit instantane, sans aller-retour.
+  const courbe = useMemo(
+    () => aggregateTimeline(donnees?.timeline ?? [], finesse),
+    [donnees, finesse],
+  );
 
   if (erreur !== null) {
     return (
@@ -234,18 +258,41 @@ export default function App(): JSX.Element {
 
           <Section
             titre="Cote et place moyenne dans le temps"
-            aide="La place moyenne est glissante sur 10 parties : une partie isolée ne dit rien."
+            aide={
+              finesse === 'game'
+                ? 'La place moyenne est glissante sur 10 parties : une partie isolée ne dit rien.'
+                : 'Regroupé par période : la cote est celle de fin de période, la place sa moyenne.'
+            }
           >
+            <div className="finesses">
+              {FINESSES.map((option) => (
+                <button
+                  key={option.valeur}
+                  type="button"
+                  aria-pressed={finesse === option.valeur}
+                  onClick={() => setFinesse(option.valeur)}
+                >
+                  {option.libelle}
+                </button>
+              ))}
+            </div>
+
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={timeline} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <LineChart data={courbe} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid stroke={COULEURS.grille} vertical={false} />
-                <XAxis dataKey="startedAt" tickFormatter={shortDate} {...axe} />
+                <XAxis dataKey="key" tickFormatter={periodLabel} {...axe} />
                 <YAxis yAxisId="cote" {...axe} domain={['auto', 'auto']} />
                 {/* Place inversee : la 1re place en haut, comme on la lit. */}
                 <YAxis yAxisId="place" orientation="right" domain={[1, 8]} reversed {...axe} />
                 <Tooltip
                   {...infobulle}
-                  labelFormatter={(value: string) => dateTime(value)}
+                  labelFormatter={(value: string, charge) => {
+                    // Par partie, la cle est un id : on montre la date exacte.
+                    const point = charge?.[0]?.payload as { startedAt: string; games: number } | undefined;
+                    if (point === undefined) return periodLabel(value);
+                    if (finesse === 'game') return dateTime(point.startedAt);
+                    return `${periodLabel(value)} · ${point.games} partie${point.games > 1 ? 's' : ''}`;
+                  }}
                   formatter={(value: number, name: string) => [
                     name === 'Place moyenne' ? value.toFixed(2) : value,
                     name,
@@ -260,12 +307,14 @@ export default function App(): JSX.Element {
                   stroke={COULEURS.accent}
                   strokeWidth={2}
                   connectNulls
-                  dot={{ r: 3 }}
+                  // Au-dela d'une centaine de points, les pastilles se
+                  // chevauchent et noircissent la courbe.
+                  dot={courbe.length <= 100 ? { r: 3 } : false}
                 />
                 <Line
                   yAxisId="place"
                   type="monotone"
-                  dataKey="rollingPlace"
+                  dataKey="averagePlace"
                   name="Place moyenne"
                   stroke={COULEURS.bon}
                   strokeWidth={2}

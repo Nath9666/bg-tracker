@@ -20,6 +20,24 @@ export function dateTime(iso: string): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`;
 }
 
+const MOIS = [
+  "janv.", "fevr.", "mars", "avril", "mai", "juin",
+  "juil.", "aout", "sept.", "oct.", "nov.", "dec.",
+];
+
+/**
+ * Etiquette d'une periode du graphique de cote.
+ *
+ * La cle porte deja la finesse : `2026`, `2026-09`, `2026-09-20`, ou un id de
+ * partie. Sa longueur suffit a choisir la mise en forme.
+ */
+export function periodLabel(key: string): string {
+  if (/^\d{4}$/.test(key)) return key;
+  if (/^\d{4}-\d{2}$/.test(key)) return `${MOIS[Number(key.slice(5, 7)) - 1] ?? ""} ${key.slice(0, 4)}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(key)) return `${key.slice(8, 10)}/${key.slice(5, 7)}`;
+  return key;
+}
+
 /** Noms francais des types de serviteur, tels qu'affiches en jeu. */
 const RACES: Record<string, string> = {
   BEAST: "Bête",

@@ -213,3 +213,35 @@ input.cote.erreur {
 input.cote::placeholder {
   color: var(--attenue);
 }
+
+/* --- finesse du graphique de cote --- */
+
+/* Plus discret que la barre de filtres du haut : ces boutons ne changent pas
+   les donnees, seulement la facon de les regarder. */
+.finesses {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.finesses button {
+  background: transparent;
+  color: var(--attenue);
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.finesses button:hover {
+  border-color: var(--accent);
+  color: var(--texte);
+}
+
+.finesses button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}

@@ -137,6 +137,79 @@ export function timeline(db: Db, filters: StatsFilters = {}, window = 10): Timel
   });
 }
 
+/** Finesse du graphique de cote : une partie, un jour, un mois ou une annee. */
+export type TimelineGranularity = 'game' | 'day' | 'month' | 'year';
+
+export interface TimelineBucket {
+  /** Cle de regroupement : `2026-09-20`, `2026-09`, `2026`, ou l'id de partie. */
+  key: string;
+  /** Horodatage de la premiere partie de la periode, pour l'axe des abscisses. */
+  startedAt: string;
+  games: number;
+  /**
+   * Cote a la fin de la periode.
+   *
+   * La derniere connue, pas la moyenne : une cote est un solde, pas une mesure.
+   * Moyenner un solde n'a pas de sens, et c'est ce que fait un cours de bourse.
+   */
+  rating: number | null;
+  /** Place moyenne de la periode. */
+  averagePlace: number | null;
+}
+
+/** Longueur du prefixe ISO qui identifie la periode. */
+const PREFIX: Record<Exclude<TimelineGranularity, 'game'>, number> = {
+  day: 10,
+  month: 7,
+  year: 4,
+};
+
+/**
+ * Regroupe la suite des parties par periode.
+ *
+ * Sans ca, le graphique finit par aligner des milliers de points illisibles.
+ * En `game`, rien n'est regroupe et la place reste la moyenne glissante, qui
+ * lisse deja le bruit d'une partie isolee.
+ */
+export function aggregateTimeline(
+  points: readonly TimelinePoint[],
+  granularity: TimelineGranularity,
+): TimelineBucket[] {
+  if (granularity === 'game') {
+    return points.map((point) => ({
+      key: point.gameId,
+      startedAt: point.startedAt,
+      games: 1,
+      rating: point.rating,
+      averagePlace: point.rollingPlace,
+    }));
+  }
+
+  const taille = PREFIX[granularity];
+  const paquets = new Map<string, TimelinePoint[]>();
+
+  for (const point of points) {
+    const key = point.startedAt.slice(0, taille);
+    const paquet = paquets.get(key);
+    if (paquet === undefined) paquets.set(key, [point]);
+    else paquet.push(point);
+  }
+
+  return [...paquets.entries()].map(([key, paquet]) => {
+    const places = paquet.map((point) => point.place).filter((place): place is number => place !== null);
+    const cotes = paquet.map((point) => point.rating).filter((cote): cote is number => cote !== null);
+
+    return {
+      key,
+      startedAt: paquet[0]!.startedAt,
+      games: paquet.length,
+      rating: cotes.length === 0 ? null : cotes[cotes.length - 1]!,
+      averagePlace:
+        places.length === 0 ? null : places.reduce((total, place) => total + place, 0) / places.length,
+    };
+  });
+}
+
 export interface HeroStat {
   heroBaseId: string;
   heroName: string;
