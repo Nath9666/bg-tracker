@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -69,7 +69,7 @@ describe('writeRatingsTemplate', () => {
     expect(lines[0]).toBe('datetime,rating,partie');
     expect(lines).toHaveLength(4);
     expect(lines[1]).toContain('02:04:04');
-    expect(result).toEqual({ added: 3, kept: 0 });
+    expect(result).toMatchObject({ added: 3, kept: 0 });
   });
 
   it('protege par des guillemets un libelle contenant une virgule', async () => {
@@ -90,7 +90,7 @@ describe('writeRatingsTemplate', () => {
     await writeFile(path, filled, 'utf8');
 
     const second = await writeRatingsTemplate(path, GAMES);
-    expect(second).toEqual({ added: 2, kept: 1 });
+    expect(second).toMatchObject({ added: 2, kept: 1 });
     expect(await readFile(path, 'utf8')).toContain('2026-09-22T02:29:15.814+02:00,8412,');
   });
 
@@ -104,7 +104,7 @@ describe('writeRatingsTemplate', () => {
     );
 
     const second = await writeRatingsTemplate(path, GAMES);
-    expect(second).toEqual({ added: 2, kept: 1 });
+    expect(second).toMatchObject({ added: 2, kept: 1 });
   });
 
   it('replace une cote quand l’horodatage de la partie a change', async () => {
@@ -137,7 +137,7 @@ describe('writeRatingsTemplate', () => {
     const text = await readFile(path, 'utf8');
     expect(text).toContain('2026-09-22T19:13:57.895+02:00,4605,Sindragosa 7e');
     expect(text).not.toContain('18:55:40');
-    expect(result).toEqual({ added: 0, kept: 1 });
+    expect(result).toMatchObject({ added: 0, kept: 1 });
   });
 
   it('reprend la cote deja en base quand le fichier n’en a pas', async () => {
@@ -315,5 +315,28 @@ describe('parseRatingsArgs', () => {
   it('refuse une option inconnue ou sans valeur', () => {
     expect(() => parseRatingsArgs(['--file'])).toThrow(/Valeur manquante/);
     expect(() => parseRatingsArgs(['--tout'])).toThrow(/Option inconnue/);
+  });
+});
+
+describe('writeRatingsTemplate, ecriture conditionnelle', () => {
+  it('ne retouche pas un fichier deja a jour', async () => {
+    const path = await tempFile();
+    const premier = await writeRatingsTemplate(path, GAMES);
+    const avant = (await stat(path)).mtimeMs;
+
+    const second = await writeRatingsTemplate(path, GAMES);
+
+    expect(premier.written).toBe(true);
+    expect(second.written).toBe(false);
+    expect((await stat(path)).mtimeMs).toBe(avant);
+    // Le decompte reste juste, meme sans ecriture.
+    expect(second.added).toBe(premier.added);
+  });
+
+  it('reecrit des qu’une partie s’ajoute', async () => {
+    const path = await tempFile();
+    await writeRatingsTemplate(path, GAMES.slice(0, 1));
+
+    expect((await writeRatingsTemplate(path, GAMES)).written).toBe(true);
   });
 });

@@ -90,6 +90,8 @@ export interface TemplateResult {
   added: number;
   /** Cotes deja saisies, conservees telles quelles. */
   kept: number;
+  /** Vrai si le fichier a reellement ete reecrit. */
+  written: boolean;
 }
 
 /**
@@ -138,9 +140,15 @@ export async function writeRatingsTemplate(
     lines.push(`${entry.datetime},${entry.rating},${quote('sans partie correspondante')}`);
   }
 
+  // Ne reecrire que si le contenu change. Le fichier est souvent ouvert dans
+  // un editeur, et une tache planifiee qui le touche a chaque passage ferait
+  // perdre une saisie en cours pour rien.
+  const contenu = lines.join('\n') + '\n';
+  if (contenu === previous) return { added, kept, written: false };
+
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${lines.join('\n')}\n`, 'utf8');
-  return { added, kept };
+  await writeFile(path, contenu, 'utf8');
+  return { added, kept, written: true };
 }
 
 export interface RatingMatch {
