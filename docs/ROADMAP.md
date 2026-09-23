@@ -77,9 +77,13 @@ Prérequis : plusieurs centaines de parties en base.
       `decision_cards`.
       ⚠️ **Sauf les types du lobby** : ils ne sont déclarés nulle part dans les logs (aucun tag
       `BACON_SUBSET_*` trouvé). Piste ouverte.
-- [ ] Export du jeu de données depuis SQLite vers Python
+- [x] Export du jeu de données depuis SQLite vers Python (`npm run export`, JSON Lines, voir `ml/README.md`)
 - [ ] Modèle de référence naïf (statistiques simples) comme score plancher
 - [ ] Modèles supervisés (behavior cloning), dans l'ordre : choix du héros, découvertes, bibelots, puis décisions de boutique
+      ⚠️ **Entraîner sur les seules parties de top 4**, ou pondérer par la place. Un modèle appris sur
+      toutes les parties prédit *ce que le joueur ferait*, erreurs comprises, et lui recommanderait ses
+      propres mauvaises habitudes. L'écart entre ce qu'il propose et ce que le joueur a fait est
+      justement le signal utile.
 - [ ] Évaluation : accord top 1 / top 3 avec les vrais choix, sur des parties jamais vues
 - [ ] Piste : intégrer un simulateur de combat open source (celui de Firestone) pour évaluer les plateaux
 

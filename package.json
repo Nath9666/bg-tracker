@@ -22,6 +22,7 @@
     "cards": "tsx src/cli/cards.ts",
     "ratings": "tsx src/cli/ratings.ts",
     "stats": "tsx src/cli/stats.ts",
+    "export": "tsx src/cli/export.ts",
     "archive": "tsx scripts/archive-logs.ts",
     "make-fixture": "tsx scripts/make-fixture.ts"
   },

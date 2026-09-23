@@ -17,6 +17,7 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 | `docs/ARCHITECTURE.md` | Modules, flux de données, schéma SQLite | Avant de créer un module ou une table |
 | `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
 | `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
+| `ml/README.md` | Jeu de données d'entraînement, chargement pandas | Avant de toucher à la phase 5 |
 
 **Phase en cours : Phase 5 — IA d'imitation, étape de collecte.**
 Les phases 0 à 4 sont terminées. La phase 5 exige *plusieurs centaines de parties* ; en attendant,
@@ -50,6 +51,7 @@ npm run import -- <dossier>                   # importe les parties en base SQLi
 npm run cards        # télécharge la base de cartes HearthstoneJSON (frFR + enUS)
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
+npm run export       # jeu de données JSON Lines pour Python (--top4)
 npm run app          # tableau de bord Electron (compile puis lance)
 npm run overlay      # overlay transparent à lancer avant de jouer
 npm run sync         # archive + importe + rattache les cotes, en une commande

@@ -131,6 +131,11 @@ source pour les deux surfaces.
 
 `npm run app` compile (esbuild pour le principal et le preload, Vite pour le rendu) puis lance.
 
+### Export vers Python (phase 5)
+`src/export/` aplatit `decisions` et `decision_cards` en un fichier JSON Lines, une décision par
+ligne, chacune portant **l'issue de sa partie**. Ce format plutôt que du CSV parce qu'une décision
+porte trois listes de longueur variable. Voir `ml/README.md`.
+
 ### Statistiques
 `src/stats/` ne fait que lire la base et rendre des objets simples : vue d'ensemble, chronologie avec
 moyenne glissante, table des héros, répartition des places, courbe de montée de taverne et type
