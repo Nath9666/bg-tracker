@@ -62,10 +62,14 @@ export interface LiveState {
    */
   nextOpponentHero: string | null;
   /**
-   * Combat en cours, avec les deux plateaux tels qu'ils etaient a son debut.
+   * Dernier combat, avec les deux plateaux tels qu'ils etaient a son debut.
    *
-   * `null` hors combat, et pendant les premieres millisecondes d'un combat :
-   * le plateau adverse n'existe pas encore a ce moment-la.
+   * **Survit a la fin du combat** : il reste affichable pendant toute la phase
+   * de recrutement qui suit. Sans ca, l'estimation n'apparaitrait que le temps
+   * du combat, une dizaine de secondes, trop court pour etre lue.
+   *
+   * Remis a `null` au debut du combat suivant, puis republie des que le
+   * plateau adverse est revele.
    */
   currentCombat: CombatBoards | null;
 }
@@ -371,7 +375,9 @@ export class LiveTracker {
   #endCombat(game: Game): void {
     const combat = this.#combat;
     this.#combat = null;
-    this.#state = { ...this.#state, phase: 'recruit', currentCombat: null };
+    // `currentCombat` n'est pas efface : l'estimation reste lisible pendant le
+    // recrutement qui suit.
+    this.#state = { ...this.#state, phase: 'recruit' };
     if (combat === null) return;
 
     const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);

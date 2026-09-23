@@ -73,6 +73,7 @@ let simUnavailable = false;
 let oddsCache: { signature: string; value: CombatEstimate } | null = null;
 
 let overlay: BrowserWindow | null = null;
+let combatBanner: BrowserWindow | null = null;
 let prompt: BrowserWindow | null = null;
 let db: Db | null = null;
 let latest: OverlayPayload | null = null;
@@ -113,6 +114,49 @@ function createOverlay(): void {
 }
 
 /**
+ * Bandeau d'estimation du combat, centre en haut de l'ecran.
+ *
+ * Une fenetre a part, et non un bloc du panneau : celui-ci est colle en haut a
+ * gauche, la ou on ne regarde pas pendant un combat. Les pourcentages doivent
+ * tomber sous les yeux, au milieu.
+ *
+ * Elle reste invisible tant qu'il n'y a rien a dire : le fond est transparent
+ * et le rendu ne produit rien.
+ */
+function createCombatBanner(): void {
+  const { workArea } = screen.getPrimaryDisplay();
+  const width = 460;
+  const height = 150;
+
+  combatBanner = new BrowserWindow({
+    x: workArea.x + Math.round((workArea.width - width) / 2),
+    y: workArea.y + 8,
+    width,
+    height,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    skipTaskbar: true,
+    focusable: false,
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: join(__dirname, 'overlay-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  combatBanner.setAlwaysOnTop(true, 'screen-saver');
+  combatBanner.setVisibleOnAllWorkspaces(true);
+  combatBanner.setIgnoreMouseEvents(true, { forward: true });
+
+  void combatBanner.loadFile(join(__dirname, 'ui', 'overlay', 'index.html'), {
+    query: { mode: 'combat' },
+  });
+}
+
+/**
+ * Fenetre de saisie de la cote, ouverte en fin de partie./**
  * Fenetre de saisie de la cote, ouverte en fin de partie.
  *
  * Elle, en revanche, est normale : on doit pouvoir y taper.
@@ -242,7 +286,9 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
 
 function broadcast(payload: OverlayPayload): void {
   latest = payload;
-  if (overlay !== null && !overlay.isDestroyed()) overlay.webContents.send('live', payload);
+  for (const window of [overlay, combatBanner]) {
+    if (window !== null && !window.isDestroyed()) window.webContents.send('live', payload);
+  }
 }
 
 /** Suit les logs et pousse l'etat a chaque lot de lignes. */
@@ -296,6 +342,7 @@ const controller = new AbortController();
 
 void app.whenReady().then(() => {
   createOverlay();
+  createCombatBanner();
   startSimCards();
   void follow(controller.signal);
 });

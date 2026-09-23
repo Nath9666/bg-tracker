@@ -18,13 +18,12 @@ import type { LiveState } from '../live/live-tracker.js';
 /** Pourquoi il n'y a rien a afficher. */
 export type NoOddsReason =
   | 'notInGame'
-  | 'notInCombat'
-  /** Le combat vient de commencer, le plateau adverse n'est pas encore revele. */
+  /** Aucun combat encore joue, ou plateau adverse pas encore revele. */
   | 'boardsNotRevealed'
   | 'nothingToSimulate';
 
 export type CombatEstimate =
-  | { kind: 'odds'; odds: CombatOdds; opponentHero: string | null }
+  | { kind: 'odds'; odds: CombatOdds; opponentHero: string | null; turn: number }
   | { kind: 'none'; reason: NoOddsReason };
 
 /** Estime le combat en cours. */
@@ -34,8 +33,9 @@ export function combatOdds(
   options: SimulateOptions = {},
 ): CombatEstimate {
   if (!state.inGame) return { kind: 'none', reason: 'notInGame' };
-  if (state.phase !== 'combat') return { kind: 'none', reason: 'notInCombat' };
 
+  // Pas de condition sur la phase : le dernier combat reste estimable pendant
+  // le recrutement qui suit, sinon l'affichage ne durerait que le combat.
   const combat = state.currentCombat;
   if (combat === null) return { kind: 'none', reason: 'boardsNotRevealed' };
 
@@ -66,7 +66,7 @@ export function combatOdds(
   );
 
   if (odds === null) return { kind: 'none', reason: 'nothingToSimulate' };
-  return { kind: 'odds', odds, opponentHero: combat.opponentHero };
+  return { kind: 'odds', odds, opponentHero: combat.opponentHero, turn: combat.turn };
 }
 
 /**

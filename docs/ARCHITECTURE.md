@@ -140,7 +140,9 @@ Au **début du combat**, pas pendant le recrutement. C'est le seul instant où l
 connus exactement : avant, le plateau adverse n'existe pas ; après, il se vide.
 
 `LiveTracker` publie donc `currentCombat`, les **deux** plateaux figés à la première balise
-`ATTACKING`. Le plateau adverse l'était déjà ; celui du joueur ne l'était pas, et `state.board`
+`ATTACKING`. Il **survit à la fin du combat** et n'est effacé qu'au début du suivant : un combat
+dure une dizaine de secondes, trop court pour être lu, donc l'estimation reste affichée pendant le
+recrutement qui suit. Le plateau adverse l'était déjà ; celui du joueur ne l'était pas, et `state.board`
 continue de suivre le plateau en train de se battre — il est donc déjà entamé quelques
 millisecondes plus tard. Les deux étant figés, la signature ne bouge qu'au combat suivant : une
 seule série de simulations par combat.
@@ -149,6 +151,20 @@ Le compromis est assumé : l'estimation arrive quand il est **trop tard pour cha
 échange, elle est juste. Une estimation faite pendant le recrutement reposerait sur le plateau de
 l'adversaire au dernier affrontement, vieux de plusieurs tours, pendant lesquels il a acheté, vendu
 et amélioré.
+
+### Trois fenêtres
+
+L'overlay en ouvre trois, toutes transparentes et traversantes aux clics :
+
+| Fenêtre | Position | Rôle |
+|---|---|---|
+| panneau | haut gauche, 340 px | plateau, adversaires, historique |
+| bandeau | **haut centre**, 460 px | estimation du combat |
+| saisie de cote | bas droite | seule fenêtre où l'on peut cliquer |
+
+Le bandeau est une fenêtre à part, et non un bloc du panneau : pendant un combat on regarde le
+milieu de l'écran, pas le coin supérieur gauche. Les trois partagent `app/overlay/index.html`, le
+mode arrivant en paramètre d'URL (`?mode=combat`, `?mode=rating`).
 
 ### Limites restantes
 

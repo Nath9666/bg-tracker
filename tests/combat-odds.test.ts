@@ -87,11 +87,21 @@ describe.skipIf(!moteurDisponible)('combatOdds', () => {
     });
   });
 
-  it('se tait pendant le recrutement', () => {
-    // C'est le changement demande : plus d'estimation sur un plateau memorise.
-    expect(combatOdds(sim, state({ phase: 'recruit' }))).toEqual({
+  it('reste lisible pendant le recrutement qui suit', () => {
+    // Un combat dure une dizaine de secondes : trop court pour etre lu. Le
+    // resultat reste donc affichable jusqu'au combat suivant, sur les memes
+    // plateaux -- ceux du debut du combat, jamais un plateau memorise.
+    const apres = combatOdds(sim, state({ phase: 'recruit' }), { simulations: 300 });
+
+    expect(apres.kind).toBe('odds');
+    if (apres.kind !== 'odds') return;
+    expect(apres.turn).toBe(10);
+  });
+
+  it('se tait avant le premier combat de la partie', () => {
+    expect(combatOdds(sim, state({ phase: 'recruit', currentCombat: null }))).toEqual({
       kind: 'none',
-      reason: 'notInCombat',
+      reason: 'boardsNotRevealed',
     });
   });
 

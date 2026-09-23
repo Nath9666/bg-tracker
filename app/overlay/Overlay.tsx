@@ -27,77 +27,6 @@ function force(board: { atk: number | null; health: number | null }[]): {
  * sort du « papier-crayon » : certains tournois l'interdisent (voir CLAUDE.md).
  */
 
-/** Un pourcentage arrondi, jamais « 0% » pour une issue possible. */
-function pourcent(valeur: number): string {
-  if (valeur > 0 && valeur < 1) return '<1%';
-  return `${Math.round(valeur)}%`;
-}
-
-/**
- * Bandeau d'estimation, affiche pendant le combat.
- *
- * Les deux plateaux sont ceux du debut du combat : le vrai plateau d'en face,
- * pas le souvenir d'un affrontement precedent. L'estimation ne bouge donc plus
- * jusqu'au combat suivant, meme quand les serviteurs tombent a l'ecran.
- */
-function Bandeau({
-  odds,
-  nom,
-}: {
-  odds: NonNullable<OverlayPayload['odds']>;
-  nom: (cardId: string | null) => string;
-}): JSX.Element | null {
-  // Hors combat il n'y a rien a dire, et le dire ferait clignoter l'overlay.
-  if (odds.kind !== 'odds') {
-    if (odds.reason === 'boardsNotRevealed') {
-      return (
-        <section className="estimation">
-          <h2>Combat</h2>
-          <p className="estimation-note">plateaux en cours de révélation…</p>
-        </section>
-      );
-    }
-    return null;
-  }
-
-  const { winPercent, tiePercent, lossPercent } = odds.odds;
-
-  return (
-    <section className="estimation">
-      <h2>Combat en cours{odds.opponentHero === null ? '' : ` · ${nom(odds.opponentHero)}`}</h2>
-
-      <div className="barre">
-        <span className="part gagne" style={{ width: `${winPercent}%` }} />
-        <span className="part nul" style={{ width: `${tiePercent}%` }} />
-        <span className="part perd" style={{ width: `${lossPercent}%` }} />
-      </div>
-
-      <div className="issues">
-        <span className="gagne">victoire {pourcent(winPercent)}</span>
-        <span className="nul">nul {pourcent(tiePercent)}</span>
-        <span className="perd">défaite {pourcent(lossPercent)}</span>
-      </div>
-
-      <div className="degats">
-        <span>
-          inflige <strong>~{Math.round(odds.odds.averageDamageDealt)}</strong>
-          {odds.odds.lethalDealtPercent > 0 && (
-            <em className="letal"> létal {pourcent(odds.odds.lethalDealtPercent)}</em>
-          )}
-        </span>
-        <span>
-          subit <strong>~{Math.round(odds.odds.averageDamageTaken)}</strong>
-          {odds.odds.lethalTakenPercent > 0 && (
-            <em className="letal danger"> létal {pourcent(odds.odds.lethalTakenPercent)}</em>
-          )}
-        </span>
-      </div>
-
-      <p className="estimation-note">{odds.odds.simulations} simulations</p>
-    </section>
-  );
-}
-
 function Pastille({ valeur, libelle }: { valeur: string; libelle: string }): JSX.Element {
   return (
     <div className="pastille">
@@ -171,8 +100,6 @@ export default function Overlay(): JSX.Element | null {
         <Pastille valeur={state.tavernTier === null ? '—' : `T${state.tavernTier}`} libelle="palier" />
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
       </div>
-
-      {payload.odds !== null && <Bandeau odds={payload.odds} nom={nom} />}
 
       {suivant !== undefined && (
         <section className="suivant">

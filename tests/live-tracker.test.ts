@@ -178,7 +178,9 @@ describe('combats', () => {
     expect(combat?.playerBoard[0]?.damage).toBe(0);
   });
 
-  it('oublie le combat une fois termine', () => {
+  it('garde le combat affichable apres sa fin', () => {
+    // Un combat dure une dizaine de secondes. Effacer les plateaux a la fin
+    // ferait disparaitre l'estimation avant qu'elle soit lue.
     const live = tracker([
       ...OPENING,
       ...COMBAT,
@@ -187,6 +189,28 @@ describe('combats', () => {
       ...FIN,
     ]);
 
+    expect(live.state.phase).toBe('recruit');
+    expect(live.state.currentCombat?.opponentBoard.map((m) => m.cardId)).toEqual(['BG35_143']);
+  });
+
+  it('efface le combat precedent des que le suivant commence', () => {
+    const suivant = [
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=6'),
+      power('FULL_ENTITY - Creating ID=501 CardID=BG34_HERO_001'),
+      power('TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1'),
+      power('TAG_CHANGE Entity=Bob le barman tag=HERO_ENTITY value=501'),
+    ];
+    const live = tracker([
+      ...OPENING,
+      ...COMBAT,
+      ...minion(600, 'BG35_143', 15, 1),
+      power('TAG_CHANGE Entity=600 tag=ATTACKING value=1'),
+      ...FIN,
+      ...suivant,
+    ]);
+
+    // Le plateau d'en face n'est pas encore revele : ne rien montrer plutot
+    // que de montrer celui du combat precedent.
     expect(live.state.currentCombat).toBeNull();
   });
 
