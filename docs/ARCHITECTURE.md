@@ -239,6 +239,11 @@ Le schéma réellement créé par `src/db/migrations.ts` s'en écarte sur les po
 **`hero_offers`** et **`picks`** gagnent une colonne `position`, l'ordre de présentation des options.
 La phase 5 en aura besoin : la position d'une carte influence le choix.
 
+**Table ajoutée : `decision_cards`** (`game_id`, `sequence`, `zone`, `position`, `card_id`, `atk`,
+`health`, `golden`). Ce que le joueur avait sous les yeux : son plateau, sa main, et **la boutique de
+Bob**. Cette dernière est l'essentiel — sans elle on sait ce qu'il a pris, pas ce qu'il a écarté.
+Environ 10 cartes par décision, soit 1 800 lignes par partie.
+
 **Table ajoutée : `decisions`** (`game_id`, `sequence`, `turn`, `action`, `card_id`, `target_card_id`,
 `position`, `gold`, `tavern_tier`, `health`). Une ligne par action du joueur, ~156 par partie. C'est
 la seule donnée du projet qui **n'est pas reconstituable** depuis un résumé de partie : elle n'existe

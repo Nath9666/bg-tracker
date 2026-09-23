@@ -96,6 +96,15 @@ export interface DecisionRecord {
   gold: number | null;
   tavernTier: number | null;
   health: number | null;
+  /** Plateau du joueur au moment de la decision. */
+  board: BoardMinion[];
+  /** Main du joueur : ce qu'il pouvait poser. */
+  hand: BoardMinion[];
+  /**
+   * Boutique de Bob : les serviteurs proposes, donc les alternatives
+   * ecartees. Vide pendant un combat, ou cette zone porte le plateau adverse.
+   */
+  shop: BoardMinion[];
 }
 
 /** Resume d'une partie de Champs de bataille. */

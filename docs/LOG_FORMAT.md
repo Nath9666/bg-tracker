@@ -356,7 +356,12 @@ revient jamais à `0`. Il faut le clôturer à la fin de la partie, sinon le tou
 - Serviteur : entité avec `CARDTYPE=MINION`, `CONTROLLER`, `ZONE` (`HAND`, `PLAY`, `SETASIDE`, `GRAVEYARD`, `REMOVEDFROMGAME`), `ZONE_POSITION`, `ATK`, `HEALTH`, `TECH_LEVEL`, `CARDRACE`.
 - Doré : ✅ le tag **`PREMIUM=1`** est le critère fiable. Le suffixe `_G` du `cardId` marche presque toujours, mais dans le log de référence **2 serviteurs dorés ne l'ont pas** (`TB_BaconUps_307`), alors que les 35 cartes en `_G` portent toutes `PREMIUM=1`. Les tags `BACON_TRIPLED_BASE_MINION_ID*` accompagnent les triples et donnent le `dbfId` de la carte de base.
 - Pendant les combats, le jeu crée des **copies** des serviteurs (`COPIED_FROM_ENTITY_ID`). ✅ Le plateau réel se lit **au moment exact où `BACON_IN_COMBAT_PHASE` passe à 1**, avant que les copies n'existent : serviteurs avec `CARDTYPE=MINION`, `CONTROLLER` = le joueur et `ZONE=PLAY`, triés par `ZONE_POSITION` (1 à 7).
-- Boutique de Bob : les serviteurs proposés sont des entités contrôlées par l'autre joueur (`player=15`) en zone `PLAY` pendant le recrutement *(à vérifier)*. Un achat correspond à un changement de `CONTROLLER` vers le joueur.
+- ✅ **Boutique de Bob** : confirmé. Les serviteurs proposés sont bien les entités `CARDTYPE=MINION`
+  contrôlées par le **joueur fictif** en zone `PLAY`, pendant le recrutement. Vérifié en suivant un
+  achat pas à pas : la boutique passe de 3 à 2 serviteurs, la carte prise apparaît en `HAND` chez le
+  joueur, puis en `PLAY` une fois posée.
+  ⚠️ **Pendant un combat, cette même zone porte le plateau adverse**, pas la boutique. Il faut donc
+  la lire hors combat uniquement, sinon on prend les serviteurs de l'adversaire pour une offre.
 - Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby *(à vérifier)*.
 
 ## Ce qui n'est PAS dans les logs

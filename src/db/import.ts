@@ -112,6 +112,7 @@ export function importGames(
     turns: db.prepare('DELETE FROM turns WHERE game_id = ?'),
     boards: db.prepare('DELETE FROM boards WHERE game_id = ?'),
     decisions: db.prepare('DELETE FROM decisions WHERE game_id = ?'),
+    decisionCards: db.prepare('DELETE FROM decision_cards WHERE game_id = ?'),
   };
 
   // OR REPLACE : un meme cardId propose deux fois au mulligan ne doit pas faire
@@ -146,6 +147,14 @@ export function importGames(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
+  // OR REPLACE : deux cartes ne devraient pas partager une position dans une
+  // meme zone, mais un etat incoherent ne doit pas faire echouer l'import.
+  const insertDecisionCard = db.prepare(`
+    INSERT OR REPLACE INTO decision_cards
+      (game_id, sequence, zone, position, card_id, atk, health, golden)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
   const result: ImportResult = { inserted: 0, updated: 0 };
 
   db.transaction(() => {
@@ -178,6 +187,7 @@ export function importGames(
       clear.picks.run(id);
       clear.turns.run(id);
       clear.boards.run(id);
+      clear.decisionCards.run(id);
       clear.decisions.run(id);
 
       summary.heroOffered.forEach((cardId, position) => {
@@ -201,6 +211,25 @@ export function importGames(
           decision.tavernTier,
           decision.health,
         );
+
+        for (const [zone, cartes] of [
+          ['board', decision.board],
+          ['hand', decision.hand],
+          ['shop', decision.shop],
+        ] as const) {
+          for (const minion of cartes) {
+            insertDecisionCard.run(
+              id,
+              decision.sequence,
+              zone,
+              minion.position,
+              minion.cardId,
+              minion.atk,
+              minion.health,
+              minion.golden ? 1 : 0,
+            );
+          }
+        }
       }
 
       for (const turn of summary.turns) {

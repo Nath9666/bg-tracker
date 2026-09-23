@@ -71,11 +71,12 @@ Spécification détaillée : `docs/phases/phase-1-parser.md`.
 
 Prérequis : plusieurs centaines de parties en base.
 
-- [~] Reconstruction des points de décision. **Fait** : l'action (achat, vente, pose, relance, gel,
-      montée, pouvoir héroïque, jeu d'une carte), sa cible, son emplacement, et le contexte scalaire
-      (tour, or, palier, PV). Table `decisions`, 156 lignes par partie en moyenne.
-      **Reste** : l'état visible complet à chaque décision (main, plateau, boutique de Bob) et les
-      types du lobby — ces derniers ne sont pas déclarés dans les logs, piste à creuser.
+- [x] Reconstruction des points de décision : l'action (achat, vente, pose, relance, gel, montée,
+      pouvoir héroïque, jeu d'une carte), sa cible, son emplacement, le contexte (tour, or, palier,
+      PV) et **l'état visible** à cet instant (plateau, main, boutique de Bob). Tables `decisions` et
+      `decision_cards`.
+      ⚠️ **Sauf les types du lobby** : ils ne sont déclarés nulle part dans les logs (aucun tag
+      `BACON_SUBSET_*` trouvé). Piste ouverte.
 - [ ] Export du jeu de données depuis SQLite vers Python
 - [ ] Modèle de référence naïf (statistiques simples) comme score plancher
 - [ ] Modèles supervisés (behavior cloning), dans l'ordre : choix du héros, découvertes, bibelots, puis décisions de boutique

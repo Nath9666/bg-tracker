@@ -266,6 +266,30 @@ describe('partie de reference', () => {
 });
 
 describe('decisions', () => {
+  /** Serviteur propose par Bob : controle par le joueur fictif, en jeu. */
+  function shopMinion(id: number, cardId: string, position: number): string[] {
+    return [
+      power(`FULL_ENTITY - Creating ID=${id} CardID=${cardId}`),
+      power('        tag=CARDTYPE value=MINION'),
+      power('        tag=CONTROLLER value=15'),
+      power('        tag=ZONE value=PLAY'),
+      power(`        tag=ZONE_POSITION value=${position}`),
+      power('        tag=ATK value=4'),
+      power('        tag=HEALTH value=4'),
+    ];
+  }
+
+  /** Serviteur dans la main du joueur. */
+  function handMinion(id: number, cardId: string, position: number): string[] {
+    return [
+      power(`FULL_ENTITY - Creating ID=${id} CardID=${cardId}`),
+      power('        tag=CARDTYPE value=MINION'),
+      power('        tag=CONTROLLER value=7'),
+      power('        tag=ZONE value=HAND'),
+      power(`        tag=ZONE_POSITION value=${position}`),
+    ];
+  }
+
   /** Un lot d'options, puis l'action retenue. */
   function action(index: number, cardId: string, cible = 0, position = 0): string[] {
     return [
@@ -331,6 +355,40 @@ describe('decisions', () => {
     expect(only?.decisions[0]?.targetCardId).toBeNull();
   });
 
+  it('retient ce que le joueur avait sous les yeux', async () => {
+    // Sans la boutique, on sait ce qu'il a pris mais pas ce qu'il a ecarte.
+    const [only] = await runLines([
+      ...OPENING,
+      ...minion(301, 'BG28_300', 1, 3, 2),
+      ...shopMinion(401, 'BG36_760', 1),
+      ...shopMinion(402, 'BG35_143', 2),
+      ...handMinion(501, 'BG25_016', 1),
+      ...action(1, 'TB_BaconShop_DragBuy', 401),
+      COMPLETE,
+    ]);
+
+    const decision = only?.decisions[0];
+    expect(decision?.board.map((m) => m.cardId)).toEqual(['BG28_300']);
+    expect(decision?.hand.map((m) => m.cardId)).toEqual(['BG25_016']);
+    expect(decision?.shop.map((m) => m.cardId)).toEqual(['BG36_760', 'BG35_143']);
+    // La carte prise fait partie des options qui etaient proposees.
+    expect(decision?.targetCardId).toBe('BG36_760');
+  });
+
+  it('n’appelle pas boutique le plateau adverse pendant un combat', async () => {
+    // Hors recrutement, cette zone porte les serviteurs de l'adversaire.
+    const [only] = await runLines([
+      ...OPENING,
+      ...turn(2, 500, 'BG30_HERO_304'),
+      ...shopMinion(401, 'BG36_760', 1),
+      ...action(1, 'BG28_300'),
+      ...BACK_TO_SHOP,
+      COMPLETE,
+    ]);
+
+    expect(only?.decisions[0]?.shop).toEqual([]);
+  });
+
   it('enregistre le contexte de la decision', async () => {
     const [only] = await runLines([
       ...OPENING,
@@ -389,9 +447,29 @@ describe('import des tours et des plateaux', () => {
     importGames(db, [await referenceSummary()], 'x');
     db.prepare('DELETE FROM games').run();
 
-    for (const table of ['turns', 'boards', 'decisions']) {
+    for (const table of ['turns', 'boards', 'decisions', 'decision_cards']) {
       expect((db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n).toBe(0);
     }
+  });
+
+  it('ecrit ce qui etait visible a chaque decision', async () => {
+    const db = freshDb();
+    const summary = await referenceSummary();
+    importGames(db, [summary], 'x');
+
+    const attendu = summary.decisions.reduce(
+      (total, d) => total + d.board.length + d.hand.length + d.shop.length,
+      0,
+    );
+    const { n } = db.prepare('SELECT COUNT(*) AS n FROM decision_cards').get() as { n: number };
+    expect(n).toBe(attendu);
+    expect(n).toBeGreaterThan(1000);
+
+    // Les trois zones sont representées.
+    const zones = db
+      .prepare('SELECT DISTINCT zone FROM decision_cards ORDER BY zone')
+      .all() as { zone: string }[];
+    expect(zones.map((z) => z.zone)).toEqual(['board', 'hand', 'shop']);
   });
 
   it('ecrit les 134 decisions de la partie de reference', async () => {

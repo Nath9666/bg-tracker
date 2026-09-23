@@ -165,4 +165,26 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_decisions_target ON decisions(target_card_id);
     `,
   },
+  {
+    name: 'decision_cards',
+    sql: `
+      -- Ce que le joueur avait sous les yeux a chaque decision : son plateau,
+      -- sa main, et la boutique de Bob. La boutique est l'essentiel : sans
+      -- elle on sait ce qu'il a pris, pas ce qu'il a ecarte.
+      CREATE TABLE decision_cards (
+        game_id  TEXT NOT NULL,
+        sequence INTEGER NOT NULL,
+        zone     TEXT NOT NULL,          -- 'board' | 'hand' | 'shop'
+        position INTEGER NOT NULL,
+        card_id  TEXT NOT NULL,
+        atk      INTEGER,
+        health   INTEGER,
+        golden   INTEGER NOT NULL,
+        PRIMARY KEY (game_id, sequence, zone, position),
+        FOREIGN KEY (game_id, sequence) REFERENCES decisions(game_id, sequence) ON DELETE CASCADE
+      );
+
+      CREATE INDEX idx_decision_cards_card ON decision_cards(card_id, zone);
+    `,
+  },
 ];

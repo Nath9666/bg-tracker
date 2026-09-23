@@ -281,6 +281,11 @@ export class GameExtractor {
       gold: accumulator.gold,
       tavernTier: hero === undefined ? null : numberTag(hero.tags.get('PLAYER_TECH_LEVEL')),
       health: hero === undefined ? null : remainingHealthOf(hero.tags),
+      board: readZone(game, game.localPlayerEntityId, 'PLAY'),
+      hand: readZone(game, game.localPlayerEntityId, 'HAND'),
+      // Pendant un combat, cette zone porte le plateau adverse et non la
+      // boutique : on ne la retient que hors combat.
+      shop: accumulator.inCombat ? [] : readZone(game, game.proxyPlayerEntityId, 'PLAY'),
     });
   }
 
@@ -472,8 +477,26 @@ export function combatResult(won: boolean, damageTaken: number): CombatResult {
  * serait pollue par des doublons.
  */
 export function readBoard(game: Game, playerEntityId?: number | null): BoardMinion[] {
-  const entityId = playerEntityId ?? game.localPlayerEntityId;
-  const owner = entityId !== null && entityId !== undefined ? game.players.get(entityId) : undefined;
+  return readZone(game, playerEntityId ?? game.localPlayerEntityId, 'PLAY');
+}
+
+/**
+ * Serviteurs d'un joueur dans une zone donnee, ranges par position.
+ *
+ * `PLAY` sur le joueur donne son plateau, `HAND` sa main. `PLAY` sur le joueur
+ * fictif donne, pendant le recrutement, **la boutique de Bob** : les serviteurs
+ * qu'il propose sont des entites qu'il controle (verifie, voir
+ * docs/LOG_FORMAT.md).
+ */
+export function readZone(
+  game: Game,
+  playerEntityId: number | null | undefined,
+  zone: 'PLAY' | 'HAND',
+): BoardMinion[] {
+  const owner =
+    playerEntityId !== null && playerEntityId !== undefined
+      ? game.players.get(playerEntityId)
+      : undefined;
   if (owner === undefined) return [];
   const controller = String(owner.playerId);
 
@@ -482,7 +505,7 @@ export function readBoard(game: Game, playerEntityId?: number | null): BoardMini
       (entity) =>
         entity.tags.get('CARDTYPE') === 'MINION' &&
         entity.tags.get('CONTROLLER') === controller &&
-        entity.tags.get('ZONE') === 'PLAY',
+        entity.tags.get('ZONE') === zone,
     )
     .map((entity) => ({
       position: Number(entity.tags.get('ZONE_POSITION') ?? 0),
