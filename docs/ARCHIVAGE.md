@@ -84,9 +84,9 @@ npm run import -- "F:\SteamLibrary\Hearthstone\Logs"
 
 ## Lancement automatique (planificateur de tâches Windows)
 
-**En place sur cette machine** : tâche `BG Tracker - archivage`, déclenchée **à l'ouverture de
-session** (après 2 minutes) et **une fois par jour à 4 h**. Créée **sans élévation**, elle tourne
-sous le compte de l'utilisateur.
+**En place sur cette machine** : tâche `BG Tracker - archivage`, qui lance **`npm run sync`**,
+déclenchée **à l'ouverture de session** (après 2 minutes) et **une fois par jour à 4 h**. Créée
+**sans élévation**, elle tourne sous le compte de l'utilisateur.
 
 ### Pourquoi cette cadence, et pas toutes les 30 minutes
 
@@ -142,7 +142,7 @@ $projet = "C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker"
 $moi = "$env:USERDOMAIN\$env:USERNAME"
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument '-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"' `
+  -Argument '-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run sync"' `
   -WorkingDirectory $projet
 
 # -AtLogOn sans -User vaut « tous les utilisateurs » et exige l'élévation.
@@ -186,7 +186,8 @@ Unregister-ScheduledTask -TaskName "BG Tracker - archivage" -Confirm:$false
 
 Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` veut simplement dire
 « jamais encore exécutée »). Autre vérification utile : la date de modification de
-`data/archive/manifest.json`, qui bouge à chaque passage.
+`data/archive/manifest.json`, qui bouge à chaque passage. La base, elle, est en **WAL** : c'est
+`data/bg-tracker.db-wal` qui bouge, pas `data/bg-tracker.db`.
 
 ### Par l'interface
 
@@ -196,7 +197,7 @@ Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` 
 3. Onglet **Déclencheurs** : un déclencheur *À l'ouverture de session* limité à ton compte, et un
    déclencheur *Quotidien* à 4 h.
 4. Onglet **Actions** : programme `powershell.exe`, arguments
-   `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"`, *Commencer dans* le
+   `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run sync"`, *Commencer dans* le
    dossier du projet.
 5. Onglet **Conditions** : décocher *N'exécuter que si l'ordinateur est sur secteur* sur un portable.
 6. Onglet **Paramètres** : cocher *Exécuter la tâche dès que possible si un démarrage planifié est
@@ -204,13 +205,15 @@ Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` 
 
 ## Après une session de jeu
 
-Une seule commande enchaîne les trois étapes, dans l'ordre :
+**La tâche planifiée s'en charge déjà.** Pour ne pas attendre le prochain passage, une seule commande
+enchaîne les trois étapes, dans l'ordre :
 
 ```bash
 npm run sync
 ```
 
-Archivage, import en base, puis mise à jour et relecture de `data/ratings.csv`. Les étapes restent
+Archivage, import en base, puis mise à jour et relecture de `data/ratings.csv`. La seule chose qui
+reste manuelle est la **saisie de la cote** : elle n'est dans aucun log. Les étapes restent
 disponibles séparément (`npm run archive`, `npm run import`, `npm run ratings`), mais les oublier dans
 le bon ordre est la source d'erreur la plus courante : une cote saisie sans `npm run ratings` reste
 dans le fichier sans jamais arriver en base.
