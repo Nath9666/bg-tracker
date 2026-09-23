@@ -84,8 +84,26 @@ npm run import -- "F:\SteamLibrary\Hearthstone\Logs"
 
 ## Lancement automatique (planificateur de tâches Windows)
 
-**En place sur cette machine** : tâche `BG Tracker - archivage`, toutes les 30 minutes, créée
-**sans élévation** (elle tourne sous le compte de l'utilisateur).
+**En place sur cette machine** : tâche `BG Tracker - archivage`, déclenchée **à l'ouverture de
+session** (après 2 minutes) et **une fois par jour à 4 h**. Créée **sans élévation**, elle tourne
+sous le compte de l'utilisateur.
+
+### Pourquoi cette cadence, et pas toutes les 30 minutes
+
+La seule chose qui fait perdre des données, c'est que Hearthstone **supprime un dossier de session
+avant qu'il soit archivé**. Observé une fois : trois jours. Rien d'autre n'est urgent — les logs ne
+s'écrasent pas entre eux, chaque lancement du jeu crée son propre dossier horodaté, et un fichier
+déjà archivé n'est relu que s'il a grossi.
+
+L'échéance se compte donc en **jours**. Un passage quotidien garde un facteur 3 de marge ; toutes
+les 30 minutes, ce serait 48 passages par jour pour tenir un délai de 72 heures.
+
+Le déclencheur d'ouverture de session sert au cas où la machine reste allumée sans jamais atteindre
+4 h. `-StartWhenAvailable` rattrape les passages manqués pendant que le PC était éteint.
+
+Le coût d'un passage fréquent n'est pas nul non plus : **0,9 s à vide**, mais une dizaine de
+secondes **pendant qu'on joue**, le temps de relire et recompresser la session en cours. Autant ne
+pas s'y exposer en pleine partie.
 
 ### Pourquoi `archive` et pas `sync`
 
@@ -103,7 +121,7 @@ Trois raisons de s'en tenir à l'archivage :
    quelques jours, alors que la base se reconstruit à volonté depuis l'archive ;
 2. `sync` réécrit `data/ratings.csv`, ce qui est pénible si le fichier est ouvert dans un éditeur ;
 3. `sync` **réimporte toute l'archive** à chaque passage : il ralentira à mesure que les parties
-   s'accumulent. À 200 parties conservées, un passage toutes les 30 minutes deviendrait coûteux.
+   s'accumulent.
 
 `npm run sync` reste la commande à lancer **à la main** après une session, pour importer et saisir
 les cotes.
@@ -114,59 +132,68 @@ En PowerShell, sans élévation :
 
 ```powershell
 $projet = "C:\Users\Nathan\Documents\Projet\bg-tracker\bg-tracker"
+$moi = "$env:USERDOMAIN\$env:USERNAME"
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
   -Argument '-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"' `
   -WorkingDirectory $projet
 
-# Répétition sans fin : l'intervalle seul, sans durée. Une durée infinie
-# ([TimeSpan]::MaxValue) est refusée par le planificateur.
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
-  -RepetitionInterval (New-TimeSpan -Minutes 30)
+# -AtLogOn sans -User vaut « tous les utilisateurs » et exige l'élévation.
+$logon = New-ScheduledTaskTrigger -AtLogOn -User $moi
+$logon.Delay = "PT2M"
+$quotidien = New-ScheduledTaskTrigger -Daily -At 4am
 
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden `
   -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 
 Register-ScheduledTask -TaskName "BG Tracker - archivage" -Action $action `
-  -Trigger $trigger -Settings $settings -Force
+  -Trigger $logon, $quotidien -Settings $settings
 ```
 
-Points qui ont demandé un essai raté chacun :
+Pièges rencontrés, un essai raté chacun :
 
-- `-WindowStyle Hidden` évite qu'une console clignote toutes les 30 minutes, y compris en pleine
-  partie. C'est la raison de passer par `powershell.exe` plutôt que par `scripts\archive-logs.cmd`,
-  qui reste utilisable pour un lancement manuel.
-- **Pas de `-RepetitionDuration`.** Avec `[TimeSpan]::MaxValue`, le planificateur refuse la tâche
-  (`Duration:P99999999DT23H59M59S` hors limites). Omettre la durée donne une répétition sans fin.
+- **`-AtLogOn` sans `-User`** vaut « à l'ouverture de session de n'importe qui », ce qui demande
+  l'élévation : `Register-ScheduledTask` répond « Accès refusé ». Restreindre au compte courant
+  suffit et évite l'élévation.
+- **`-Force` ne remplace pas une tâche existante** sans élévation, même la sienne : même « Accès
+  refusé ». Il faut `Unregister-ScheduledTask` puis recréer.
+- `-WindowStyle Hidden` évite qu'une console clignote à chaque passage, y compris en pleine partie.
+  C'est la raison de passer par `powershell.exe` plutôt que par `scripts\archive-logs.cmd`, qui
+  reste utilisable pour un lancement manuel.
 - **Ne pas passer par un script `.vbs`**, même si c'est la recette classique pour masquer une
   fenêtre : les antivirus bloquent l'exécution des scripts VBS, à juste titre. Essayé ici, refusé
   avec « Accès refusé » alors que Windows Script Host n'était pas désactivé par stratégie.
+- Sur un déclencheur répété, **pas de `-RepetitionDuration`** : `[TimeSpan]::MaxValue` est refusé
+  (`Duration:P99999999DT23H59M59S` hors limites). L'intervalle seul donne une répétition sans fin.
 - `-MultipleInstances IgnoreNew` : si un passage traîne sur une grosse session en cours, le suivant
   est sauté au lieu de lire les mêmes fichiers en double.
 
 ### Vérifier, lancer à la main, supprimer
 
 ```powershell
-Get-ScheduledTaskInfo -TaskName "BG Tracker - archivage"   # dernière exécution, code de retour
+Get-ScheduledTaskInfo    -TaskName "BG Tracker - archivage"   # dernière exécution, code de retour
 Start-ScheduledTask      -TaskName "BG Tracker - archivage"
 Unregister-ScheduledTask -TaskName "BG Tracker - archivage" -Confirm:$false
 ```
 
-Un **code de retour `0`** signifie que le passage s'est bien terminé. Autre vérification utile : la
-date de modification de `data/archive/manifest.json`, qui bouge à chaque passage.
+Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` veut simplement dire
+« jamais encore exécutée »). Autre vérification utile : la date de modification de
+`data/archive/manifest.json`, qui bouge à chaque passage.
 
 ### Par l'interface
 
 1. Ouvrir **Planificateur de tâches** → *Créer une tâche*.
 2. Onglet **Général** : nom `BG Tracker - archivage`. *Exécuter avec les autorisations maximales*
    n'est **pas** nécessaire.
-3. Onglet **Déclencheurs** : *Nouveau* → *À l'ouverture de session*, cocher *Répéter la tâche toutes
-   les* **30 minutes**, *pendant* **indéfiniment**.
+3. Onglet **Déclencheurs** : un déclencheur *À l'ouverture de session* limité à ton compte, et un
+   déclencheur *Quotidien* à 4 h.
 4. Onglet **Actions** : programme `powershell.exe`, arguments
    `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run archive"`, *Commencer dans* le
    dossier du projet.
 5. Onglet **Conditions** : décocher *N'exécuter que si l'ordinateur est sur secteur* sur un portable.
+6. Onglet **Paramètres** : cocher *Exécuter la tâche dès que possible si un démarrage planifié est
+   manqué*, pour rattraper les jours où le PC était éteint à 4 h.
 
 ## Après une session de jeu
 

@@ -11,7 +11,8 @@ But : ne perdre aucune partie. Hearthstone ne conserve pas indéfiniment ses dos
 - [x] Fichier `data/ratings.csv` (`datetime,rating`) pour noter la cote à la main en attendant la phase 4 — créé par le script
 
 **Critère de fin :** les sessions sont archivées automatiquement. ✅ **Rempli.** La tâche planifiée
-`BG Tracker - archivage` tourne toutes les 30 minutes sur la machine (vérifiée : code de retour 0).
+`BG Tracker - archivage` tourne à l'ouverture de session et une fois par jour (vérifiée : code de
+retour 0).
 
 ## Phase 1 — Parseur hors ligne ✓
 
