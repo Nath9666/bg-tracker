@@ -182,6 +182,65 @@ describe('combats', () => {
   });
 });
 
+describe('prochain adversaire', () => {
+  /** Le jeu annonce le prochain adversaire par son PLAYER_ID. */
+  const ANNONCE = (playerId: number): string =>
+    power(`TAG_CHANGE Entity=89 tag=NEXT_OPPONENT_PLAYER_ID value=${playerId}`);
+
+  /** Une entite heros portant son PLAYER_ID : c'est ce qui permet de le nommer. */
+  const HEROS_ADVERSE = (id: number, cardId: string, playerId: number): string[] => [
+    power(`FULL_ENTITY - Creating ID=${id} CardID=${cardId}`),
+    power('        tag=CARDTYPE value=HERO'),
+    power(`TAG_CHANGE Entity=${id} tag=PLAYER_ID value=${playerId}`),
+  ];
+
+  it('nomme l’adversaire annonce', () => {
+    const live = tracker([
+      ...OPENING,
+      ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6),
+      ANNONCE(6),
+    ]);
+
+    expect(live.state.nextOpponentHero).toBe('BG30_HERO_304');
+  });
+
+  it('reste muet tant que le heros de ce joueur est inconnu', () => {
+    // Debut de partie : le lobby n'est decouvert qu'au fil des combats.
+    expect(tracker([...OPENING, ANNONCE(6)]).state.nextOpponentHero).toBeNull();
+  });
+
+  it('resout l’annonce des que le heros devient connu', () => {
+    const live = tracker([
+      ...OPENING,
+      ANNONCE(6),
+      ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6),
+    ]);
+
+    expect(live.state.nextOpponentHero).toBe('BG30_HERO_304');
+  });
+
+  it('ne se designe jamais soi-meme', () => {
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=89 tag=PLAYER_ID value=7'),
+      ANNONCE(7),
+    ]);
+
+    expect(live.state.nextOpponentHero).toBeNull();
+  });
+
+  it('suit les annonces successives', () => {
+    const lignes = [
+      ...OPENING,
+      ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6),
+      ...HEROS_ADVERSE(501, 'BG34_HERO_001', 5),
+      ANNONCE(6),
+    ];
+    expect(tracker(lignes).state.nextOpponentHero).toBe('BG30_HERO_304');
+    expect(tracker([...lignes, ANNONCE(5)]).state.nextOpponentHero).toBe('BG34_HERO_001');
+  });
+});
+
 describe('partie de reference', () => {
   it('reconstitue les 13 combats et les 7 adversaires', async () => {
     const live = new LiveTracker();
@@ -205,5 +264,29 @@ describe('partie de reference', () => {
     // Le plus recemment affronte est celui du dernier combat.
     expect(state.opponents[0]?.heroCardId).toBe(state.combats.at(-1)?.opponentHero);
     expect(state.opponents[0]?.lastFoughtTurn).toBe(13);
+  });
+
+  it('annonce le bon adversaire avant chaque combat', async () => {
+    // Le jeu annonce le prochain adversaire par son PLAYER_ID ; on verifie que
+    // la traduction en heros correspond bien au combat qui suit.
+    const live = new LiveTracker();
+    const annonces = new Map<number, string>();
+
+    for await (const line of readSessionLines(await sampleSessionFolder())) {
+      live.pushLine(line);
+      const state = live.state;
+
+      // On retient l'annonce faite pendant le recrutement du tour.
+      if (state.phase === 'recruit' && state.nextOpponentHero !== null && state.turn !== null) {
+        annonces.set(state.turn, state.nextOpponentHero);
+      }
+    }
+
+    // Les annonces disponibles doivent toutes tomber juste.
+    const verifiees = live.state.combats.filter((combat) => annonces.has(combat.turn));
+    expect(verifiees.length).toBeGreaterThan(0);
+    for (const combat of verifiees) {
+      expect(annonces.get(combat.turn)).toBe(combat.opponentHero);
+    }
   });
 });

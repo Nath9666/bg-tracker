@@ -245,6 +245,19 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
   - `Source=[… cardId=BG30_Trinket_1st …]` : bibelot inférieur. Options en `BG30_MagicItem_*` / `BG36_MagicItem_*`.
   - Autres sources à cataloguer au fil des parties.
 
+### Connaître son prochain adversaire
+
+✅ `NEXT_OPPONENT_PLAYER_ID`, sur l'entité héros du joueur, annonce l'adversaire **avant** le combat,
+une fois par tour. Sa valeur est un `PLAYER_ID` de lobby (1 à 8), pas un identifiant d'entité.
+
+Les entités héros portent ce même `PLAYER_ID` : c'est la table de correspondance. Relevé sur le log
+de référence : `PLAYER_ID 6` → Marin le responsable, annoncé aux tours 1, 8 et 12 — et c'est bien
+lui qui est affronté à ces trois tours. Sur les 6 tours où l'annonce est exploitable, elle est
+**juste à chaque fois**.
+
+⚠️ Rien avant le tour 8 dans ce log : les entités héros adverses n'existent qu'une fois le joueur
+rencontré. L'annonce reste donc muette tant que le lobby n'est pas découvert.
+
 ### Le plateau adverse pendant un combat
 
 ⚠️ **Il n'existe pas au début de la phase de combat.** Au moment exact où `BACON_IN_COMBAT_PHASE`

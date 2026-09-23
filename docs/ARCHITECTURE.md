@@ -93,6 +93,15 @@ Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas
 affiche les `cardId` bruts et continue de fonctionner.
 
 ### Overlay (phase 4)
+Ce qu'il affiche reste dans la limite « papier-crayon » : uniquement des informations que le joueur a
+**déjà eues sous les yeux**. Pas de simulation de combat — décision prise le 23/09/2026, voir
+`CLAUDE.md`.
+
+Deux garde-fous d'honnêteté dans l'affichage : le plateau d'un adversaire est daté du tour où il a
+été vu, et la comparaison de force n'est **tranchée que si ce plateau a moins de trois tours**.
+Au-delà, on affiche son âge sans conclure : comparer un plateau vieux de sept tours au sien ne veut
+rien dire.
+
 `app/main/overlay-main.ts` suit `Power.log`, alimente le `LiveTracker` et pousse l'état par IPC vers
 deux fenêtres :
 

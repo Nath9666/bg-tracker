@@ -52,6 +52,13 @@ export interface LiveState {
   /** Adversaires rencontres, du plus recemment affronte au plus ancien. */
   opponents: OpponentSnapshot[];
   combats: CombatLog[];
+  /**
+   * Heros du prochain adversaire, annonce par le jeu avant le combat.
+   *
+   * `null` tant qu'il n'est pas annonce, ou si son heros est encore inconnu
+   * (premiere rencontre du lobby).
+   */
+  nextOpponentHero: string | null;
 }
 
 /** Combat commence, dont on attend l'issue. */
@@ -79,6 +86,7 @@ export function emptyState(): LiveState {
     board: [],
     opponents: [],
     combats: [],
+    nextOpponentHero: null,
   };
 }
 
@@ -124,6 +132,17 @@ export class LiveTracker {
   /** Entite heros du mandataire hors combat, c'est-a-dire Bob. */
   #bobEntityId: number | null = null;
 
+  /**
+   * Heros de chaque joueur du lobby, par `PLAYER_ID`.
+   *
+   * Les entites heros portent ce tag, et `NEXT_OPPONENT_PLAYER_ID` s'y refere :
+   * c'est ce qui permet de nommer le prochain adversaire avant le combat.
+   */
+  readonly #heroByPlayerId = new Map<string, string>();
+
+  /** Dernier `NEXT_OPPONENT_PLAYER_ID` annonce, en attente de resolution. */
+  #nextOpponentPlayerId: string | null = null;
+
   constructor() {
     this.#machine = new GameStateMachine({
       onGameStart: () => {
@@ -131,6 +150,8 @@ export class LiveTracker {
         this.#state = { ...emptyState(), session, inGame: true };
         this.#combat = null;
         this.#bobEntityId = null;
+        this.#heroByPlayerId.clear();
+        this.#nextOpponentPlayerId = null;
       },
       onGameEnd: (game) => {
         // Le dernier combat n'a pas de fin de phase quand le joueur est
@@ -185,6 +206,22 @@ export class LiveTracker {
       return;
     }
 
+    // Les entites heros portent le PLAYER_ID de leur joueur : on s'en sert pour
+    // traduire l'annonce du prochain adversaire en heros.
+    if (event.tag === 'PLAYER_ID') {
+      const entity = game.entities.get(id);
+      if (entity !== undefined && entity.cardId.length > 0) {
+        this.#heroByPlayerId.set(event.value, entity.cardId);
+        this.#resolveNextOpponent(game);
+      }
+    }
+
+    if (event.tag === 'NEXT_OPPONENT_PLAYER_ID' && id === game.heroEntityId) {
+      this.#nextOpponentPlayerId = event.value;
+      this.#resolveNextOpponent(game);
+      return;
+    }
+
     // Le plateau et les jauges du joueur changent sans arret : on les relit
     // plutot que de suivre chaque tag un par un.
     if (id === game.heroEntityId) this.#refreshHero(game);
@@ -194,6 +231,27 @@ export class LiveTracker {
     // eu lieu, et c'est ce plateau-la qui se bat.
     if (event.tag === 'ATTACKING' && event.value === '1' && this.#combat?.board === null) {
       this.#combat.board = readBoard(game, game.proxyPlayerEntityId);
+    }
+  }
+
+  /**
+   * Traduit l'annonce du prochain adversaire en heros.
+   *
+   * L'annonce peut precéder la connaissance du heros : le lobby n'est decouvert
+   * qu'au fil des combats. On reessaie donc a chaque nouveau `PLAYER_ID`.
+   */
+  #resolveNextOpponent(game: Game): void {
+    const playerId = this.#nextOpponentPlayerId;
+    if (playerId === null) return;
+
+    const hero = this.#heroByPlayerId.get(playerId) ?? null;
+    // Ne jamais se designer soi-meme : le tag peut porter notre propre id
+    // entre deux combats.
+    const own = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
+    const nextOpponentHero = hero === own?.cardId ? null : hero;
+
+    if (nextOpponentHero !== this.#state.nextOpponentHero) {
+      this.#state = { ...this.#state, nextOpponentHero };
     }
   }
 

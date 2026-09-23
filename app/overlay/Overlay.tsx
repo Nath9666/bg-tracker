@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
 import { bridge, type OverlayPayload } from './api.js';
 
+/** Force brute d'un plateau : attaque et vie cumulees. */
+function force(board: { atk: number | null; health: number | null }[]): {
+  atk: number;
+  health: number;
+} {
+  return board.reduce(
+    (total, minion) => ({
+      atk: total.atk + (minion.atk ?? 0),
+      health: total.health + (minion.health ?? 0),
+    }),
+    { atk: 0, health: 0 },
+  );
+}
+
 /**
  * Overlay affiche pendant les parties.
  *
@@ -46,7 +60,26 @@ export default function Overlay(): JSX.Element | null {
   // La fenetre laisse passer les clics : on ne peut donc pas y faire defiler.
   // Tout doit tenir a l'ecran, d'ou ces limites.
   const AVEC_PLATEAU = 2;
-  const DERNIERS_COMBATS = 8;
+  const DERNIERS_COMBATS = 6;
+
+  // Le jeu annonce le prochain adversaire avant le combat. S'il a deja ete
+  // affronte, on ressort son dernier plateau : c'est la meilleure estimation
+  // de ce qui attend, et c'est une information deja vue.
+  const suivant =
+    state.nextOpponentHero === null
+      ? undefined
+      : state.opponents.find((o) => o.heroCardId === state.nextOpponentHero);
+  const maForce = force(state.board);
+  const saForce = force(suivant?.board ?? []);
+
+  // Anciennete du plateau adverse. Comparer son plateau d'il y a sept tours au
+  // notre d'aujourd'hui ne veut rien dire : au-dela de deux tours, on montre
+  // l'age et on se garde de trancher.
+  const anciennete =
+    state.turn === null || suivant?.lastFoughtTurn == null
+      ? null
+      : state.turn - suivant.lastFoughtTurn;
+  const comparable = anciennete !== null && anciennete <= 2;
 
   return (
     <div className="overlay">
@@ -64,10 +97,53 @@ export default function Overlay(): JSX.Element | null {
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
       </div>
 
+      {suivant !== undefined && (
+        <section className="suivant">
+          <h2>Prochain adversaire</h2>
+          <header>
+            <span className="nom">{nom(suivant.heroCardId)}</span>
+            <span className="meta">
+              {suivant.place === null ? '' : `${suivant.place}e · `}
+              {suivant.tier === null ? '' : `T${suivant.tier} · `}
+              {suivant.health === null ? '' : `${suivant.health} pv`}
+            </span>
+          </header>
+          <p className="comparaison">
+            <span>
+              toi {maForce.atk}/{maForce.health}
+            </span>
+            {comparable ? (
+              <span className={maForce.atk >= saForce.atk ? 'avantage' : 'retard'}>
+                {maForce.atk >= saForce.atk ? '▲' : '▼'}
+              </span>
+            ) : (
+              <span className="perime">
+                {anciennete === null ? 'jamais vu' : `vu il y a ${anciennete} tours`}
+              </span>
+            )}
+            <span className={comparable ? undefined : 'perime'}>
+              lui {saForce.atk}/{saForce.health}
+            </span>
+          </p>
+          <ul className="plateau">
+            {suivant.board.map((minion) => (
+              <li key={minion.position} className={minion.golden ? 'doré' : undefined}>
+                <span className="serviteur">{nom(minion.cardId)}</span>
+                <span className="stats">
+                  {minion.atk ?? '?'}/{minion.health ?? '?'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {state.opponents.length > 0 && (
         <section>
           <h2>Adversaires affrontés</h2>
-          {state.opponents.map((opponent, rang) => (
+          {state.opponents
+            .filter((opponent) => opponent.heroCardId !== state.nextOpponentHero)
+            .map((opponent, rang) => (
             <article key={opponent.heroCardId} className="adversaire">
               <header>
                 <span className="nom">{nom(opponent.heroCardId)}</span>
@@ -93,8 +169,8 @@ export default function Overlay(): JSX.Element | null {
                   {opponent.board.length === 0 && <li className="rien">plateau non relevé</li>}
                 </ul>
               )}
-            </article>
-          ))}
+              </article>
+            ))}
         </section>
       )}
 
