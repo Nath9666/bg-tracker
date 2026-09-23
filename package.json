@@ -20,6 +20,7 @@
     "parse": "tsx src/cli/parse.ts",
     "import": "tsx src/cli/import.ts",
     "cards": "tsx src/cli/cards.ts",
+    "sim-cards": "tsx src/cli/sim-cards.ts",
     "ratings": "tsx src/cli/ratings.ts",
     "stats": "tsx src/cli/stats.ts",
     "export": "tsx src/cli/export.ts",
@@ -43,6 +44,7 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "@firestone-hs/simulate-bgs-battle": "^1.1.755",
     "better-sqlite3": "^13.0.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
