@@ -485,3 +485,48 @@ describe('bonus cumules', () => {
     expect(live.state.bonuses).toEqual([]);
   });
 });
+
+describe('serviteurs vus', () => {
+  // L'or bouge a chaque achat et a chaque debut de tour : c'est ce qui
+  // declenche le releve de la taverne.
+  const OR = power('TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=3');
+
+  it('retient la taverne de Bob, hors combat', () => {
+    // La zone du mandataire est la taverne hors combat : c'est la meilleure
+    // source de types, cinq a sept serviteurs renouveles par tour.
+    const live = tracker([...OPENING, ...minion(800, 'BG31_149', 15, 1), OR]);
+    expect(live.state.seenCardIds).toContain('BG31_149');
+  });
+
+  it('ne prend pas le plateau adverse pour la taverne', () => {
+    // Pendant un combat, la meme zone porte le plateau d'en face : ses
+    // serviteurs ne disent rien du pool de la taverne.
+    const live = tracker([
+      ...OPENING,
+      power('TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1'),
+      ...minion(801, 'BG30_155', 15, 1),
+      OR,
+    ]);
+
+    expect(live.state.seenCardIds).not.toContain('BG30_155');
+  });
+
+  it('oublie tout a la partie suivante', () => {
+    // Sans ca, les types s'accumuleraient de partie en partie et le lobby
+    // finirait par sembler contenir les onze types.
+    const live = new LiveTracker();
+    for (const ligne of [...OPENING, ...minion(800, 'BG31_149', 15, 1), OR]) live.pushLine(ligne);
+    expect(live.state.seenCardIds).toContain('BG31_149');
+
+    for (const ligne of OPENING) live.pushLine(ligne);
+    expect(live.state.seenCardIds).toEqual([]);
+  });
+
+  it('oublie tout en changeant de session', () => {
+    const live = new LiveTracker();
+    for (const ligne of [...OPENING, ...minion(800, 'BG31_149', 15, 1), OR]) live.pushLine(ligne);
+
+    live.setSession('autre');
+    expect(live.state.seenCardIds).toEqual([]);
+  });
+});

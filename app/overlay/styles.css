@@ -538,3 +538,38 @@ section h2 {
 .bonus-jeton.extraGold .bonus-valeur {
   color: var(--bon);
 }
+
+/* --- pool de la taverne --- */
+
+.taverne .paliers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.taverne .paliers li {
+  display: grid;
+  /* Palier et nombre alignes : on compare deux lignes d'un coup d'oeil. */
+  grid-template-columns: 26px 30px 1fr;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.taverne .palier {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.taverne .combien {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.taverne .types {
+  color: var(--attenue);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

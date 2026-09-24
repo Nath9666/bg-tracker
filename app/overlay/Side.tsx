@@ -1,4 +1,5 @@
 import { nommeur, useLive } from './commun.js';
+import { raceName } from './races.js';
 
 function Pastille({ valeur, libelle }: { valeur: string; libelle: string }): JSX.Element {
   return (
@@ -20,7 +21,7 @@ export default function Side(): JSX.Element | null {
   const payload = useLive();
   if (payload === null) return null;
 
-  const { state, pace } = payload;
+  const { state, pace, pool, lobbyRaces } = payload;
   const nom = nommeur(payload.cards);
 
   if (!state.inGame) return null;
@@ -43,6 +44,38 @@ export default function Side(): JSX.Element | null {
         />
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
       </div>
+
+      <section className="taverne">
+        <h2>
+          Taverne{lobbyRaces.length > 0 ? ` · ${lobbyRaces.map(raceName).join(', ')}` : ''}
+        </h2>
+        {lobbyRaces.length === 0 ? (
+          // Rien vu encore : annoncer tout le pool serait exact mais inutile.
+          <p className="perime">types du lobby pas encore identifiés</p>
+        ) : (
+          <ul className="paliers">
+            {pool
+              .filter(
+                (palier) =>
+                  state.tavernTier !== null &&
+                  palier.tier >= state.tavernTier &&
+                  palier.tier <= state.tavernTier + 1,
+              )
+              .map((palier) => (
+                <li key={palier.tier}>
+                  <span className="palier">T{palier.tier}</span>
+                  <span className="combien">{palier.total}</span>
+                  <span className="types">
+                    {palier.byRace
+                      .slice(0, 3)
+                      .map((r) => `${raceName(r.race)} ${r.count}`)
+                      .join(' · ')}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        )}
+      </section>
 
       {state.tierUps.length > 0 && (
         <section className="rythme">

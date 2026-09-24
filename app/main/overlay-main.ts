@@ -24,6 +24,7 @@ import {
   writeRatingsTemplate,
 } from '../../src/ratings/ratings.js';
 import { tierCurve } from '../../src/stats/stats.js';
+import { loadPool, poolByTier, racesSeen, type PoolMinion, type TierPool } from '../../src/pool/minion-pool.js';
 import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
 import { combatOdds, oddsSignature, type CombatEstimate } from '../../src/sim/combat-odds.js';
 
@@ -51,6 +52,13 @@ export interface OverlayPayload {
   /** cardId -> nom et details, pour les cartes citees par l'etat. */
   cards: Record<string, Pick<CardInfo, 'name' | 'techLevel' | 'races'>>;
   pace: PaceReference[];
+  /**
+   * Ce qui peut encore sortir de la taverne, par palier, pour les types
+   * deduits de la partie en cours.
+   */
+  pool: TierPool[];
+  /** Types du lobby deduits des serviteurs deja vus. */
+  lobbyRaces: string[];
   /**
    * Estimation du combat en cours.
    *
@@ -263,6 +271,14 @@ function computeOdds(state: LiveState): CombatEstimate | null {
   return value;
 }
 
+let pool: PoolMinion[] | null = null;
+
+/** Le pool complet, lu une seule fois : il ne change pas d'une partie a l'autre. */
+function minionPool(): PoolMinion[] {
+  pool ??= loadPool(database());
+  return pool;
+}
+
 function paceReference(): PaceReference[] {
   pace ??= tierCurve(database()).map((point) => ({
     tier: point.tier,
@@ -296,7 +312,16 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     for (const minion of opponent.board) noter(minion.cardId);
   }
 
-  return { state, cards, pace: paceReference(), odds: computeOdds(state) };
+  const races = racesSeen(state.seenCardIds, minionPool());
+
+  return {
+    state,
+    cards,
+    pace: paceReference(),
+    odds: computeOdds(state),
+    pool: poolByTier(minionPool(), races),
+    lobbyRaces: [...races].sort(),
+  };
 }
 
 function broadcast(payload: OverlayPayload): void {

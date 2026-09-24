@@ -436,6 +436,34 @@ et `1` des dizaines de fois par partie, parfois deux fois dans la meme milliseco
 (`BASE`, pas `ADDITIONAL`) et ce comportement ne permettent pas de conclure qu'il signale des cris
 de guerre doubles. A verifier sur une partie ou l'effet est certain avant de s'en servir.
 
+## La cote n'est nulle part, verifie fichier par fichier
+
+Cherche dans les **dix** fichiers qu'une session ecrit (`Power.log`, `Hearthstone.log`,
+`LoadingScreen.log`, `GameNetLogger.log`, `Achievements.log`, `Login.log`, `Store.log`,
+`Downloader.log`, `LuckyDraw.log`, `ExceptionReporter.log`) : aucun tag ni aucune ligne contenant
+`RATING`, `MMR`, `RANK` ou `MEDAL`.
+
+`SCORE_VALUE_1..3` et `SCORE_LABELID_1..3` existent mais portent le score **d'un serviteur** (releve
+sur le Chaton de Kel'Thuzad), pas la cote du joueur.
+
+Hearthstone Deck Tracker l'obtient en **lisant la memoire du processus** (bibliotheque
+HearthMirror). Voir `CLAUDE.md` pour la decision du projet sur ce point.
+
+## Types du lobby : toujours pas declares
+
+`BACON_SUBSET_<TYPE>` existe pour les onze types, mais il est porte par **chaque carte** et enumere
+les sous-ensembles auxquels *elle* appartient. Les onze apparaissent avec `value=1` au fil d'une
+partie : ce n'est donc pas la liste des types tires pour le lobby. Releve a cote de
+`IS_BACON_POOL_MINION` et `TECH_LEVEL` sur une carte de la taverne.
+
+En revanche `IS_BACON_POOL_MINION value=1` marque bien les cartes du pool des Champs de bataille.
+La base HearthstoneJSON porte la meme information (`isBattlegroundsPoolMinion`), et c'est elle qu'on
+utilise : 302 serviteurs, tous avec palier et type.
+
+Les types actifs se **deduisent** donc de ce que le joueur a deja vu passer dans la taverne et sur
+les plateaux adverses. Un serviteur sans type, ou de type `ALL`, ne conclut rien : il est dans
+toutes les parties.
+
 ## Ce qui n'est PAS dans les logs
 
 - **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.

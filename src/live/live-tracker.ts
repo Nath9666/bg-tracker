@@ -11,7 +11,7 @@
 import type { LogEvent } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
-import { combatResult, gameTurn, readBoard } from '../extract/game-extractor.js';
+import { combatResult, gameTurn, readBoard, readZone } from '../extract/game-extractor.js';
 import { readBonuses, type PlayerBonus } from '../extract/player-bonuses.js';
 import type { BoardMinion, CombatResult, TierUp } from '../types.js';
 
@@ -75,6 +75,13 @@ export interface LiveState {
   currentCombat: CombatBoards | null;
   /** Bonus permanents accumules : gemmes de sang, or en plus, rales doubles. */
   bonuses: PlayerBonus[];
+  /**
+   * cardId de tous les serviteurs vus passer : taverne, plateau, adversaires.
+   *
+   * Sert a deduire les types actifs du lobby, que rien ne declare. C'est de
+   * l'information deja vue par le joueur, donc dans la regle de l'overlay.
+   */
+  seenCardIds: string[];
 }
 
 /** Les deux plateaux d'un combat, figes a son debut. */
@@ -123,6 +130,7 @@ export function emptyState(): LiveState {
     nextOpponentHero: null,
     currentCombat: null,
     bonuses: [],
+    seenCardIds: [],
   };
 }
 
@@ -164,6 +172,7 @@ export class LiveTracker {
 
   /** Combat en cours : rempli entre le debut de la phase et son issue. */
   #combat: PendingCombat | null = null;
+  readonly #seen = new Set<string>();
 
   /** Entite heros du mandataire hors combat, c'est-a-dire Bob. */
   #bobEntityId: number | null = null;
@@ -185,6 +194,9 @@ export class LiveTracker {
         const session = this.#state.session;
         this.#state = { ...emptyState(), session, inGame: true };
         this.#combat = null;
+        // Les types du lobby sont propres a la partie : les garder ferait
+        // croire a un lobby de onze types au bout de quelques parties.
+        this.#seen.clear();
         this.#bobEntityId = null;
         this.#heroByPlayerId.clear();
         this.#nextOpponentPlayerId = null;
@@ -206,6 +218,7 @@ export class LiveTracker {
   setSession(session: string): void {
     this.#state = { ...emptyState(), session };
     this.#combat = null;
+    this.#seen.clear();
   }
 
   /** Alimente le suivi avec une ligne brute de `Power.log`. */
@@ -224,7 +237,10 @@ export class LiveTracker {
     if (id === null) return;
 
     if (id === game.gameEntityId) {
-      if (event.tag === 'TURN') this.#state = { ...this.#state, turn: gameTurn(Number(event.value)) };
+      if (event.tag === 'TURN') {
+        this.#state = { ...this.#state, turn: gameTurn(Number(event.value)) };
+        this.#rememberTavern(game);
+      }
       if (event.tag === 'BACON_IN_COMBAT_PHASE') {
         if (event.value === '1') this.#startCombat(game);
         else this.#endCombat(game);
@@ -234,6 +250,10 @@ export class LiveTracker {
 
     if (id === game.localPlayerEntityId && event.tag === 'RESOURCES') {
       this.#state = { ...this.#state, gold: Number(event.value) };
+      // L'or bouge a chaque achat, vente, actualisation et debut de tour :
+      // c'est le meilleur moment pour relever la taverne. S'appuyer sur les
+      // tags du heros ne suffit pas, ils changent trop rarement.
+      this.#rememberTavern(game);
       return;
     }
 
@@ -285,6 +305,7 @@ export class LiveTracker {
     if (event.tag === 'ATTACKING' && event.value === '1' && this.#combat?.board === null) {
       this.#combat.board = readBoard(game, game.proxyPlayerEntityId);
       this.#combat.playerBoard = readBoard(game, game.localPlayerEntityId);
+      this.#rememberSeen(game, this.#combat.board);
       this.#publishCombat();
     }
   }
@@ -329,6 +350,36 @@ export class LiveTracker {
     if (!inchange) this.#state = { ...this.#state, bonuses };
   }
 
+  /**
+   * Retient les serviteurs vus, pour deduire les types du lobby.
+   *
+   * La taverne est la meilleure source : elle renouvelle cinq a sept
+   * serviteurs par tour. Hors combat seulement, la zone du mandataire portant
+   * le plateau adverse pendant le combat.
+   */
+  #rememberSeen(game: Game, minions: readonly { cardId: string }[]): void {
+    let nouveau = false;
+    for (const minion of minions) {
+      if (minion.cardId.length > 0 && !this.#seen.has(minion.cardId)) {
+        this.#seen.add(minion.cardId);
+        nouveau = true;
+      }
+    }
+
+    if (nouveau) this.#state = { ...this.#state, seenCardIds: [...this.#seen] };
+  }
+
+  /**
+   * Releve la taverne de Bob.
+   *
+   * Hors combat seulement : pendant, la zone du mandataire porte le plateau
+   * adverse, et ses serviteurs ne disent rien du pool de la taverne.
+   */
+  #rememberTavern(game: Game): void {
+    if (this.#combat !== null) return;
+    this.#rememberSeen(game, readZone(game, game.proxyPlayerEntityId, 'PLAY'));
+  }
+
   #refreshHero(game: Game): void {
     const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
     if (hero === undefined) return;
@@ -342,6 +393,9 @@ export class LiveTracker {
       board: readBoard(game, game.localPlayerEntityId),
       bonuses: readBonuses(game),
     };
+
+    this.#rememberSeen(game, this.#state.board);
+    this.#rememberTavern(game);
   }
 
   /**
