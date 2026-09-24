@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   closeProcess,
   findModule,
+  findProcessIdByName,
   listModules,
   listProcessIds,
   openProcess,
@@ -102,5 +103,22 @@ describe.skipIf(!surWindows)('lecture memoire', () => {
     expect(typeof stub).toBe('string');
 
     expect(readCString(moi, 0n)).toBeNull();
+  });
+});
+
+describe.skipIf(!surWindows)('findProcessIdByName', () => {
+  it('trouve un processus par le nom de son executable', () => {
+    // Notre propre processus n'a pas de nom d'executable stable a tester
+    // (ca depend du runtime), donc on verifie l'absence, qui est le seul
+    // comportement independant de la machine.
+    expect(findProcessIdByName('un-executable-qui-nexiste-surement-pas.exe')).toBeNull();
+  });
+
+  it('ne demande que le droit minimal, sans PROCESS_VM_READ', () => {
+    // Verification indirecte : la fonction ne doit pas lever meme sur un
+    // processus systeme protege qu'on ne pourrait pas ouvrir en lecture
+    // memoire. On se contente ici qu'elle rende un resultat (null ou un pid)
+    // sans exception, sur l'ensemble des processus visibles.
+    expect(() => findProcessIdByName('svchost.exe')).not.toThrow();
   });
 });

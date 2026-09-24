@@ -32,10 +32,15 @@ const EnumProcessModulesEx = kernel32.func(
 const GetModuleFileNameExW = psapi.func(
   'uint32 GetModuleFileNameExW(void* handle, void* module, _Out_ uint16* name, uint32 size)',
 );
+const QueryFullProcessImageNameW = kernel32.func(
+  'bool QueryFullProcessImageNameW(void* handle, uint32 flags, _Out_ uint16* name, _Inout_ uint32* size)',
+);
 
 /** Droits demandes : interroger et lire, jamais ecrire. */
 const PROCESS_QUERY_INFORMATION = 0x0400;
 const PROCESS_VM_READ = 0x0010;
+/** Suffit à interroger le nom d'un processus, sans droit de lire sa mémoire. */
+const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 const LIST_MODULES_ALL = 0x03;
 
 /** Taille d'un pointeur. Le jeu et Node sont tous deux en 64 bits. */
@@ -74,6 +79,35 @@ export function listProcessIds(): number[] {
   const needed = [0];
   if (!EnumProcesses(pids, pids.byteLength, needed)) return [];
   return [...pids.slice(0, Math.floor(needed[0]! / 4))];
+}
+
+/**
+ * Identifiant du processus dont l'exécutable porte ce nom, insensible à la
+ * casse (ex. `Hearthstone.exe`). `null` si aucun processus ne correspond.
+ *
+ * N'ouvre chaque processus qu'en `PROCESS_QUERY_LIMITED_INFORMATION` : pas
+ * besoin de lire sa mémoire pour connaître son nom, et ce droit est accordé
+ * beaucoup plus largement par Windows.
+ */
+const ESCAPE_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g;
+
+export function findProcessIdByName(exeName: string): number | null {
+  const escaped = exeName.replace(ESCAPE_REGEX_CHARS, String.raw`\$&`);
+  const pattern = new RegExp(`${escaped}$`, 'i');
+
+  for (const pid of listProcessIds()) {
+    const handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+    if (!handle) continue;
+
+    const buffer = new Uint16Array(MAX_PATH);
+    const size = [MAX_PATH];
+    const ok = QueryFullProcessImageNameW(handle, 0, buffer, size);
+    CloseHandle(handle);
+
+    if (ok && pattern.test(utf16(buffer.subarray(0, size[0]!)))) return pid;
+  }
+
+  return null;
 }
 
 /** Ouvre un processus en lecture. */

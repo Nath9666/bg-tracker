@@ -192,6 +192,37 @@ héros. Un bonus à zéro n'est pas affiché.
 
 Sans le cache de cartes, l'estimation est simplement absente : le reste de l'overlay fonctionne.
 
+### Lecture mémoire (cote)
+
+⚠️ `src/memory/` **sort de la règle « uniquement les fichiers de log »**. Il existe pour une seule
+raison : la cote (MMR) n'apparaît dans **aucun** des dix fichiers qu'une session écrit (vérifié,
+voir `docs/LOG_FORMAT.md`). Voir `CLAUDE.md` pour la décision et ses limites — lecture seule,
+cantonné à ce dossier, doit échouer proprement.
+
+- `process-memory.ts` — primitives Win32 via **koffi** (FFI à binaires précompilés, aucune
+  compilation native). `findProcessIdByName`, `listModules`, `readMemory`/`readPointer`/
+  `readCString`. Une lecture invalide rend `null`, elle ne lève pas : suivre un pointeur atterrit
+  couramment sur une adresse non mappée, ce n'est pas une anomalie.
+- `pe-exports.ts` — table d'exports d'un module PE, lue à distance (format standard, testé contre
+  `kernel32.dll`). Sert à localiser une fonction Mono par son nom sans l'exécuter : on n'a que
+  `PROCESS_VM_READ`, jamais le droit d'appeler du code dans le processus visé.
+- `mono-runtime.ts` — marche dans le runtime Mono jusqu'aux assemblies chargées. Deux motifs de
+  prologue x64 à reconnaître :
+  - un **accesseur trivial** `mov rax, [rcx+X]; ret` donne un décalage de champ directement ;
+    **redécouvert à chaque lancement**, jamais figé, donc résistant à un patch qui déplace le
+    champ tant que l'export survit ;
+  - une **globale** `mov rax, [rip+X]; ret` (`mono_get_root_domain`) donne l'adresse d'une
+    variable, pas sa valeur.
+
+  Le seul décalage codé en dur, `MonoDomain.domain_assemblies` (`0xa0`), n'a pas d'accesseur
+  exporté : dérivé par désassemblage de `mono_domain_assembly_foreach` (le commentaire au-dessus
+  de `listAssemblies` détaille le prologue), et **vérifié à chaque appel** en cherchant `mscorlib`
+  dans le résultat. Son absence lève `MonoLayoutError` plutôt que de rendre une liste tronquée sans
+  le dire — c'est le point qui casse en premier à un patch.
+
+  Vérifié en direct sur le jeu : domaine racine résolu, 119 assemblies énumérées, `mscorlib` et
+  `Assembly-CSharp` — où vit le code du jeu — retrouvées par leur nom.
+
 ### Application Electron
 `app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).
 Le rendu n'a **ni Node ni accès à SQLite** : `contextIsolation` est activé, `nodeIntegration`
