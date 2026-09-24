@@ -9,6 +9,7 @@ const RACES: Record<string, string> = {
   NAGA: "Naga",
   PIRATE: "Pirate",
   QUILBOAR: "Huran",
+  ABERRATION: "Aberration",
   UNDEAD: "Mort-vivant",
   ALL: "Tous types",
   aucun: "Aucun type",
