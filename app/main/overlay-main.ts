@@ -22,8 +22,13 @@ import {
   DEFAULT_RATINGS_PATH,
   listGames,
   writeRatingsTemplate,
+  appendRating,
+  detectRatingChange,
+  type RatingSnapshot,
 } from '../../src/ratings/ratings.js';
 import { tierCurve } from '../../src/stats/stats.js';
+import { openRatingReader, type RatingReader } from '../../src/memory/rating-reader.js';
+import { toLocalIso } from '../../src/extract/log-clock.js';
 import { loadPool, poolByTier, racesSeen, type PoolMinion, type TierPool } from '../../src/pool/minion-pool.js';
 import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
 import { combatOdds, oddsSignature, type CombatEstimate } from '../../src/sim/combat-odds.js';
@@ -59,6 +64,8 @@ export interface OverlayPayload {
   pool: TierPool[];
   /** Types du lobby deduits des serviteurs deja vus. */
   lobbyRaces: string[];
+  /** Cote lue dans la memoire du jeu. `null` si illisible, sans que rien d'autre n'en souffre. */
+  rating: RatingSnapshot | null;
   /**
    * Estimation du combat en cours.
    *
@@ -279,6 +286,66 @@ function minionPool(): PoolMinion[] {
   return pool;
 }
 
+/**
+ * Cote lue dans la memoire du jeu (voir src/memory/rating-reader.ts).
+ *
+ * Le lecteur reste ouvert entre deux lectures : sa preparation coute ~30 ms,
+ * une lecture ~20 ms. Toute erreur le referme et rend `null` ; il sera rouvert
+ * a la lecture suivante. Rien, ici, ne doit empecher l'overlay de tourner.
+ */
+let lecteurCote: RatingReader | null = null;
+let derniereCote: { valeur: RatingSnapshot | null; quand: number } = { valeur: null, quand: 0 };
+
+function lireCote(): RatingSnapshot | null {
+  try {
+    lecteurCote ??= openRatingReader();
+    return lecteurCote.read();
+  } catch {
+    lecteurCote?.close();
+    lecteurCote = null;
+    return null;
+  }
+}
+
+/** Cote pour l'affichage : relue au plus toutes les 10 secondes. */
+function coteAffichee(): RatingSnapshot | null {
+  if (Date.now() - derniereCote.quand > 10_000) {
+    derniereCote = { valeur: lireCote(), quand: Date.now() };
+  }
+  return derniereCote.valeur;
+}
+
+/**
+ * Attend que le serveur envoie la nouvelle cote, puis l'inscrit dans
+ * `ratings.csv`, datee de maintenant. Le prochain `npm run sync` la rattache
+ * a la partie qui vient de finir.
+ *
+ * Rend vrai si la cote a ete enregistree. Au bout de trois minutes sans
+ * changement (jeu ferme, deconnexion), on abandonne : la saisie manuelle
+ * prend le relais.
+ */
+async function enregistrerCote(avant: RatingSnapshot): Promise<boolean> {
+  const limite = Date.now() + 3 * 60_000;
+  while (Date.now() < limite) {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    const maintenant = lireCote();
+    if (maintenant === null) continue;
+
+    const changement = detectRatingChange(avant, maintenant);
+    if (changement === null) continue;
+
+    await appendRating(
+      DEFAULT_RATINGS_PATH,
+      toLocalIso(new Date()),
+      changement.rating,
+      `lue en jeu (${changement.mode === 'solo' ? 'Solo' : 'Duo'})`,
+    );
+    derniereCote = { valeur: maintenant, quand: Date.now() };
+    return true;
+  }
+  return false;
+}
+
 function paceReference(): PaceReference[] {
   pace ??= tierCurve(database()).map((point) => ({
     tier: point.tier,
@@ -321,6 +388,7 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     odds: computeOdds(state),
     pool: poolByTier(minionPool(), races),
     lobbyRaces: [...races].sort(),
+    rating: coteAffichee(),
   };
 }
 
@@ -335,6 +403,7 @@ function broadcast(payload: OverlayPayload): void {
 async function follow(signal: AbortSignal): Promise<void> {
   const tracker = new LiveTracker();
   let wasInGame = false;
+  let coteAuDebut: RatingSnapshot | null = null;
 
   // `fromStart` : on relit la session depuis le debut pour rattraper la partie
   // deja commencee. Sans cela, lancer l'overlay en cours de partie laisserait
@@ -353,13 +422,22 @@ async function follow(signal: AbortSignal): Promise<void> {
     const state = tracker.state;
     broadcast(await buildPayload(state));
 
-    // La partie vient de se terminer : on propose d'en noter la cote.
+    // Debut de partie : on note la cote, pour reconnaitre la nouvelle a la fin.
+    if (!wasInGame && state.inGame) coteAuDebut = lireCote();
+
+    // La partie vient de se terminer : la cote se lit seule dans le jeu. La
+    // saisie manuelle ne sert plus que de secours, si la lecture echoue.
     if (wasInGame && !state.inGame) {
-      const games = listGames(database());
-      const last = games.at(-1);
-      if (last !== undefined && last.rating === null) {
-        openRatingPrompt({ gameId: last.id, label: last.label, datetime: last.datetime });
-      }
+      const avant = coteAuDebut;
+      void (async () => {
+        if (avant !== null && (await enregistrerCote(avant))) return;
+
+        const games = listGames(database());
+        const last = games.at(-1);
+        if (last !== undefined && last.rating === null) {
+          openRatingPrompt({ gameId: last.id, label: last.label, datetime: last.datetime });
+        }
+      })();
     }
     wasInGame = state.inGame;
   }

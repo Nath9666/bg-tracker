@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  appendRating,
+  detectRatingChange,
   listGames,
   matchRatings,
   parseRatings,
@@ -338,5 +340,72 @@ describe('writeRatingsTemplate, ecriture conditionnelle', () => {
     await writeRatingsTemplate(path, GAMES.slice(0, 1));
 
     expect((await writeRatingsTemplate(path, GAMES)).written).toBe(true);
+  });
+});
+
+describe('detectRatingChange', () => {
+  it('ne signale rien tant que le serveur n’a pas envoye la nouvelle cote', () => {
+    expect(detectRatingChange({ solo: 5079, duos: 171 }, { solo: 5079, duos: 171 })).toBeNull();
+  });
+
+  it('deduit une partie Solo de la cote Solo qui bouge', () => {
+    expect(detectRatingChange({ solo: 5079, duos: 171 }, { solo: 5124, duos: 171 })).toEqual({
+      mode: 'solo',
+      rating: 5124,
+    });
+  });
+
+  it('deduit une partie Duo de la cote Duo qui bouge', () => {
+    // Ce que les logs ne savent pas faire : distinguer Solo et Duo.
+    expect(detectRatingChange({ solo: 5079, duos: 171 }, { solo: 5079, duos: 240 })).toEqual({
+      mode: 'duos',
+      rating: 240,
+    });
+  });
+
+  it('suit aussi une baisse', () => {
+    expect(detectRatingChange({ solo: 5079, duos: 0 }, { solo: 4990, duos: 0 })?.rating).toBe(4990);
+  });
+});
+
+describe('appendRating', () => {
+  it('cree le fichier avec son en-tete', async () => {
+    const path = await tempFile();
+    await appendRating(path, '2026-09-24T22:10:00.000+02:00', 5124, 'lue en jeu');
+
+    expect(await readFile(path, 'utf8')).toBe(
+      'datetime,rating,partie\n2026-09-24T22:10:00.000+02:00,5124,lue en jeu\n',
+    );
+  });
+
+  it('ajoute en fin sans toucher au reste', async () => {
+    const path = await tempFile();
+    await writeFile(path, 'datetime,rating,partie\n2026-09-24T21:58:16.301+02:00,5079,Xavius\n');
+    await appendRating(path, '2026-09-24T22:30:00.000+02:00', 5124, 'lue en jeu');
+
+    const lignes = (await readFile(path, 'utf8')).trim().split('\n');
+    expect(lignes).toHaveLength(3);
+    expect(lignes[1]).toBe('2026-09-24T21:58:16.301+02:00,5079,Xavius');
+  });
+
+  it('complete une derniere ligne sans retour a la ligne', async () => {
+    const path = await tempFile();
+    await writeFile(path, 'datetime,rating,partie\n2026-09-24T21:58:16.301+02:00,5079,Xavius');
+    await appendRating(path, '2026-09-24T22:30:00.000+02:00', 5124, 'lue en jeu');
+
+    expect((await readFile(path, 'utf8')).trim().split('\n')).toHaveLength(3);
+  });
+
+  it('produit une ligne que matchRatings rattache a la partie qui vient de finir', async () => {
+    // Le serveur envoie la cote quelques secondes apres la fin : l'ecart reste
+    // tres en dessous des 90 minutes de tolerance.
+    const path = await tempFile();
+    await appendRating(path, '2026-09-24T22:10:30.000+02:00', 5124, 'lue en jeu');
+
+    const [match] = matchRatings(
+      [{ id: 'g1', datetime: '2026-09-24T22:10:00.000+02:00', label: 'x', rating: null }],
+      parseRatings(await readFile(path, 'utf8')),
+    );
+    expect(match).toMatchObject({ gameId: 'g1', rating: 5124 });
   });
 });

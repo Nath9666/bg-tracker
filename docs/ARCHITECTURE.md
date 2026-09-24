@@ -222,6 +222,28 @@ cantonné à ce dossier, doit échouer proprement.
 
   Vérifié en direct sur le jeu : domaine racine résolu, 119 assemblies énumérées, `mscorlib` et
   `Assembly-CSharp` — où vit le code du jeu — retrouvées par leur nom.
+- `mono-classes.ts` — classes, champs et statiques d'une image. Toute la disposition (`MonoLayout`)
+  est **recalculée au lancement** : décalages lus dans les accesseurs exportés, table des classes
+  repérée par sa signature de `MonoInternalHashTable`, `runtime_info` repéré parce que sa vtable
+  pointe en retour vers la classe. Seuls `MonoClass.fields` (0x98) et la forme de `MonoClassField`
+  sont codés en dur, et vérifiés à chaque lecture par le champ `parent`.
+- `rating-reader.ts` — la cote. Chemin : `ServiceManager.s_runtimeServices` →
+  `m_services` → le `ServiceInfo` dont le service est `NetCache` → `m_netCache` →
+  `NetCacheBaconRatingInfo` → `Rating` / `DuosRating`. **Chaque champ est retrouvé par son
+  nom**, jamais par un décalage : seules les dispositions des conteneurs du runtime (tableau,
+  entrée de dictionnaire) sont figées. Préparation ~30 ms, lecture ~20 ms.
+
+  Vérifié le 24/09/2026 contre la dernière ligne de `ratings.csv` (5079, identique), puis sur une
+  partie réelle : 5079 lu 17 secondes avant la fin, 5000 après une 6ᵉ place.
+
+**Branchement dans l'overlay.** La cote est lue au début de chaque partie. À la fin, l'overlay la
+relit toutes les deux secondes jusqu'à ce que le serveur envoie la nouvelle valeur (trois minutes
+au plus), puis **ajoute une ligne datée** à `ratings.csv`. La partie n'est pas encore en base à ce
+moment-là, mais `matchRatings` rattache une cote à la partie la plus proche dans le temps : le
+prochain `npm run sync` fait le lien. La fenêtre de saisie manuelle ne s'ouvre plus qu'en secours.
+
+**Solo ou Duo.** Les logs ne distinguent pas les deux modes. La mémoire, si : seule la cote du mode
+joué bouge (`detectRatingChange`). La ligne ajoutée le note (`lue en jeu (Solo)`).
 
 ### Application Electron
 `app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).

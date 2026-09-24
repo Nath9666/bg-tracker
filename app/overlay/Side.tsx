@@ -43,6 +43,8 @@ export default function Side(): JSX.Element | null {
           libelle="palier"
         />
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
+        {/* Lue dans la memoire du jeu ; absente plutot que fausse si la lecture echoue. */}
+        {payload.rating !== null && <Pastille valeur={String(payload.rating.solo)} libelle="cote" />}
       </div>
 
       <section className="taverne">

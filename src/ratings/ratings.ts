@@ -241,3 +241,53 @@ export function listGames(db: Db): RatedGame[] {
     rating: row.rating_after,
   }));
 }
+
+/** Cotes Solo et Duo a un instant donne, telles que lues dans le jeu. */
+export interface RatingSnapshot {
+  solo: number;
+  duos: number;
+}
+
+export interface RatingChange {
+  mode: 'solo' | 'duos';
+  rating: number;
+}
+
+/**
+ * Quelle cote a bouge entre deux lectures.
+ *
+ * Les logs ne disent pas si une partie etait en Solo ou en Duo (voir
+ * docs/LOG_FORMAT.md) ; la cote, si : seule celle du mode joue change. `null`
+ * tant que rien n'a bouge, ce qui est le cas dans les secondes qui suivent la
+ * fin d'une partie, le serveur n'ayant pas encore envoye la nouvelle valeur.
+ */
+export function detectRatingChange(
+  before: RatingSnapshot,
+  after: RatingSnapshot,
+): RatingChange | null {
+  if (after.solo !== before.solo) return { mode: 'solo', rating: after.solo };
+  if (after.duos !== before.duos) return { mode: 'duos', rating: after.duos };
+  return null;
+}
+
+/**
+ * Ajoute une cote horodatee en fin de fichier, sans rien reecrire d'autre.
+ *
+ * La partie qui vient de finir n'est pas encore en base : elle n'y entre qu'au
+ * prochain import. Mais `matchRatings` rattache une cote a la partie la plus
+ * proche dans le temps, donc il suffit de dater la ligne ; le prochain
+ * `npm run sync` fera le lien.
+ */
+export async function appendRating(
+  path: string,
+  datetime: string,
+  rating: number,
+  note: string,
+): Promise<void> {
+  const existant = await readFile(path, 'utf8').catch(() => '');
+  const prefixe = existant.length === 0 ? `${HEADER}\n` : existant.endsWith('\n') ? '' : '\n';
+  const ligne = `${datetime},${rating},${quote(note)}\n`;
+
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, existant + prefixe + ligne, 'utf8');
+}

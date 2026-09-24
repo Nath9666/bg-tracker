@@ -25,8 +25,8 @@ await build({
   target: 'node22',
   format: 'cjs',
   sourcemap: true,
-  // Electron fournit son propre runtime ; better-sqlite3 est un module natif,
+  // Electron fournit son propre runtime ; better-sqlite3 et koffi sont natifs,
   // il doit rester charge depuis node_modules.
-  external: ['electron', 'better-sqlite3'],
+  external: ['electron', 'better-sqlite3', 'koffi'],
   logLevel: 'info',
 });

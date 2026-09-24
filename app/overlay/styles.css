@@ -99,7 +99,10 @@ section {
 
 .pastilles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Autant de colonnes que de pastilles : la cote n'apparait que si elle se
+     lit dans le jeu, la grille ne doit pas laisser de trou sans elle. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   text-align: center;
 }

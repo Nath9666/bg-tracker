@@ -21,7 +21,7 @@ function pad(value: number, width = 2): string {
 }
 
 /** `2026-09-19T02:48:30.321+02:00` : ISO 8601 en heure locale, avec decalage. */
-function toLocalIso(date: Date): string {
+export function toLocalIso(date: Date): string {
   const offset = -date.getTimezoneOffset();
   const sign = offset >= 0 ? '+' : '-';
   const absolute = Math.abs(offset);

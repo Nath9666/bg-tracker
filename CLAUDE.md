@@ -99,7 +99,9 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
     recrutement sur le souvenir d'un affrontement précédent. Elle arrive donc trop tard pour
     changer d'avis, mais elle est juste.
 - **Critère de Blizzard**, vérifié en septembre 2026 : est acceptable « tout ce qu'on peut déjà faire avec un papier et un crayon » (Ben Brode), en lecture passive. L'overlay n'affiche donc que ce que le joueur a **déjà vu** : plateaux adverses des combats passés, tiers, historique. Le simulateur rejoue ce combat à partir de ces mêmes informations : il n'ajoute rien d'invisible, mais il sort du papier-crayon.
-- La cote (MMR) **n'est pas dans les logs** : elle est saisie par l'utilisateur dans `data/ratings.csv`, pré-rempli par `npm run ratings` avec une ligne par partie.
+- La cote (MMR) **n'est pas dans les logs**. Elle est **lue dans la mémoire du jeu** par l'overlay en
+  fin de partie (`src/memory/rating-reader.ts`) et ajoutée à `data/ratings.csv`. La saisie à la
+  main reste possible, et sert de secours si la lecture échoue.
 
 ## Données de test
 
