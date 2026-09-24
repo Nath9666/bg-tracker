@@ -76,7 +76,17 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 
 ## Limites à respecter (conditions d'utilisation Blizzard)
 
-- Le tracker lit **uniquement les fichiers de log**. Pas de lecture de la mémoire du processus Hearthstone, pas d'interception réseau.
+- Pas d'**interception réseau**, jamais.
+- **Lecture mémoire : autorisée, pour la seule cote (MMR).** Décidé le 24/09/2026, après avoir
+  vérifié que la cote n'apparait dans **aucun** des dix fichiers qu'une session écrit (voir
+  `docs/LOG_FORMAT.md`). Hearthstone Deck Tracker ne fait pas autrement : il lit la mémoire du
+  processus via HearthMirror.
+  - **En lecture seule.** Rien n'est jamais écrit dans le processus du jeu.
+  - Limité à ce que les logs ne donnent pas. Tout le reste continue de passer par `Power.log` :
+    une donnée lisible dans un log ne doit pas être lue en mémoire.
+  - `src/memory/` uniquement. Le reste du code ne connait pas cette source.
+  - ⚠️ **Fragile par nature** : la disposition des classes change à chaque patch. Ce module doit
+    échouer proprement et ne jamais empêcher le tracker de fonctionner sans lui.
 - Rien ne doit **envoyer d'actions au jeu** (clics simulés, automatisation). L'IA de la phase 5 reste un outil d'analyse et de conseil, jamais un bot.
 - **Simulateur de combat : activé.** Décidé le 23/09/2026, après avoir d'abord tranché l'inverse le
   même jour. Le bandeau de l'overlay estime victoire / nul / défaite, létal dans les deux sens et
