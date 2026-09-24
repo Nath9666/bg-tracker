@@ -634,3 +634,188 @@ section h2 {
 .choix-heros .type.perime {
   color: var(--attenue);
 }
+
+/* --- ecran de repos, entre deux parties --- */
+
+.accueil {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  animation: apparition 0.4s ease-out;
+}
+
+.accueil-tete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.accueil-titre {
+  color: var(--attenue);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* Un point qui respire : l'overlay est vivant, il attend la partie suivante. */
+.attente-point {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bon);
+  animation: respiration 2.4s ease-in-out infinite;
+}
+
+.cote-heros {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cote-valeur {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--texte);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+.cote-libelle {
+  color: var(--attenue);
+  font-size: 12px;
+}
+
+.derniere {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.attenue {
+  color: var(--attenue);
+  font-size: 12px;
+}
+
+/* L'ecart porte sa couleur, mais aussi son signe et sa fleche. */
+.ecart-cote {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecart-cote.hausse {
+  color: var(--bon);
+}
+
+.ecart-cote.baisse {
+  color: var(--mauvais);
+}
+
+.ecart-cote.nul {
+  color: var(--attenue);
+}
+
+.courbe {
+  margin: 4px 0 0;
+}
+
+.courbe svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.courbe .axe {
+  stroke: var(--bord);
+  stroke-width: 1;
+}
+
+.courbe .trace {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  /* La courbe se dessine a l'apparition de l'ecran. */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trace 1.1s ease-out 0.15s forwards;
+}
+
+.courbe .point {
+  fill: var(--accent);
+  /* Anneau de la couleur du fond, pour detacher le point de la ligne. */
+  stroke: #1b1824;
+  stroke-width: 2;
+}
+
+.courbe figcaption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  color: var(--attenue);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.session {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 6px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--bord);
+  text-align: center;
+}
+
+.session dt {
+  color: var(--attenue);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.session dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@keyframes trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes respiration {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes apparition {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Mouvement reduit : l'ecran apparait fini, sans rien animer. */
+@media (prefers-reduced-motion: reduce) {
+  .accueil,
+  .attente-point,
+  .courbe .trace {
+    animation: none;
+  }
+
+  .courbe .trace {
+    stroke-dashoffset: 0;
+  }
+}

@@ -30,6 +30,9 @@ export default function Combat(): JSX.Element | null {
   // Rien a dire : la fenetre reste entierement transparente.
   if (payload === undefined || odds === null || odds === undefined) return null;
   if (odds.kind !== 'odds') return null;
+  // Le dernier combat reste lisible pendant le recrutement qui suit, pas
+  // au-dela : partie finie, il n'y a plus de combat suivant a attendre.
+  if (!payload.state.inGame) return null;
 
   const { state, cards } = payload;
   const { winPercent, tiePercent, lossPercent } = odds.odds;

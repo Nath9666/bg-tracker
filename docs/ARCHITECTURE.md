@@ -254,6 +254,12 @@ remplacent la déduction du panneau Taverne et servent au choix du héros.
 ses jauges par une fiche par héros (`heroPickCard`) : parties jouées, place moyenne, top 4, taux de
 sélection, et le type du plateau final qui a mené le plus loin **parmi ceux de la partie**.
 
+**Entre deux parties.** Le panneau de gauche remplace « en attente d'une partie » par un écran de
+cote (`Repos.tsx`, calculé par `restingView`) : la cote actuelle en grand, l'écart de la dernière
+partie, la courbe des 40 dernières cotes et le bilan du jour. La cote lue dans le jeu y fait foi :
+elle peut être en avance sur la base, la partie qui vient de finir n'entrant qu'au sync suivant.
+Le bandeau de combat, lui, disparaît dès la fin de la partie.
+
 **Solo ou Duo.** Les logs ne distinguent pas les deux modes. La mémoire, si : seule la cote du mode
 joué bouge (`detectRatingChange`). La ligne ajoutée le note (`lue en jeu (Solo)`).
 

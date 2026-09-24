@@ -27,7 +27,15 @@ import {
   detectRatingChange,
   type RatingSnapshot,
 } from '../../src/ratings/ratings.js';
-import { heroPickCard, tierCurve, type HeroPickCard } from '../../src/stats/stats.js';
+import {
+  heroPickCard,
+  restingView,
+  tierCurve,
+  timeline,
+  type HeroPickCard,
+  type RestingView,
+  type TimelinePoint,
+} from '../../src/stats/stats.js';
 import { createHeroBaseResolver } from '../../src/db/hero-base.js';
 import { openRatingReader, type RatingReader } from '../../src/memory/rating-reader.js';
 import { toLocalIso } from '../../src/extract/log-clock.js';
@@ -72,6 +80,8 @@ export interface OverlayPayload {
   lobbyRacesFromGame: boolean;
   /** Fiches d'aide au choix, une par heros propose. Vide hors du choix du heros. */
   heroPicks: HeroPickCard[];
+  /** Ecran de repos, entre deux parties. `null` pendant une partie. */
+  resting: RestingView | null;
   /**
    * Estimation du combat en cours.
    *
@@ -232,6 +242,8 @@ let cardIndex: Awaited<ReturnType<typeof loadIndex>> = null;
 
 /** Reference de rythme, calculee une fois : elle ne bouge pas en cours de session. */
 let pace: PaceReference[] | null = null;
+/** Parties en base, pour l'ecran de repos. Relues apres chaque sync. */
+let historique: TimelinePoint[] | null = null;
 
 /**
  * Charge la base du simulateur, une fois, en tache de fond.
@@ -424,6 +436,7 @@ function lancerSync(): Promise<boolean> {
     // La base a change : le rythme de reference et les fiches heros aussi.
     pace = null;
     fiches = { clef: '', valeur: [] };
+    historique = null;
   });
   return syncEnCours;
 }
@@ -476,6 +489,13 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     rating: coteAffichee(),
     lobbyRacesFromGame: lusEnJeu !== null,
     heroPicks: state.heroOffers.length === 0 ? [] : fichesHeros(state.heroOffers, races),
+    resting: state.inGame
+      ? null
+      : restingView(
+          (historique ??= timeline(database())),
+          toLocalIso(new Date()).slice(0, 10),
+          { rating: coteAffichee()?.solo ?? null, place: state.place },
+        ),
   };
 }
 

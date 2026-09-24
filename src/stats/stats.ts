@@ -509,3 +509,71 @@ export function heroPickCard(
     bestRaceInLobby: bestInLobby !== null,
   };
 }
+
+/** Un point de la courbe de cote. */
+export interface RatingPoint {
+  startedAt: string;
+  rating: number;
+}
+
+/** Ce que l'overlay montre entre deux parties. */
+export interface RestingView {
+  /** Cote actuelle : celle lue dans le jeu si elle est connue, sinon la derniere enregistree. */
+  rating: number | null;
+  /** Ecart apporte par la derniere partie. */
+  lastDelta: number | null;
+  lastPlace: number | null;
+  /** Parties commencees le jour meme. */
+  session: { games: number; delta: number | null; averagePlace: number | null };
+  /** Les dernieres cotes, de la plus ancienne a la plus recente. */
+  history: RatingPoint[];
+}
+
+/**
+ * Resume de l'ecran de repos.
+ *
+ * `liveRating` est la cote lue dans le jeu. Elle peut etre plus recente que la
+ * base : la partie qui vient de finir n'y entre qu'au sync suivant. Dans ce
+ * cas elle s'ajoute a la courbe comme dernier point, et c'est elle qui donne
+ * l'ecart de la derniere partie.
+ */
+export function restingView(
+  points: readonly TimelinePoint[],
+  today: string,
+  live: { rating: number | null; place: number | null } = { rating: null, place: null },
+  historySize = 40,
+): RestingView {
+  const liveRating = live.rating;
+  const cotes: RatingPoint[] = points
+    .filter((p): p is TimelinePoint & { rating: number } => p.rating !== null)
+    .map((p) => ({ startedAt: p.startedAt, rating: p.rating }));
+
+  const derniere = cotes.at(-1)?.rating ?? null;
+  const enAvance = liveRating !== null && liveRating !== derniere;
+  if (enAvance) cotes.push({ startedAt: `${today}T23:59:59`, rating: liveRating });
+
+  const n = cotes.length;
+  const lastDelta = n >= 2 ? cotes[n - 1]!.rating - cotes[n - 2]!.rating : null;
+
+  // Session du jour : ecart entre la derniere cote et celle d'avant la session.
+  const duJour = points.filter((p) => p.startedAt.startsWith(today));
+  const avant = cotes.filter((c) => !c.startedAt.startsWith(today)).at(-1)?.rating ?? null;
+  const finSession = cotes.filter((c) => c.startedAt.startsWith(today)).at(-1)?.rating ?? null;
+  // La partie pas encore importee compte dans la session, avec sa place.
+  const places = [
+    ...duJour.map((p) => p.place),
+    ...(enAvance ? [live.place] : []),
+  ].filter((p): p is number => p !== null);
+
+  return {
+    rating: liveRating ?? derniere,
+    lastDelta,
+    lastPlace: enAvance ? live.place : (points.at(-1)?.place ?? null),
+    session: {
+      games: duJour.length + (enAvance ? 1 : 0),
+      delta: avant !== null && finSession !== null ? finSession - avant : null,
+      averagePlace: places.length === 0 ? null : places.reduce((a, b) => a + b, 0) / places.length,
+    },
+    history: cotes.slice(-historySize),
+  };
+}

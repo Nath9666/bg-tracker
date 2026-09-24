@@ -1,4 +1,5 @@
 import { force, nommeur, Plateau, useLive } from './commun.js';
+import Repos from './Repos.js';
 
 /**
  * Panneau de gauche : les combats, passes et a venir.
@@ -18,6 +19,8 @@ export default function Overlay(): JSX.Element | null {
   const nom = nommeur(cards);
 
   if (!state.inGame) {
+    // Entre deux parties : la cote et sa courbe plutot qu'un simple « en attente ».
+    if (payload.resting !== null) return <Repos vue={payload.resting} />;
     return (
       <div className="overlay repos">
         <span className="titre">BG Tracker</span>

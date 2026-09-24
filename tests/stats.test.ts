@@ -8,6 +8,7 @@ import { parseStatsArgs } from '../src/cli/stats.js';
 import {
   finalBoardRaces,
   heroPickCard,
+  restingView,
   heroStats,
   overview,
   placeDistribution,
@@ -442,5 +443,54 @@ describe('heroPickCard', () => {
       averagePlace: null,
       bestRace: null,
     });
+  });
+});
+
+describe('restingView', () => {
+  function point(startedAt: string, rating: number | null, place: number | null = 4) {
+    return { gameId: startedAt, startedAt, heroName: 'x', place, rating, rollingPlace: null };
+  }
+  const HIER = '2026-09-23';
+  const AUJOURDHUI = '2026-09-24';
+  const POINTS = [
+    point(`${HIER}T20:00:00`, 5000, 5),
+    point(`${AUJOURDHUI}T20:00:00`, 5050, 2),
+    point(`${AUJOURDHUI}T21:00:00`, null, 3), // cote jamais saisie
+    point(`${AUJOURDHUI}T22:00:00`, 5079, 1),
+  ];
+
+  it('prend la derniere cote enregistree et l’ecart de la derniere partie', () => {
+    expect(restingView(POINTS, AUJOURDHUI)).toMatchObject({ rating: 5079, lastDelta: 29, lastPlace: 1 });
+  });
+
+  it('resume la session du jour, parties sans cote comprises', () => {
+    expect(restingView(POINTS, AUJOURDHUI).session).toEqual({ games: 3, delta: 79, averagePlace: 2 });
+  });
+
+  it('prefere la cote lue dans le jeu, en avance sur la base', () => {
+    // La partie qui vient de finir n'est pas encore importee : elle s'ajoute
+    // a la courbe, a la session, et donne l'ecart et la place.
+    const vue = restingView(POINTS, AUJOURDHUI, { rating: 5000, place: 6 });
+
+    expect(vue).toMatchObject({ rating: 5000, lastDelta: -79, lastPlace: 6 });
+    expect(vue.session).toEqual({ games: 4, delta: 0, averagePlace: 3 });
+    expect(vue.history.at(-1)?.rating).toBe(5000);
+  });
+
+  it('n’ajoute rien quand la cote du jeu est deja en base', () => {
+    const vue = restingView(POINTS, AUJOURDHUI, { rating: 5079, place: 1 });
+    expect(vue.history).toHaveLength(3);
+    expect(vue.session.games).toBe(3);
+  });
+
+  it('borne la courbe aux dernieres parties', () => {
+    const beaucoup = Array.from({ length: 60 }, (_, i) =>
+      point(`${HIER}T${String(i % 24).padStart(2, '0')}:${String(i).padStart(2, '0')}:00`, 5000 + i),
+    );
+    expect(restingView(beaucoup, AUJOURDHUI).history).toHaveLength(40);
+  });
+
+  it('reste vide sans aucune cote', () => {
+    expect(restingView([], AUJOURDHUI)).toMatchObject({ rating: null, lastDelta: null, history: [] });
   });
 });
