@@ -11,6 +11,7 @@
  * Il ne fait que lire des fichiers et n'envoie jamais rien au jeu (voir les
  * limites dans CLAUDE.md).
  */
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'node:path';
@@ -346,6 +347,40 @@ async function enregistrerCote(avant: RatingSnapshot): Promise<boolean> {
   return false;
 }
 
+let syncEnCours: Promise<boolean> | null = null;
+
+/**
+ * Lance `npm run sync` en arriere-plan : archive, import, rattachement des
+ * cotes. Environ 3 secondes quand seule la derniere session a bouge.
+ *
+ * Un processus a part plutot qu'un appel direct : l'import ecrit en base de
+ * facon synchrone, et le faire ici gelerait l'overlay le temps qu'il dure.
+ * Un seul a la fois ; un echec est journalise, jamais propage.
+ */
+function lancerSync(): Promise<boolean> {
+  syncEnCours ??= new Promise<boolean>((resolve) => {
+    const enfant = spawn('npm', ['run', '--silent', 'sync'], {
+      cwd: process.cwd(),
+      shell: true,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    enfant.on('error', (erreur) => {
+      console.warn(`sync : ${erreur.message}`);
+      resolve(false);
+    });
+    enfant.on('exit', (code) => {
+      if (code !== 0) console.warn(`sync : code de sortie ${code}`);
+      resolve(code === 0);
+    });
+  }).finally(() => {
+    syncEnCours = null;
+    // La base a change : le rythme de reference aussi.
+    pace = null;
+  });
+  return syncEnCours;
+}
+
 function paceReference(): PaceReference[] {
   pace ??= tierCurve(database()).map((point) => ({
     tier: point.tier,
@@ -425,15 +460,17 @@ async function follow(signal: AbortSignal): Promise<void> {
     // Debut de partie : on note la cote, pour reconnaitre la nouvelle a la fin.
     if (!wasInGame && state.inGame) coteAuDebut = lireCote();
 
-    // La partie vient de se terminer : la cote se lit seule dans le jeu. La
-    // saisie manuelle ne sert plus que de secours, si la lecture echoue.
+    // La partie vient de se terminer. Dans l'ordre : lire la cote, lancer le
+    // sync (qui l'importe et la rattache), et seulement ensuite, si elle
+    // manque encore, proposer la saisie. Avant le sync, la partie qui vient
+    // de finir n'est pas en base : la fenetre viserait la precedente.
     if (wasInGame && !state.inGame) {
       const avant = coteAuDebut;
       void (async () => {
-        if (avant !== null && (await enregistrerCote(avant))) return;
+        if (avant !== null) await enregistrerCote(avant);
+        await lancerSync();
 
-        const games = listGames(database());
-        const last = games.at(-1);
+        const last = listGames(database()).at(-1);
         if (last !== undefined && last.rating === null) {
           openRatingPrompt({ gameId: last.id, label: last.label, datetime: last.datetime });
         }

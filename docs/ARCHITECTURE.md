@@ -240,7 +240,10 @@ cantonné à ce dossier, doit échouer proprement.
 relit toutes les deux secondes jusqu'à ce que le serveur envoie la nouvelle valeur (trois minutes
 au plus), puis **ajoute une ligne datée** à `ratings.csv`. La partie n'est pas encore en base à ce
 moment-là, mais `matchRatings` rattache une cote à la partie la plus proche dans le temps : le
-prochain `npm run sync` fait le lien. La fenêtre de saisie manuelle ne s'ouvre plus qu'en secours.
+prochain `npm run sync` fait le lien. L'overlay lance ensuite **`npm run sync`** lui-même, dans un processus à part (l'import écrit en
+base de façon synchrone et gèlerait l'overlay), un seul à la fois. La fenêtre de saisie ne s'ouvre
+qu'**après** ce sync, et seulement si la cote manque encore : avant, la partie qui vient de finir
+n'est pas en base et la fenêtre visait la précédente.
 
 **Solo ou Duo.** Les logs ne distinguent pas les deux modes. La mémoire, si : seule la cote du mode
 joué bouge (`detectRatingChange`). La ligne ajoutée le note (`lue en jeu (Solo)`).

@@ -205,7 +205,7 @@ Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` 
 
 ## Après une session de jeu
 
-**La tâche planifiée s'en charge déjà.** Pour ne pas attendre le prochain passage, une seule commande
+**L'overlay s'en charge à la fin de chaque partie**, et la tâche planifiée rattrape le reste (parties jouées sans overlay). Pour ne pas attendre le prochain passage, une seule commande
 enchaîne les trois étapes, dans l'ordre :
 
 ```bash
