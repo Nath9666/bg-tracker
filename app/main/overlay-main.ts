@@ -381,6 +381,8 @@ function typesDeLaPartie(state: LiveState): string[] | null {
     typesRelusA = Date.now();
     try {
       lecteurCote ??= openRatingReader();
+      // `null` tant que le jeu n'a pas rempli la liste : on reessaiera, et la
+      // deduction par les serviteurs vus sert en attendant.
       typesPartie = lecteurCote.lobbyRaces();
     } catch {
       lecteurCote?.close();

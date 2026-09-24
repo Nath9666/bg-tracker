@@ -69,8 +69,9 @@ export interface RatingReader {
   read(): BattlegroundsRating;
   /**
    * Types de serviteurs tires pour la partie en cours, au format de la base de
-   * cartes (`MURLOC`, `MECHANICAL`...). `null` hors partie : `GameState`
-   * n'existe que pendant une partie.
+   * cartes (`MURLOC`, `MECHANICAL`...). `null` tant qu'ils ne sont pas connus :
+   * hors partie (`GameState` n'existe que pendant une partie), et au tout
+   * debut du choix du heros, quand la liste existe mais est encore vide.
    */
   lobbyRaces(): string[] | null;
   close(): void;
@@ -247,7 +248,10 @@ function readLobbyRaces(ctx: Context): string[] | null {
     const nom = valeur === null ? null : raceName(valeur);
     if (nom !== null) noms.push(nom);
   }
-  return noms;
+  // Le jeu cree la liste avant de la remplir : au tout debut du choix du
+  // heros, elle est encore vide. Vide veut dire « pas encore connu », pas
+  // « aucun type » -- rendre [] ferait croire a l'appelant qu'il a sa reponse.
+  return noms.length === 0 ? null : noms;
 }
 
 /**
