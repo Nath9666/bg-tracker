@@ -547,7 +547,7 @@ function readKeywords(entity: { tags: Map<string, string> }): MinionKeywords {
  * cardId d'une reference : le bloc detaille le porte deja, sinon on demande a
  * l'etat. Les cartes se designent par `cardId`, jamais par `entityName`.
  */
-function cardIdOf(ref: EntityRef, game: Game): string {
+export function cardIdOf(ref: EntityRef, game: Game): string {
   if (ref.kind === 'entity' && ref.cardId.length > 0) return ref.cardId;
   if (ref.kind === 'entity' || ref.kind === 'id') {
     return game.entities.get(ref.id)?.cardId ?? '';

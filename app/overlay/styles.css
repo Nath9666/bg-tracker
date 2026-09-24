@@ -576,3 +576,61 @@ section h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* --- aide au choix du heros --- */
+
+.choix-heros .fiche {
+  padding: 6px 0;
+  border-top: 1px solid var(--bord);
+}
+
+.choix-heros .fiche:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.choix-heros header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.choix-heros .nom {
+  font-weight: 600;
+}
+
+.choix-heros .meta {
+  color: var(--attenue);
+  font-size: 11px;
+}
+
+/* Trois chiffres alignes en colonnes : on compare les heros d'un coup d'oeil. */
+.choix-heros dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 4px 0 2px;
+  text-align: center;
+}
+
+.choix-heros dt {
+  color: var(--attenue);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.choix-heros dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.choix-heros .type {
+  margin: 2px 0 0;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.choix-heros .type.perime {
+  color: var(--attenue);
+}

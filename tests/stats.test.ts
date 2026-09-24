@@ -7,6 +7,7 @@ import { createHeroBaseResolver, stripSkinSuffix } from '../src/db/hero-base.js'
 import { parseStatsArgs } from '../src/cli/stats.js';
 import {
   finalBoardRaces,
+  heroPickCard,
   heroStats,
   overview,
   placeDistribution,
@@ -350,5 +351,96 @@ describe('parseStatsArgs', () => {
   it('refuse une option inconnue ou sans valeur', () => {
     expect(() => parseStatsArgs(['--from'])).toThrow(/Valeur manquante/);
     expect(() => parseStatsArgs(['--tout'])).toThrow(/Option inconnue/);
+  });
+});
+
+describe('heroPickCard', () => {
+  /** Une partie avec Cariel, dont le plateau final est fait de ces cartes. */
+  function partie(seed: string, place: number, cards: string[], over: Partial<GameSummary> = {}): GameSummary {
+    return game({
+      gameSeed: seed,
+      finalPlace: place,
+      heroChosen: 'BG26_HERO_104',
+      turns: [
+        {
+          turn: 8,
+          tavernTier: 4,
+          gold: 10,
+          health: 20,
+          opponentHero: null,
+          combatResult: 'win',
+          damageTaken: 0,
+          board: cards.map((cardId, index) => ({
+            position: index + 1,
+            cardId,
+            atk: 1,
+            health: 1,
+            damage: 0,
+            golden: false,
+            keywords: emptyKeywords(),
+          })),
+        },
+      ],
+      ...over,
+    });
+  }
+
+  const UNDEAD = ['BG28_300', 'BG28_300'];
+  const MURLOC_PIRATE = ['BG36_760', 'BG36_760'];
+
+  it('reprend place moyenne, top 4 et taux de selection', () => {
+    const db = seeded([
+      partie('1', 2, UNDEAD, { heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'] }),
+      partie('2', 6, UNDEAD, { heroOffered: ['BG26_HERO_104'] }),
+      // Proposee sans etre choisie : fait baisser le taux de selection.
+      game({ gameSeed: '3', heroChosen: 'BG20_HERO_201', heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'] }),
+    ]);
+
+    expect(heroPickCard(db, 'BG26_HERO_104')).toMatchObject({
+      heroName: 'Cariel Roame',
+      played: 2,
+      averagePlace: 4,
+      top4Rate: 0.5,
+      pickRate: 2 / 3,
+    });
+  });
+
+  it('retient le type qui a mene le plus loin, pas le plus frequent', () => {
+    const db = seeded([
+      partie('1', 7, UNDEAD),
+      partie('2', 6, UNDEAD),
+      partie('3', 1, MURLOC_PIRATE),
+    ]);
+
+    // Mort-vivant est joue deux fois, mais Murloc a donne la victoire.
+    expect(heroPickCard(db, 'BG26_HERO_104').bestRace).toMatchObject({ race: 'MURLOC', averagePlace: 1 });
+  });
+
+  it('se limite aux types de la partie quand ils sont connus', () => {
+    const db = seeded([partie('1', 6, UNDEAD), partie('2', 1, MURLOC_PIRATE)]);
+
+    const carte = heroPickCard(db, 'BG26_HERO_104', new Set(['UNDEAD', 'BEAST']));
+    // Murloc a fait mieux, mais il n'est pas dans la partie.
+    expect(carte.bestRace?.race).toBe('UNDEAD');
+    expect(carte.bestRaceInLobby).toBe(true);
+  });
+
+  it('montre le meilleur type tout court quand aucun ne sort dans la partie', () => {
+    const db = seeded([partie('1', 1, MURLOC_PIRATE)]);
+
+    const carte = heroPickCard(db, 'BG26_HERO_104', new Set(['BEAST']));
+    expect(carte.bestRace?.race).toBe('MURLOC');
+    expect(carte.bestRaceInLobby).toBe(false);
+  });
+
+  it('donne une fiche vide mais nommee pour un heros jamais joue', () => {
+    const db = seeded([]);
+
+    expect(heroPickCard(db, 'BG20_HERO_201')).toMatchObject({
+      heroName: 'Vol’jin',
+      played: 0,
+      averagePlace: null,
+      bestRace: null,
+    });
   });
 });

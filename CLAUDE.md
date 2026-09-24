@@ -77,10 +77,15 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 ## Limites à respecter (conditions d'utilisation Blizzard)
 
 - Pas d'**interception réseau**, jamais.
-- **Lecture mémoire : autorisée, pour la seule cote (MMR).** Décidé le 24/09/2026, après avoir
-  vérifié que la cote n'apparait dans **aucun** des dix fichiers qu'une session écrit (voir
+- **Lecture mémoire : autorisée pour deux données absentes des logs.** Décidé le 24/09/2026, après
+  avoir vérifié qu'aucun des dix fichiers qu'une session écrit ne les porte (voir
   `docs/LOG_FORMAT.md`). Hearthstone Deck Tracker ne fait pas autrement : il lit la mémoire du
   processus via HearthMirror.
+  - la **cote** (MMR), Solo et Duo ;
+  - les **types de serviteurs de la partie**, affichés par le jeu lui-même au choix du héros :
+    ce n'est donc pas une information cachée au joueur.
+  Toute nouvelle donnée lue en mémoire doit d'abord être cherchée dans les logs, puis ajoutée à
+  cette liste.
   - **En lecture seule.** Rien n'est jamais écrit dans le processus du jeu.
   - Limité à ce que les logs ne donnent pas. Tout le reste continue de passer par `Power.log` :
     une donnée lisible dans un log ne doit pas être lue en mémoire.

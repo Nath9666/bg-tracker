@@ -26,6 +26,54 @@ export default function Side(): JSX.Element | null {
 
   if (!state.inGame) return null;
 
+  // Pendant le choix du heros, les jauges n'ont pas encore de sens : le
+  // panneau sert uniquement a comparer les heros proposes.
+  if (payload.heroPicks.length > 0) {
+    return (
+      <div className="overlay">
+        <section className="choix-heros">
+          <h2>
+            Choix du héros
+            {lobbyRaces.length > 0 ? ` · ${lobbyRaces.map(raceName).join(', ')}` : ''}
+          </h2>
+          {payload.heroPicks.map((fiche) => (
+            <article key={fiche.heroBaseId} className="fiche">
+              <header>
+                <span className="nom">{fiche.heroName}</span>
+                <span className="meta">
+                  {fiche.played === 0 ? 'jamais joué' : `${fiche.played} partie${fiche.played > 1 ? 's' : ''}`}
+                </span>
+              </header>
+              {fiche.played > 0 && (
+                <dl>
+                  <div>
+                    <dt>place</dt>
+                    <dd>{fiche.averagePlace?.toFixed(1) ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>top 4</dt>
+                    <dd>{fiche.top4Rate === null ? '—' : `${Math.round(fiche.top4Rate * 100)} %`}</dd>
+                  </div>
+                  <div>
+                    <dt>choisi</dt>
+                    <dd>{fiche.pickRate === null ? '—' : `${Math.round(fiche.pickRate * 100)} %`}</dd>
+                  </div>
+                </dl>
+              )}
+              {fiche.bestRace !== null && (
+                <p className={fiche.bestRaceInLobby ? 'type' : 'type perime'}>
+                  meilleur type : {raceName(fiche.bestRace.race)}
+                  {` (${fiche.bestRace.averagePlace?.toFixed(1)}e sur ${fiche.bestRace.games})`}
+                  {!fiche.bestRaceInLobby && lobbyRaces.length > 0 ? ' · absent de la partie' : ''}
+                </p>
+              )}
+            </article>
+          ))}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="overlay">
       <div className="entete">

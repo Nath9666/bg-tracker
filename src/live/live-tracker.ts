@@ -11,7 +11,7 @@
 import type { LogEvent } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
-import { combatResult, gameTurn, readBoard, readZone } from '../extract/game-extractor.js';
+import { cardIdOf, combatResult, gameTurn, readBoard, readZone } from '../extract/game-extractor.js';
 import { readBonuses, type PlayerBonus } from '../extract/player-bonuses.js';
 import type { BoardMinion, CombatResult, TierUp } from '../types.js';
 
@@ -82,6 +82,11 @@ export interface LiveState {
    * l'information deja vue par le joueur, donc dans la regle de l'overlay.
    */
   seenCardIds: string[];
+  /**
+   * Heros proposes au choix de debut de partie, tels qu'ecrits dans le log
+   * (skins compris). Vide avant le choix et des qu'il est fait.
+   */
+  heroOffers: string[];
 }
 
 /** Les deux plateaux d'un combat, figes a son debut. */
@@ -131,6 +136,7 @@ export function emptyState(): LiveState {
     currentCombat: null,
     bonuses: [],
     seenCardIds: [],
+    heroOffers: [],
   };
 }
 
@@ -173,6 +179,9 @@ export class LiveTracker {
   /** Combat en cours : rempli entre le debut de la phase et son issue. */
   #combat: PendingCombat | null = null;
   readonly #seen = new Set<string>();
+  /** Identifiant du choix de heros en cours, tant qu'il n'est pas tranche. */
+  #mulliganId: number | null = null;
+  #choosingMulligan = false;
 
   /** Entite heros du mandataire hors combat, c'est-a-dire Bob. */
   #bobEntityId: number | null = null;
@@ -197,6 +206,8 @@ export class LiveTracker {
         // Les types du lobby sont propres a la partie : les garder ferait
         // croire a un lobby de onze types au bout de quelques parties.
         this.#seen.clear();
+        this.#mulliganId = null;
+        this.#choosingMulligan = false;
         this.#bobEntityId = null;
         this.#heroByPlayerId.clear();
         this.#nextOpponentPlayerId = null;
@@ -231,7 +242,10 @@ export class LiveTracker {
     this.#machine.apply(event);
 
     const game = this.#machine.current;
-    if (game === null || event.type !== 'tagChange') return;
+    if (game === null) return;
+
+    if (this.#observeHeroChoice(event, game)) return;
+    if (event.type !== 'tagChange') return;
 
     const id = this.#machine.resolve(event.entity);
     if (id === null) return;
@@ -348,6 +362,46 @@ export class LiveTracker {
       });
 
     if (!inchange) this.#state = { ...this.#state, bonuses };
+  }
+
+  /**
+   * Suit le choix du heros : les options proposees, puis le choix.
+   *
+   * Meme lecture que l'extracteur hors ligne : un `ChoiceType=MULLIGAN`, ses
+   * entites (source `choices`, et non `chosen`), puis `SendChoices`. Rend vrai
+   * si l'evenement a ete consomme ici.
+   */
+  #observeHeroChoice(event: LogEvent, game: Game): boolean {
+    switch (event.type) {
+      case 'choicesOffered':
+        this.#choosingMulligan = event.choiceType === 'MULLIGAN';
+        if (this.#choosingMulligan) {
+          this.#mulliganId = event.id;
+          this.#state = { ...this.#state, heroOffers: [] };
+        }
+        return true;
+
+      case 'choiceEntity': {
+        if (!this.#choosingMulligan || event.source !== 'choices') return true;
+        const cardId = cardIdOf(event.entity, game);
+        if (cardId.length > 0 && !this.#state.heroOffers.includes(cardId)) {
+          this.#state = { ...this.#state, heroOffers: [...this.#state.heroOffers, cardId] };
+        }
+        return true;
+      }
+
+      case 'choiceMade':
+        // Le choix du heros est tranche : le panneau d'aide n'a plus lieu d'etre.
+        if (event.id === this.#mulliganId) {
+          this.#mulliganId = null;
+          this.#state = { ...this.#state, heroOffers: [] };
+        }
+        this.#choosingMulligan = false;
+        return true;
+
+      default:
+        return false;
+    }
   }
 
   /**

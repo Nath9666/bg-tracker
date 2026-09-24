@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LiveTracker, emptyState } from '../src/live/live-tracker.js';
+import { extractGames } from '../src/extract/game-extractor.js';
 import { readSessionLines } from '../src/reader/session-reader.js';
 import { sampleSessionFolder } from './helpers/sample-session.js';
 
@@ -528,5 +529,41 @@ describe('serviteurs vus', () => {
 
     live.setSession('autre');
     expect(live.state.seenCardIds).toEqual([]);
+  });
+});
+
+describe('heros proposes', () => {
+  it('releve les memes heros que l’extraction hors ligne, puis s’efface au choix', async () => {
+    const dossier = await sampleSessionFolder();
+
+    const [partie] = await (async () => {
+      const parties = [];
+      for await (const s of extractGames(readSessionLines(dossier), {
+        sessionDate: new Date(2026, 8, 19, 2, 47, 25),
+      })) {
+        parties.push(s);
+      }
+      return parties;
+    })();
+
+    const live = new LiveTracker();
+    let vus: string[] = [];
+    for await (const line of readSessionLines(dossier)) {
+      live.pushLine(line);
+      if (live.state.heroOffers.length > vus.length) vus = live.state.heroOffers;
+    }
+
+    expect(vus.length).toBeGreaterThanOrEqual(2);
+    expect([...vus].sort()).toEqual([...(partie?.heroOffered ?? [])].sort());
+    // Une fois le heros choisi, le panneau d'aide n'a plus lieu d'etre.
+    expect(live.state.heroOffers).toEqual([]);
+  });
+
+  it('ignore les decouvertes, qui ne sont pas un choix de heros', () => {
+    const live = tracker([
+      ...OPENING,
+      power('Player=AkiLif#2498 id=5 ChoiceType=GENERAL'),
+    ]);
+    expect(live.state.heroOffers).toEqual([]);
   });
 });

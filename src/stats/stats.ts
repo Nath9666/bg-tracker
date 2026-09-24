@@ -445,3 +445,67 @@ export function playedHeroes(db: Db): { heroBaseId: string; heroName: string; ga
     )
     .all() as { heroBaseId: string; heroName: string; games: number }[];
 }
+
+export interface HeroPickCard {
+  heroBaseId: string;
+  heroName: string;
+  /** Parties jouees avec ce heros : a lire avant tout le reste, trois parties ne prouvent rien. */
+  played: number;
+  averagePlace: number | null;
+  top4Rate: number | null;
+  /** Part des fois ou il a ete choisi quand il etait propose. */
+  pickRate: number | null;
+  /**
+   * Le type qui a mene le plus loin avec ce heros : meilleure place moyenne
+   * du type dominant du plateau final. `null` sans partie jouee.
+   */
+  bestRace: RaceStat | null;
+  /**
+   * Vrai si `bestRace` est bien dans les types de la partie en cours. Faux
+   * quand aucun type deja gagnant n'est disponible, ou quand les types ne sont
+   * pas encore connus : on montre alors le meilleur type tout court.
+   */
+  bestRaceInLobby: boolean;
+}
+
+/**
+ * Fiche d'aide au choix du heros, pour un heros propose.
+ *
+ * `lobbyRaces` restreint le type conseille a ceux tires pour la partie : un
+ * type absent du lobby ne sert a rien. Un plateau final sans type dominant
+ * (`aucun`) reste admis, il n'est pas lie au lobby.
+ */
+export function heroPickCard(
+  db: Db,
+  heroBaseId: string,
+  lobbyRaces: ReadonlySet<string> = new Set(),
+): HeroPickCard {
+  const stat = heroStats(db).find((hero) => hero.heroBaseId === heroBaseId);
+  const races = finalBoardRaces(db, { heroBaseId });
+
+  const meilleur = (candidats: RaceStat[]): RaceStat | null =>
+    [...candidats].sort(
+      (a, b) => (a.averagePlace ?? 9) - (b.averagePlace ?? 9) || b.games - a.games,
+    )[0] ?? null;
+
+  const dansLeLobby = races.filter((r) => r.race === 'aucun' || lobbyRaces.has(r.race));
+  const bestInLobby = lobbyRaces.size > 0 ? meilleur(dansLeLobby) : null;
+
+  const name =
+    stat?.heroName ??
+    (db.prepare('SELECT name FROM cards WHERE card_id = ?').get(heroBaseId) as
+      | { name: string }
+      | undefined)?.name ??
+    heroBaseId;
+
+  return {
+    heroBaseId,
+    heroName: name,
+    played: stat?.played ?? 0,
+    averagePlace: stat?.averagePlace ?? null,
+    top4Rate: stat?.top4Rate ?? null,
+    pickRate: stat?.pickRate ?? null,
+    bestRace: bestInLobby ?? meilleur(races),
+    bestRaceInLobby: bestInLobby !== null,
+  };
+}

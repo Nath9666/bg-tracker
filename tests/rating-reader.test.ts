@@ -44,3 +44,32 @@ describe('sans le jeu', () => {
     expect(tryReadRating()).toBeNull();
   });
 });
+
+describe('raceName', () => {
+  it('traduit les numeros de type au format de la base de cartes', async () => {
+    const { raceName } = await import('../src/memory/rating-reader.js');
+    expect(raceName(14)).toBe('MURLOC');
+    expect(raceName(43)).toBe('QUILBOAR');
+    expect(raceName(126)).toBe('ABERRATION');
+    // Firestone ecrit MECH, HearthstoneJSON MECHANICAL : on s'aligne sur la base.
+    expect(raceName(17)).toBe('MECHANICAL');
+    expect(raceName(9999)).toBeNull();
+  });
+});
+
+describe.skipIf(!enCours)('types de la partie', () => {
+  it('rend null hors partie, ou cinq types connus en partie', () => {
+    const lecteur = openRatingReader();
+    try {
+      const types = lecteur.lobbyRaces();
+      // Hors partie, GameState n'existe pas ; en partie, un lobby compte
+      // cinq types. Les deux sont legitimes selon le moment du test.
+      if (types !== null) {
+        expect(types.length).toBeGreaterThanOrEqual(4);
+        expect(types.length).toBeLessThanOrEqual(6);
+      }
+    } finally {
+      lecteur.close();
+    }
+  });
+});

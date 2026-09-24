@@ -245,6 +245,15 @@ base de façon synchrone et gèlerait l'overlay), un seul à la fois. La fenêtr
 qu'**après** ce sync, et seulement si la cote manque encore : avant, la partie qui vient de finir
 n'est pas en base et la fenêtre visait la précédente.
 
+**Types de la partie.** `lobbyRaces()` lit `GameState.m_availableRacesInBattlegroundsExcludingAmalgam`
+(`null` hors partie, `GameState` n'existant que pendant une partie). Lus une fois par partie, ils
+remplacent la déduction du panneau Taverne et servent au choix du héros.
+
+**Choix du héros.** `LiveTracker.heroOffers` suit le choix `MULLIGAN` comme l'extracteur hors ligne
+(vérifié sur l'extrait de référence : mêmes héros). Pendant ce choix, le panneau de droite remplace
+ses jauges par une fiche par héros (`heroPickCard`) : parties jouées, place moyenne, top 4, taux de
+sélection, et le type du plateau final qui a mené le plus loin **parmi ceux de la partie**.
+
 **Solo ou Duo.** Les logs ne distinguent pas les deux modes. La mémoire, si : seule la cote du mode
 joué bouge (`detectRatingChange`). La ligne ajoutée le note (`lue en jeu (Solo)`).
 

@@ -460,8 +460,13 @@ En revanche `IS_BACON_POOL_MINION value=1` marque bien les cartes du pool des Ch
 La base HearthstoneJSON porte la meme information (`isBattlegroundsPoolMinion`), et c'est elle qu'on
 utilise : 302 serviteurs, tous avec palier et type.
 
-Les types actifs se **deduisent** donc de ce que le joueur a deja vu passer dans la taverne et sur
-les plateaux adverses. Un serviteur sans type, ou de type `ALL`, ne conclut rien : il est dans
+Ils sont en revanche dans la **memoire du jeu**, des le choix du heros :
+`GameState.s_instance.m_availableRacesInBattlegroundsExcludingAmalgam` (`List<TAG_RACE>`), voir
+`src/memory/rating-reader.ts`. Les logs ecrivent les types en toutes lettres (`CARDRACE
+value=QUILBOAR`) : la correspondance numero → nom vient de l'enumeration `Race` de Firestone.
+
+A defaut de la memoire, les types actifs se **deduisent** de ce que le joueur a deja vu passer dans
+la taverne et sur les plateaux adverses. Un serviteur sans type, ou de type `ALL`, ne conclut rien : il est dans
 toutes les parties.
 
 ## Ce qui n'est PAS dans les logs

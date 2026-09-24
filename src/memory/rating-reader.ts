@@ -22,6 +22,7 @@
  * Tout echec rend `null` : ce module ne doit jamais empecher le tracker de
  * fonctionner (voir CLAUDE.md).
  */
+import { Race } from '@firestone-hs/reference-data';
 import { findAssembly, getRootDomain, listAssemblies, MonoLayoutError } from './mono-runtime.js';
 import {
   classOf,
@@ -66,6 +67,12 @@ export class RatingUnavailable extends Error {}
 /** Contexte reutilisable : resoudre la disposition coute quelques centaines de ms. */
 export interface RatingReader {
   read(): BattlegroundsRating;
+  /**
+   * Types de serviteurs tires pour la partie en cours, au format de la base de
+   * cartes (`MURLOC`, `MECHANICAL`...). `null` hors partie : `GameState`
+   * n'existe que pendant une partie.
+   */
+  lobbyRaces(): string[] | null;
   close(): void;
 }
 
@@ -119,6 +126,10 @@ interface Context {
   target: ProcessHandle;
   mono: ModuleInfo;
   layout: MonoLayout;
+  /** `Assembly-CSharp`, pour y retrouver `GameState`. */
+  csharpImage: bigint;
+  /** Classe `GameState`, cherchee au premier besoin : parcourir 14 000 classes coute. */
+  gameState?: bigint | undefined;
   /** Classe `ServiceManager`, dont la statique `s_runtimeServices` est la racine. */
   serviceManager: bigint;
   runtimeServicesOffset: bigint;
@@ -150,6 +161,7 @@ function prepare(pid: number): Context {
       target,
       mono,
       layout,
+      csharpImage: csharp.image,
       serviceManager,
       runtimeServicesOffset: BigInt(statique.offset),
     };
@@ -187,6 +199,58 @@ function readRating(ctx: Context): BattlegroundsRating {
 }
 
 /**
+ * `TAG_RACE` (numero) vers le nom employe par la base de cartes.
+ *
+ * Les logs ecrivent les types en toutes lettres (`CARDRACE value=QUILBOAR`) :
+ * ils ne donnent pas la correspondance. On la prend dans l'enumeration `Race`
+ * de la bibliotheque de reference de Firestone, maintenue a chaque patch. Un
+ * seul nom differe de HearthstoneJSON : `MECH` y est `MECHANICAL`.
+ */
+export function raceName(value: number): string | null {
+  const nom = (Race as unknown as Record<number, string | undefined>)[value];
+  if (nom === undefined) return null;
+  return nom === 'MECH' ? 'MECHANICAL' : nom;
+}
+
+/**
+ * `GameState.s_instance.m_availableRacesInBattlegroundsExcludingAmalgam`, une
+ * `List<TAG_RACE>`. Trouve le 24/09/2026 en parcourant les champs
+ * d'`Assembly-CSharp` ; aucun log ne porte cette liste (verifie).
+ */
+function readLobbyRaces(ctx: Context): string[] | null {
+  const { target, layout } = ctx;
+
+  ctx.gameState ??= findClass(target, ctx.csharpImage, layout, 'GameState') ?? undefined;
+  const gameState = ctx.gameState;
+  if (gameState === undefined) throw new MonoLayoutError('Classe GameState introuvable');
+
+  const statique = listFields(target, gameState, layout).find(
+    (f) => f.isStatic && f.name === 's_instance',
+  );
+  if (statique === undefined) throw new MonoLayoutError('GameState.s_instance introuvable');
+
+  const statiques = staticData(target, gameState, layout);
+  if (statiques === 0n) return null;
+
+  const instance = readPointer(target, statiques + BigInt(statique.offset));
+  if (instance === 0n) return null;
+
+  const liste = readField(target, instance, layout, 'm_availableRacesInBattlegroundsExcludingAmalgam');
+  if (liste === 0n) return null;
+
+  const items = readField(target, liste, layout, '_items');
+  const taille = readInt32(target, liste + fieldOffset(target, classOf(target, liste), layout, '_size')) ?? 0;
+
+  const noms: string[] = [];
+  for (let i = 0n; i < BigInt(Math.min(taille, 32)); i += 1n) {
+    const valeur = readInt32(target, items + ARRAY_DATA + i * 4n);
+    const nom = valeur === null ? null : raceName(valeur);
+    if (nom !== null) noms.push(nom);
+  }
+  return noms;
+}
+
+/**
  * Ouvre le jeu et prepare la lecture.
  *
  * Leve `ProcessNotFound` si le jeu n'est pas lance. La preparation (resoudre
@@ -200,6 +264,7 @@ export function openRatingReader(): RatingReader {
   const ctx = prepare(pid);
   return {
     read: () => readRating(ctx),
+    lobbyRaces: () => readLobbyRaces(ctx),
     close: () => closeProcess(ctx.target),
   };
 }

@@ -27,7 +27,8 @@ import {
   detectRatingChange,
   type RatingSnapshot,
 } from '../../src/ratings/ratings.js';
-import { tierCurve } from '../../src/stats/stats.js';
+import { heroPickCard, tierCurve, type HeroPickCard } from '../../src/stats/stats.js';
+import { createHeroBaseResolver } from '../../src/db/hero-base.js';
 import { openRatingReader, type RatingReader } from '../../src/memory/rating-reader.js';
 import { toLocalIso } from '../../src/extract/log-clock.js';
 import { loadPool, poolByTier, racesSeen, type PoolMinion, type TierPool } from '../../src/pool/minion-pool.js';
@@ -67,6 +68,10 @@ export interface OverlayPayload {
   lobbyRaces: string[];
   /** Cote lue dans la memoire du jeu. `null` si illisible, sans que rien d'autre n'en souffre. */
   rating: RatingSnapshot | null;
+  /** Vrai si les types viennent de la memoire du jeu, faux s'ils sont deduits de ce qui a ete vu. */
+  lobbyRacesFromGame: boolean;
+  /** Fiches d'aide au choix, une par heros propose. Vide hors du choix du heros. */
+  heroPicks: HeroPickCard[];
   /**
    * Estimation du combat en cours.
    *
@@ -347,6 +352,47 @@ async function enregistrerCote(avant: RatingSnapshot): Promise<boolean> {
   return false;
 }
 
+/**
+ * Types de la partie lus en memoire. Fixes pour toute la partie : une fois
+ * lus, on ne relit plus jusqu'a la partie suivante (`session` change, ou
+ * `inGame` repasse a faux).
+ */
+let typesPartie: string[] | null = null;
+let typesRelusA = 0;
+
+function typesDeLaPartie(state: LiveState): string[] | null {
+  if (!state.inGame) {
+    typesPartie = null;
+    return null;
+  }
+  if (typesPartie === null && Date.now() - typesRelusA > 2_000) {
+    typesRelusA = Date.now();
+    try {
+      lecteurCote ??= openRatingReader();
+      typesPartie = lecteurCote.lobbyRaces();
+    } catch {
+      lecteurCote?.close();
+      lecteurCote = null;
+    }
+  }
+  return typesPartie;
+}
+
+/** Fiches du choix de heros, recalculees seulement quand les propositions changent. */
+let fiches: { clef: string; valeur: HeroPickCard[] } = { clef: '', valeur: [] };
+
+function fichesHeros(offres: readonly string[], types: ReadonlySet<string>): HeroPickCard[] {
+  const clef = `${offres.join(',')}|${[...types].sort().join(',')}`;
+  if (fiches.clef === clef) return fiches.valeur;
+
+  const db = database();
+  const base = createHeroBaseResolver(db);
+  // Plusieurs skins d'un meme heros donnent la meme fiche : une seule suffit.
+  const heros = [...new Set(offres.map((cardId) => base(cardId)))];
+  fiches = { clef, valeur: heros.map((id) => heroPickCard(db, id, types)) };
+  return fiches.valeur;
+}
+
 let syncEnCours: Promise<boolean> | null = null;
 
 /**
@@ -375,8 +421,9 @@ function lancerSync(): Promise<boolean> {
     });
   }).finally(() => {
     syncEnCours = null;
-    // La base a change : le rythme de reference aussi.
+    // La base a change : le rythme de reference et les fiches heros aussi.
     pace = null;
+    fiches = { clef: '', valeur: [] };
   });
   return syncEnCours;
 }
@@ -414,7 +461,10 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     for (const minion of opponent.board) noter(minion.cardId);
   }
 
-  const races = racesSeen(state.seenCardIds, minionPool());
+  // Les types lus dans le jeu font foi ; a defaut, on les deduit de ce qui a
+  // deja ete vu, ce qui demande quelques tours.
+  const lusEnJeu = typesDeLaPartie(state);
+  const races = lusEnJeu !== null ? new Set(lusEnJeu) : racesSeen(state.seenCardIds, minionPool());
 
   return {
     state,
@@ -424,6 +474,8 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     pool: poolByTier(minionPool(), races),
     lobbyRaces: [...races].sort(),
     rating: coteAffichee(),
+    lobbyRacesFromGame: lusEnJeu !== null,
+    heroPicks: state.heroOffers.length === 0 ? [] : fichesHeros(state.heroOffers, races),
   };
 }
 
