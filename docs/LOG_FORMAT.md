@@ -4,7 +4,7 @@ Ce document rassemble ce qui a été **vérifié sur un vrai log** (build `25195
 
 ## Activation des logs
 
-Fichier `%LocalAppData%\Blizzard\Hearthstone\log.config`, déjà configuré chez l'utilisateur. La section indispensable :
+Fichier `%LocalAppData%\Blizzard\Hearthstone\log.config`, lu **au démarrage du jeu** seulement. La section indispensable (`npm run doctor` la vérifie) :
 
 ```ini
 [Power]

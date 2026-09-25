@@ -24,8 +24,13 @@ Les phases 0 à 4 sont terminées. La phase 5 exige *plusieurs centaines de part
 les **points de décision** sont collectés à chaque import (table `decisions`) car ils n'existent
 que dans les logs bruts, qui sont élagués au-delà de 200 parties.
 
-⚠️ `better-sqlite3` est un module natif. Après un `npm install`, si l'application Electron se plaint
-d'un `NODE_MODULE_VERSION`, le recompiler : `npx @electron/rebuild -f -w better-sqlite3`.
+`better-sqlite3` 13 embarque des binaires précompilés compatibles avec Node **et** Electron
+(vérifié le 25/09/2026 : ABI 127 et 149) : aucune recompilation n'est nécessaire. Seulement si
+Electron se plaint d'un `NODE_MODULE_VERSION` : `npx @electron/rebuild -f -w better-sqlite3`.
+
+Le dossier des logs est trouvé seul (`src/reader/hearthstone-path.ts`) : `BG_TRACKER_LOGS`, sinon
+le registre où Battle.net inscrit l'installation, sinon l'emplacement par défaut. `npm run doctor`
+vérifie une installation.
 
 ## Stack
 
@@ -45,6 +50,7 @@ npm run typecheck    # vérification des types sans émission
 npm test             # tests Vitest (une passe)
 npm run test:watch   # tests en continu
 npm run lint         # ESLint
+npm run doctor       # vérifie l'installation (logs, log.config, cartes, base)
 npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
 npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
 npm run import -- <dossier>                   # importe les parties en base SQLite

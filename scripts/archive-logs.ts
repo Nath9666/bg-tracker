@@ -21,8 +21,8 @@ import {
   sessionLabel,
   type ArchiveOptions,
 } from '../src/archive/archive-logs.js';
+import { logsFolderPath } from '../src/reader/hearthstone-path.js';
 
-const DEFAULT_SOURCE = 'F:\\SteamLibrary\\Hearthstone\\Logs';
 const DEFAULT_DEST = 'data/archive';
 /**
  * Nombre de parties conservees dans l'archive.
@@ -37,7 +37,8 @@ const RATINGS = 'data/ratings.csv';
 
 export function parseArchiveArgs(argv: readonly string[]): ArchiveOptions {
   const options: ArchiveOptions = {
-    source: process.env['BG_TRACKER_LOGS'] ?? DEFAULT_SOURCE,
+    // BG_TRACKER_LOGS, sinon le registre, sinon l'emplacement par defaut.
+    source: logsFolderPath(),
     dest: process.env['BG_TRACKER_ARCHIVE'] ?? DEFAULT_DEST,
     keep: DEFAULT_KEEP,
     dryRun: false,

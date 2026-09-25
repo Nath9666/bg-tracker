@@ -16,6 +16,7 @@ import { existsSync } from 'node:fs';
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'node:path';
 import { followLogs } from '../../src/reader/live-reader.js';
+import { logsFolderPath } from '../../src/reader/hearthstone-path.js';
 import { LiveTracker, type LiveState } from '../../src/live/live-tracker.js';
 import { loadIndex, type CardInfo } from '../../src/cards/card-database.js';
 import { DEFAULT_DB_PATH, openDatabase, type Db } from '../../src/db/database.js';
@@ -43,9 +44,11 @@ import { loadPool, poolByTier, racesSeen, type PoolMinion, type TierPool } from 
 import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
 import { combatOdds, oddsSignature, type CombatEstimate } from '../../src/sim/combat-odds.js';
 
-/** Dossier `Logs` de Hearthstone. */
-const LOGS_FOLDER =
-  process.env['BG_TRACKER_LOGS'] ?? 'F:\\SteamLibrary\\Hearthstone\\Logs';
+/**
+ * Dossier `Logs` de Hearthstone : `BG_TRACKER_LOGS`, sinon le registre, sinon
+ * l'emplacement par defaut (voir src/reader/hearthstone-path.ts).
+ */
+const LOGS_FOLDER = logsFolderPath();
 
 /**
  * Rythme de montee de taverne dans les parties reussies, tire de la base.
