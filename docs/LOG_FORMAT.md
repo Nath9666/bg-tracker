@@ -449,6 +449,18 @@ sur le Chaton de Kel'Thuzad), pas la cote du joueur.
 Hearthstone Deck Tracker l'obtient en **lisant la memoire du processus** (bibliotheque
 HearthMirror). Voir `CLAUDE.md` pour la decision du projet sur ce point.
 
+## Statistiques de carriere : absentes des logs
+
+Les statistiques de profil des Champs de bataille affichees par le jeu (tops 4, victoires,
+serviteurs tues, triples, ameliorations de taverne, joueurs elimines, degats max, plus puissant
+serviteur, heures de jeu, meilleure serie) ne sont dans **aucun** des fichiers d'une session.
+
+Verifie le 26/09/2026 en cherchant les valeurs exactes de l'utilisateur (145916, 124303, 59794,
+29805, 9106, 5512) dans les quatorze fichiers de la session du jour, dont `All.log`,
+`Gameplay.log` et `Spells.log`. Seules correspondances : des numeros de taches internes du moteur
+dans `Power.log` (`PowerTaskList.DebugDump() - ID=5512`), sans rapport. Ce sont des compteurs tenus
+par le serveur, qui couvrent toute la carriere, bien au-dela des parties vues par le tracker.
+
 ## Types du lobby : toujours pas declares
 
 `BACON_SUBSET_<TYPE>` existe pour les onze types, mais il est porte par **chaque carte** et enumere
