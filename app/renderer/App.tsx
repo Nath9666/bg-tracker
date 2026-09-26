@@ -88,30 +88,79 @@ function Section({
 type Minion = Dashboard['finalBoards'][string][number];
 
 /**
- * Plateau final d'une partie : un jeton par serviteur, de gauche a droite.
- * Le type et le palier sont dans l'infobulle, pour garder la ligne courte.
+ * Illustration d'une carte, servie par HearthstoneJSON (la meme source que la
+ * base de cartes). Le cadrage 256x existe pour tous les serviteurs des Champs
+ * de bataille, dores et cartes recentes compris ; les cartes completes rendues,
+ * non (verifie le 26/09/2026). Chromium les garde en cache disque.
  */
+function artUrl(cardId: string): string {
+  return `https://art.hearthstonejson.com/v1/256x/${encodeURIComponent(cardId)}.jpg`;
+}
+
+/** Identifiant de la version normale d'un dore, pour une illustration de secours. */
+function versionNormale(cardId: string): string | null {
+  return cardId.endsWith('_G') ? cardId.slice(0, -2) : null;
+}
+
+function initiales(nom: string): string {
+  return nom
+    .split(/[\s’'-]+/)
+    .filter((mot) => mot.length > 2)
+    .slice(0, 2)
+    .map((mot) => mot[0]!.toUpperCase())
+    .join('');
+}
+
+/**
+ * Un serviteur, comme sur le plateau du jeu : l'illustration en ovale,
+ * l'attaque en bas a gauche, la vie en bas a droite. Le nom, le palier et
+ * les types sont dans l'infobulle.
+ */
+function Serviteur({ minion }: { minion: Minion }): JSX.Element {
+  // Sans image : un dore essaie sa version normale, puis on affiche les initiales.
+  const [source, setSource] = useState<string | null>(artUrl(minion.cardId));
+
+  const infobulle = [
+    minion.name,
+    minion.golden ? 'Doré' : null,
+    minion.techLevel === null ? null : `Palier ${minion.techLevel}`,
+    minion.races.length === 0 ? null : minion.races.map(raceName).join(', '),
+    `${minion.atk ?? '?'}/${minion.health ?? '?'}`,
+  ]
+    .filter((x) => x !== null)
+    .join(' · ');
+
+  return (
+    <div className={minion.golden ? 'serviteur dore' : 'serviteur'} title={infobulle}>
+      <div className="portrait">
+        {source === null ? (
+          <span className="initiales">{initiales(minion.name)}</span>
+        ) : (
+          <img
+            src={source}
+            alt={minion.name}
+            loading="lazy"
+            draggable={false}
+            onError={() => {
+              const normale = versionNormale(minion.cardId);
+              setSource(normale !== null && source === artUrl(minion.cardId) ? artUrl(normale) : null);
+            }}
+          />
+        )}
+      </div>
+      <span className="stat-atk">{minion.atk ?? '?'}</span>
+      <span className="stat-pv">{minion.health ?? '?'}</span>
+    </div>
+  );
+}
+
+/** Plateau final d'une partie, de gauche a droite comme en jeu. */
 function PlateauFinal({ board }: { board: Minion[] | undefined }): JSX.Element {
   if (board === undefined || board.length === 0) return <span className="attenue">—</span>;
   return (
     <div className="plateau-final">
       {board.map((minion) => (
-        <span
-          key={minion.position}
-          className={minion.golden ? 'jeton dore' : 'jeton'}
-          title={[
-            minion.golden ? 'Doré' : null,
-            minion.techLevel === null ? null : `Palier ${minion.techLevel}`,
-            minion.races.length === 0 ? null : minion.races.map(raceName).join(', '),
-          ]
-            .filter((x) => x !== null)
-            .join(' · ')}
-        >
-          <span className="jeton-nom">{minion.name}</span>
-          <span className="jeton-stats">
-            {minion.atk ?? '?'}/{minion.health ?? '?'}
-          </span>
-        </span>
+        <Serviteur key={`${minion.position}-${minion.cardId}`} minion={minion} />
       ))}
     </div>
   );

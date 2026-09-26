@@ -276,37 +276,81 @@ input.cote::placeholder {
 .plateau-final {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  /* Assez large pour sept jetons sur deux lignes au plus. */
-  min-width: 360px;
+  /* Les pastilles debordent de 4 px de chaque cote : l'ecart doit les
+     empecher de se toucher d'un serviteur a l'autre. */
+  gap: 8px 14px;
+  /* Sept serviteurs sur une ligne. */
+  min-width: 490px;
+  padding: 2px 4px 8px;
 }
 
-.jeton {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 2px 7px;
-  border: 1px solid var(--bord);
-  border-radius: 999px;
-  background: var(--fond);
-  font-size: 12px;
-  white-space: nowrap;
+/* Un serviteur comme sur le plateau : illustration ovale, attaque a gauche,
+   vie a droite, en bas. */
+.serviteur {
+  position: relative;
+  width: 56px;
+  height: 70px;
+  flex: none;
 }
 
-/* Dore : la bordure seule le signale, et l'infobulle le dit en toutes lettres. */
-.jeton.dore {
-  border-color: var(--accent);
-}
-
-.jeton-nom {
-  max-width: 130px;
+.portrait {
+  width: 56px;
+  height: 66px;
+  border-radius: 50% / 46%;
   overflow: hidden;
-  text-overflow: ellipsis;
+  border: 2px solid #4b4560;
+  background: #2a2638;
+  display: grid;
+  place-items: center;
 }
 
-.jeton-stats {
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Le cadrage 256x est large : on centre sur le visage. */
+  object-position: 50% 30%;
+}
+
+/* Dore : liseré or et leger halo, comme en jeu. */
+.serviteur.dore .portrait {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.55);
+}
+
+.initiales {
   color: var(--attenue);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.stat-atk,
+.stat-pv {
+  position: absolute;
+  bottom: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
   font-variant-numeric: tabular-nums;
+  /* Contour sombre : lisible sur n'importe quelle illustration. */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  border: 1.5px solid #14121c;
+}
+
+.stat-atk {
+  left: -4px;
+  background: #b8860b;
+}
+
+.stat-pv {
+  right: -4px;
+  background: #b3323c;
 }
 
 .attenue {
