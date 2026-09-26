@@ -48,7 +48,11 @@ const PERIODES: { libelle: string; jours: number | null }[] = [
 
 const axe = { stroke: COULEURS.attenue, fontSize: 12 };
 const infobulle = {
-  contentStyle: { background: '#1d1a29', border: '1px solid #2e2a3f', borderRadius: 8 },
+  contentStyle: {
+    background: '#1d1a29',
+    border: '1px solid #2e2a3f',
+    borderRadius: 8,
+  },
   labelStyle: { color: '#9a93b3' },
 };
 
@@ -143,7 +147,9 @@ function Serviteur({ minion }: { minion: Minion }): JSX.Element {
             draggable={false}
             onError={() => {
               const normale = versionNormale(minion.cardId);
-              setSource(normale !== null && source === artUrl(minion.cardId) ? artUrl(normale) : null);
+              setSource(
+                normale !== null && source === artUrl(minion.cardId) ? artUrl(normale) : null,
+              );
             }}
           />
         )}
@@ -171,7 +177,9 @@ function Heros({
   nom: string | null;
   taille?: 'petit' | 'grand';
 }): JSX.Element {
-  const candidats = [cardId, baseId].filter((id): id is string => id !== null && id !== undefined && id !== '');
+  const candidats = [cardId, baseId].filter(
+    (id): id is string => id !== null && id !== undefined && id !== '',
+  );
   const [essai, setEssai] = useState(0);
   const source = candidats[essai];
 
@@ -215,6 +223,30 @@ function milliers(valeur: number): string {
 }
 
 /**
+ * Une duree en secondes, decoupee en unites lisibles : 90061 devient
+ * « 1 j 1 h 1 min 1 s ». Un mois compte 30 jours et une annee 365 : c'est un
+ * ordre de grandeur, pas un calendrier. Les unites nulles sont omises.
+ */
+function duree(secondes: number): string {
+  const unites: [number, string][] = [
+    [365 * 86400, 'an'],
+    [30 * 86400, 'mois'],
+    [86400, 'j'],
+    [3600, 'h'],
+    [60, 'min'],
+    [1, 's'],
+  ];
+  let reste = Math.max(0, Math.floor(secondes));
+  const morceaux: string[] = [];
+  for (const [taille, nom] of unites) {
+    const n = Math.floor(reste / taille);
+    reste -= n * taille;
+    if (n > 0) morceaux.push(`${n} ${nom === 'an' && n > 1 ? 'ans' : nom}`);
+  }
+  return morceaux.length === 0 ? '0 s' : morceaux.join(' ');
+}
+
+/**
  * Statistiques de carriere, lues dans le jeu.
  *
  * Le plus puissant serviteur tient en deux compteurs (attaque, vie) : on les
@@ -229,12 +261,10 @@ function Carriere({
 }): JSX.Element {
   const lignes = carriere.lines
     .filter((l) => l.key !== 'strongestMinionAtk' && l.key !== 'strongestMinionHealth')
-    // Le jeu compte en secondes ; on affiche des heures, comme lui.
-    .map((l) =>
-      l.key === 'secondsPlayed'
-        ? { ...l, value: Math.floor(l.value / 3600), delta: l.delta === null ? null : Math.floor(l.delta / 3600) }
-        : l,
-    );
+    .map((l) => (l.key === 'secondsPlayed' ? { ...l, label: 'Temps de jeu' } : l));
+  // Le jeu compte le temps de jeu en secondes : on le decoupe en annees, mois, jours...
+  const formater = (cle: string, valeur: number): string =>
+    cle === 'secondsPlayed' ? duree(valeur) : milliers(valeur);
   const atk = carriere.lines.find((l) => l.key === 'strongestMinionAtk');
   const vie = carriere.lines.find((l) => l.key === 'strongestMinionHealth');
 
@@ -242,10 +272,10 @@ function Carriere({
     <div className="carriere">
       {lignes.map((ligne) => (
         <div key={ligne.key} className="stat">
-          <span className="stat-valeur">{milliers(ligne.value)}</span>
+          <span className="stat-valeur">{formater(ligne.key, ligne.value)}</span>
           <span className="stat-libelle">{ligne.label}</span>
           {ligne.delta !== null && ligne.delta !== 0 && (
-            <span className="stat-delta">+{milliers(ligne.delta)} en 7 jours</span>
+            <span className="stat-delta">+{formater(ligne.key, ligne.delta)} en 7 jours</span>
           )}
         </div>
       ))}
@@ -269,7 +299,10 @@ function Carriere({
                 <Heros cardId={troupe.heroCardId} nom={troupe.heroName} taille="grand" />
               </span>
               <PlateauFinal
-                board={troupe.minions.map((m, position) => ({ ...m, position: position + 1 }))}
+                board={troupe.minions.map((m, position) => ({
+                  ...m,
+                  position: position + 1,
+                }))}
               />
             </div>
           ))}
@@ -472,7 +505,10 @@ export default function App(): JSX.Element {
             <Indicateur valeur={place(vue.averagePlace)} libelle="place moyenne" />
             <Indicateur valeur={percent(vue.top4Rate)} libelle="top 4" />
             <Indicateur valeur={String(vue.wins)} libelle="victoires" />
-            <Indicateur valeur={vue.latestRating === null ? '—' : String(vue.latestRating)} libelle="dernière cote" />
+            <Indicateur
+              valeur={vue.latestRating === null ? '—' : String(vue.latestRating)}
+              libelle="dernière cote"
+            />
           </div>
 
           <Section
@@ -507,7 +543,8 @@ export default function App(): JSX.Element {
                   {...infobulle}
                   labelFormatter={(value: string, charge) => {
                     // Par partie, la cle est un id : on montre la date exacte.
-                    const point = charge?.[0]?.payload as { startedAt: string; games: number } | undefined;
+                    const point = charge?.[0]?.payload as
+                      { startedAt: string; games: number } | undefined;
                     if (point === undefined) return periodLabel(value);
                     if (finesse === 'game') return dateTime(point.startedAt);
                     return `${periodLabel(value)} · ${point.games} partie${point.games > 1 ? 's' : ''}`;
@@ -673,7 +710,9 @@ export default function App(): JSX.Element {
                 : `Toute ta carrière, lue dans le jeu le ${dateTime(donnees.career.takenAt)}. Indépendant des filtres.`
             }
           >
-            {donnees.career !== null && <Carriere carriere={donnees.career} troupes={donnees.warbands} />}
+            {donnees.career !== null && (
+              <Carriere carriere={donnees.career} troupes={donnees.warbands} />
+            )}
           </Section>
 
           <Section
@@ -710,7 +749,11 @@ export default function App(): JSX.Element {
                     <tr key={ligne.gameId}>
                       <td>{dateTime(ligne.startedAt)}</td>
                       <td>
-                        <Heros cardId={ligne.heroCardId} baseId={ligne.heroBaseId} nom={ligne.heroName} />
+                        <Heros
+                          cardId={ligne.heroCardId}
+                          baseId={ligne.heroBaseId}
+                          nom={ligne.heroName}
+                        />
                       </td>
                       <td>{ligne.place ?? '—'}</td>
                       <td>
