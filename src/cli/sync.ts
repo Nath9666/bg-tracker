@@ -23,8 +23,12 @@ import {
   writeRatingsTemplate,
 } from '../ratings/ratings.js';
 
-async function main(): Promise<void> {
-  const archive = parseArchiveArgs(process.argv.slice(2));
+/**
+ * Archive, importe et rattache les cotes. Exporte pour que l'application le
+ * lance sans `npm` (voir app/main/worker.ts).
+ */
+export async function runSync(argv: readonly string[] = []): Promise<void> {
+  const archive = parseArchiveArgs(argv);
 
   console.log('1/3  Archivage');
   const archived = await archiveLogs(archive);
@@ -70,7 +74,7 @@ async function main(): Promise<void> {
 
 const entryPoint = process.argv[1];
 if (entryPoint !== undefined && import.meta.url === pathToFileURL(entryPoint).href) {
-  await main().catch((error: unknown) => {
+  void runSync(process.argv.slice(2)).catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

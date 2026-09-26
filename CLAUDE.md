@@ -60,8 +60,9 @@ npm run sim-cards    # base de cartes du simulateur de combat (42 Mo, mise en ca
 npm run ratings      # complète data/ratings.csv et rattache les cotes saisies
 npm run stats        # analyses : places, héros, paliers, types (--from --to --hero)
 npm run export       # jeu de données JSON Lines pour Python (--top4)
-npm run app          # tableau de bord Electron (compile puis lance)
-npm run overlay      # overlay transparent à lancer avant de jouer
+npm run app          # l'application, tableau de bord ouvert (compile puis lance)
+npm run overlay      # l'application, overlay seul, icône près de l'horloge
+npm run dist         # installateur Windows dans release/ (electron-builder)
 npm run sync         # archive + importe + rattache les cotes, en une commande
 npm run archive      # archive les sessions Hearthstone (phase 0)
 npm run archive -- --dry-run                  # simulation, sans rien écrire

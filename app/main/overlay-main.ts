@@ -11,15 +11,15 @@
  * Il ne fait que lire des fichiers et n'envoie jamais rien au jeu (voir les
  * limites dans CLAUDE.md).
  */
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { app, BrowserWindow, ipcMain, screen } from 'electron';
+import { BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'node:path';
 import { followLogs } from '../../src/reader/live-reader.js';
 import { logsFolderPath } from '../../src/reader/hearthstone-path.js';
 import { LiveTracker, type LiveState } from '../../src/live/live-tracker.js';
 import { loadIndex, type CardInfo } from '../../src/cards/card-database.js';
-import { DEFAULT_DB_PATH, openDatabase, type Db } from '../../src/db/database.js';
+import { database } from './database.js';
+import { runTask } from './tasks.js';
 import {
   DEFAULT_RATINGS_PATH,
   listGames,
@@ -107,13 +107,7 @@ let simUnavailable = false;
 let oddsCache: { signature: string; value: CombatEstimate } | null = null;
 
 let prompt: BrowserWindow | null = null;
-let db: Db | null = null;
 let latest: OverlayPayload | null = null;
-
-function database(): Db {
-  db ??= openDatabase(process.env['BG_TRACKER_DB'] ?? DEFAULT_DB_PATH);
-  return db;
-}
 
 /**
  * Fenetres de l'overlay, toutes transparentes et traversantes aux clics.
@@ -430,30 +424,15 @@ async function rediffuser(): Promise<void> {
 let syncEnCours: Promise<boolean> | null = null;
 
 /**
- * Lance `npm run sync` en arriere-plan : archive, import, rattachement des
- * cotes. Environ 3 secondes quand seule la derniere session a bouge.
+ * Synchronise en arriere-plan : archive, import, rattachement des cotes.
+ * Environ 3 secondes quand seule la derniere session a bouge.
  *
- * Un processus a part plutot qu'un appel direct : l'import ecrit en base de
- * facon synchrone, et le faire ici gelerait l'overlay le temps qu'il dure.
+ * Dans un processus a part (voir tasks.ts) : l'import ecrit en base de facon
+ * synchrone et gelerait l'overlay, et l'application installee n'a pas `npm`.
  * Un seul a la fois ; un echec est journalise, jamais propage.
  */
 function lancerSync(): Promise<boolean> {
-  syncEnCours ??= new Promise<boolean>((resolve) => {
-    const enfant = spawn('npm', ['run', '--silent', 'sync'], {
-      cwd: process.cwd(),
-      shell: true,
-      windowsHide: true,
-      stdio: 'ignore',
-    });
-    enfant.on('error', (erreur) => {
-      console.warn(`sync : ${erreur.message}`);
-      resolve(false);
-    });
-    enfant.on('exit', (code) => {
-      if (code !== 0) console.warn(`sync : code de sortie ${code}`);
-      resolve(code === 0);
-    });
-  }).finally(() => {
+  syncEnCours ??= runTask('sync').finally(() => {
     syncEnCours = null;
     // La base a change : le rythme de reference et les fiches heros aussi.
     pace = null;
@@ -602,17 +581,50 @@ ipcMain.on('live:closePrompt', () => {
   prompt = null;
 });
 
-const controller = new AbortController();
+let controller: AbortController | null = null;
 
-void app.whenReady().then(() => {
+/** Demarre l'overlay : ses fenetres, le simulateur, le suivi des logs. */
+export function startOverlay(): void {
+  if (controller !== null) return;
+  controller = new AbortController();
   createOverlay();
   startSimCards();
   void follow(controller.signal);
-});
+}
 
-app.on('window-all-closed', () => {
-  controller.abort();
-  db?.close();
-  db = null;
-  app.quit();
-});
+/** Arrete le suivi et ferme les fenetres de l'overlay. */
+export function stopOverlay(): void {
+  controller?.abort();
+  controller = null;
+  for (const window of fenetres.values()) if (!window.isDestroyed()) window.destroy();
+  fenetres.clear();
+  lecteurCote?.close();
+  lecteurCote = null;
+}
+
+/** Masque ou montre les fenetres, sans arreter le suivi : rien n'est perdu. */
+export function setOverlayVisible(visible: boolean): void {
+  for (const window of fenetres.values()) {
+    if (window.isDestroyed()) continue;
+    if (visible) window.showInactive();
+    else window.hide();
+  }
+}
+
+/**
+ * Recharge les cartes du simulateur, une fois telechargees apres le
+ * demarrage (premier lancement de l'application installee).
+ */
+export function reloadSimCards(): void {
+  simUnavailable = false;
+  simCards = null;
+  oddsCache = null;
+  startSimCards();
+}
+
+/** Synchronise maintenant, a la demande, puis redessine. */
+export async function syncNow(): Promise<boolean> {
+  const ok = await lancerSync();
+  await rediffuser();
+  return ok;
+}

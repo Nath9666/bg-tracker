@@ -43,8 +43,9 @@ export function parseCardsArgs(argv: readonly string[]): CardsCliOptions {
   return options;
 }
 
-async function main(): Promise<void> {
-  const options = parseCardsArgs(process.argv.slice(2));
+/** Telecharge la base de cartes et l'ecrit en base. Exporte pour l'application. */
+export async function runCards(argv: readonly string[] = []): Promise<void> {
+  const options = parseCardsArgs(argv);
 
   console.log('Téléchargement de HearthstoneJSON (frFR, enUS)…');
   const [french, english] = await Promise.all([fetchCards('frFR'), fetchCards('enUS')]);
@@ -73,7 +74,7 @@ async function main(): Promise<void> {
 
 const entryPoint = process.argv[1];
 if (entryPoint !== undefined && import.meta.url === pathToFileURL(entryPoint).href) {
-  await main().catch((error: unknown) => {
+  void runCards(process.argv.slice(2)).catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

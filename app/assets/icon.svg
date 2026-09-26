@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="or" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3d36a"/>
+      <stop offset="1" stop-color="#c9971f"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#1b1824"/>
+  <!-- Blason de taverne : un bouclier dore, lisible meme a 16 px. -->
+  <path d="M128 36 L204 64 V124 C204 170 172 204 128 222 C84 204 52 170 52 124 V64 Z" fill="url(#or)"/>
+  <path d="M128 58 L184 79 V124 C184 159 161 185 128 200 C95 185 72 159 72 124 V79 Z" fill="#1b1824"/>
+  <text x="128" y="152" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="72" fill="url(#or)">BG</text>
+</svg>

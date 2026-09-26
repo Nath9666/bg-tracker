@@ -192,6 +192,29 @@ héros. Un bonus à zéro n'est pas affiché.
 
 Sans le cache de cartes, l'estimation est simplement absente : le reste de l'overlay fonctionne.
 
+### L'application (un seul programme)
+
+`app/main/app-main.ts` est l'unique point d'entrée Electron : il démarre l'overlay
+(`overlay-main.ts`), ouvre le tableau de bord à la demande (`main.ts`), et vit près de l'horloge
+(`Tray`). Une seule instance à la fois ; la relancer ramène le tableau de bord. Une seule connexion
+à la base, partagée (`database.ts`).
+
+- **Données.** Tous les chemins du projet sont relatifs (`data/...`) : l'application se place dans
+  le bon dossier avant toute lecture. Installée, `%AppData%\BG Tracker` ; en développement, le
+  dossier du projet ; `BG_TRACKER_HOME` force un autre dossier.
+- **Tâches longues** (sync, téléchargement des cartes) : `tasks.ts` les lance dans un
+  `utilityProcess` (`worker.ts`), le Node embarqué par Electron. Installée, l'application n'a ni
+  Node ni `npm` ; et l'import, synchrone, gèlerait l'overlay s'il tournait dans le processus
+  principal.
+- **Premier lancement** : proposition de copier un dossier `data` existant, puis téléchargement
+  des cartes manquantes. Un sync tourne à chaque démarrage.
+- **Installateur** : `npm run dist` (electron-builder, NSIS). Seuls `better-sqlite3` et `koffi`
+  sont livrés comme dépendances ; React, Recharts et le moteur de Firestone sont déjà empaquetés
+  par Vite et esbuild. Les `.node` restent hors de l'archive `asar` (`asarUnpack`).
+
+Les commandes en ligne ne font plus d'`await` au niveau du module (`void main()`) : esbuild le
+refuse en CommonJS, et le processus de travail réutilise `runSync` et `runCards`.
+
 ### Lecture mémoire (cote)
 
 ⚠️ `src/memory/` **sort de la règle « uniquement les fichiers de log »**. Il existe pour une seule

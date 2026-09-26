@@ -5,7 +5,7 @@
  * qu'Electron charge le plus simplement), Vite pour les interfaces React.
  */
 import { build } from 'esbuild';
-import { rm } from 'node:fs/promises';
+import { cp, rm } from 'node:fs/promises';
 
 const OUT = 'dist/app';
 
@@ -13,10 +13,12 @@ await rm(OUT, { recursive: true, force: true });
 
 await build({
   entryPoints: {
-    main: 'app/main/main.ts',
+    // Un seul programme : overlay, tableau de bord et icone pres de l'horloge.
+    app: 'app/main/app-main.ts',
     preload: 'app/main/preload.ts',
-    overlay: 'app/main/overlay-main.ts',
     'overlay-preload': 'app/main/overlay-preload.ts',
+    // Taches longues (sync, telechargements), dans un processus a part.
+    worker: 'app/main/worker.ts',
   },
   outdir: OUT,
   outExtension: { '.js': '.cjs' },
@@ -30,3 +32,6 @@ await build({
   external: ['electron', 'better-sqlite3', 'koffi'],
   logLevel: 'info',
 });
+
+// Icones de la zone de notification et de l'installateur.
+await cp('app/assets', `${OUT}/assets`, { recursive: true });

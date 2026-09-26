@@ -15,7 +15,43 @@ Tout reste sur la machine. Rien n'est envoyé nulle part, et rien n'est jamais e
 
 ---
 
-## Installer sur un nouvel ordinateur
+## Installer avec l'installateur (le plus simple)
+
+1. Lancer **`BG Tracker Setup 0.1.0.exe`** (produit par `npm run dist`, dans `release/`).
+   Windows affiche « Windows a protégé votre ordinateur » : l'installateur n'est pas signé.
+   Cliquer sur **Informations complémentaires**, puis **Exécuter quand même**.
+2. Activer les logs du jeu : voir l'[étape 4](#4-activer-les-logs-du-jeu) plus bas. C'est la seule
+   étape manuelle, et elle est indispensable.
+3. Au premier lancement, l'application propose de **reprendre un historique** : choisir le dossier
+   `data` d'une installation précédente pour y retrouver ses parties, ses cotes et l'archive des
+   logs. Il est copié, jamais déplacé.
+
+C'est tout : pas de Node.js, pas de terminal. Les bases de cartes se téléchargent seules au premier
+lancement.
+
+L'application vit **près de l'horloge** (icône BG dorée) :
+
+| Action | Effet |
+|---|---|
+| clic sur l'icône | ouvre le tableau de bord |
+| clic droit → *Afficher l'overlay* | masque ou montre l'overlay, sans arrêter le suivi |
+| clic droit → *Synchroniser maintenant* | archive et importe tout de suite |
+| clic droit → *Lancer au démarrage de Windows* | l'application démarre avec Windows |
+| clic droit → *Ouvrir le dossier des données* | `%AppData%\BG Tracker` |
+| clic droit → *Quitter BG Tracker* | ferme tout |
+
+Fermer le tableau de bord ne quitte pas l'application : l'overlay continue de suivre les parties.
+À chaque lancement, elle synchronise les parties jouées pendant qu'elle était fermée.
+
+**Où sont les données** : dans `%AppData%\BG Tracker\data`. Avec l'option *Lancer au démarrage de
+Windows*, la tâche planifiée de [`docs/ARCHIVAGE.md`](docs/ARCHIVAGE.md) devient inutile — et elle
+alimente l'ancien dossier `data/` du projet, pas celui de l'application.
+
+---
+
+## Installer depuis le code source
+
+Pour développer, ou sans installateur.
 
 ### 1. Prérequis
 
@@ -115,6 +151,9 @@ du nouvel ordinateur.
 
 ### Avant de jouer
 
+Avec l'installateur : rien, si l'application démarre avec Windows ; sinon, lancer *BG Tracker*
+depuis le menu Démarrer. Depuis le code source :
+
 ```bash
 npm run overlay
 ```
@@ -134,11 +173,14 @@ Les fenêtres laissent passer les clics : elles ne gênent jamais le jeu.
 
 ### Pour analyser ses parties
 
+Un clic sur l'icône près de l'horloge, ou depuis le code source :
+
 ```bash
 npm run app
 ```
 
-Le tableau de bord se relit en revenant sur sa fenêtre, ou avec le bouton *Rafraîchir*. La cote se
+`npm run app` et `npm run overlay` lancent la même application ; le premier ouvre en plus le tableau
+de bord. Le tableau de bord se relit en revenant sur sa fenêtre, ou avec le bouton *Rafraîchir*. La cote se
 corrige en cliquant dessus.
 
 ### Si l'overlay n'était pas lancé
@@ -160,6 +202,7 @@ l'ouverture de session et chaque nuit.
 | `npm run app` | tableau de bord |
 | `npm run sync` | archive + import + cotes, en une fois |
 | `npm run doctor` | vérifie l'installation |
+| `npm run dist` | construit l'installateur `release/BG Tracker Setup <version>.exe` |
 | `npm run cards` / `npm run sim-cards` | télécharge les bases de cartes |
 | `npm run stats` | statistiques en ligne de commande (`--from --to --hero`) |
 | `npm run ratings` | complète `data/ratings.csv` et rattache les cotes saisies à la main |
@@ -181,6 +224,7 @@ emplacements :
 | `BG_TRACKER_LOGS` | trouvé dans le registre, sinon `C:\Program Files (x86)\Hearthstone\Logs` |
 | `BG_TRACKER_ARCHIVE` | `data/archive` |
 | `BG_TRACKER_DB` | `data/bg-tracker.db` |
+| `BG_TRACKER_HOME` | dossier contenant `data/` : `%AppData%\BG Tracker` pour l'application installée, le dossier du projet sinon |
 
 Pour la définir durablement (y compris pour la tâche planifiée) :
 

@@ -1,18 +1,21 @@
 /**
- * Processus principal Electron.
+ * Tableau de bord : sa fenetre et ses reponses IPC.
  *
- * Il ouvre la base en lecture et repond aux demandes du rendu par IPC. Toutes
- * les analyses viennent de `src/stats`, les memes que `npm run stats` : le
- * rendu ne touche jamais a SQLite, il ne recoit que des objets simples.
+ * Il repond aux demandes du rendu par IPC. Toutes les analyses viennent de
+ * `src/stats`, les memes que `npm run stats` : le rendu ne touche jamais a
+ * SQLite, il ne recoit que des objets simples.
+ *
+ * Plus de cycle de vie propre : c'est `app-main.ts` qui lance l'application et
+ * ouvre cette fenetre a la demande.
  */
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import {
   DEFAULT_RATINGS_PATH,
   listGames,
   writeRatingsTemplate,
 } from '../../src/ratings/ratings.js';
-import { DEFAULT_DB_PATH, openDatabase, type Db } from '../../src/db/database.js';
+import { database } from './database.js';
 import {
   finalBoardRaces,
   heroStats,
@@ -36,13 +39,6 @@ export interface Dashboard {
   playedHeroes: ReturnType<typeof playedHeroes>;
 }
 
-let db: Db | null = null;
-
-function database(): Db {
-  db ??= openDatabase(process.env['BG_TRACKER_DB'] ?? DEFAULT_DB_PATH);
-  return db;
-}
-
 function buildDashboard(filters: StatsFilters): Dashboard {
   const handle = database();
   return {
@@ -56,7 +52,16 @@ function buildDashboard(filters: StatsFilters): Dashboard {
   };
 }
 
-function createWindow(): void {
+let fenetre: BrowserWindow | null = null;
+
+/** Ouvre le tableau de bord, ou le ramene devant s'il est deja ouvert. */
+export function openDashboard(): void {
+  if (fenetre !== null && !fenetre.isDestroyed()) {
+    if (fenetre.isMinimized()) fenetre.restore();
+    fenetre.focus();
+    return;
+  }
+
   const window = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -72,7 +77,11 @@ function createWindow(): void {
   });
 
   window.removeMenu();
+  window.on('closed', () => {
+    fenetre = null;
+  });
   void window.loadFile(join(__dirname, 'ui', 'renderer', 'index.html'));
+  fenetre = window;
 }
 
 ipcMain.handle('dashboard', (_event, filters: StatsFilters) => buildDashboard(filters ?? {}));
@@ -88,18 +97,4 @@ ipcMain.handle('setRating', async (_event, gameId: string, rating: number | null
   const handle = database();
   handle.prepare('UPDATE games SET rating_after = ? WHERE id = ?').run(rating, gameId);
   await writeRatingsTemplate(DEFAULT_RATINGS_PATH, listGames(handle));
-});
-
-void app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-app.on('window-all-closed', () => {
-  db?.close();
-  db = null;
-  if (process.platform !== 'darwin') app.quit();
 });

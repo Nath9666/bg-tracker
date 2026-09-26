@@ -14,8 +14,8 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "doctor": "tsx src/cli/doctor.ts",
-    "app": "npm run app:build && electron dist/app/main.cjs",
-    "overlay": "npm run app:build && electron dist/app/overlay.cjs",
+    "app": "npm run app:build && electron dist/app/app.cjs --dashboard",
+    "overlay": "npm run app:build && electron dist/app/app.cjs",
     "app:build": "node app/build.mjs && vite build --config app/vite.config.ts",
     "sync": "tsx src/cli/sync.ts",
     "parse": "tsx src/cli/parse.ts",
@@ -26,18 +26,24 @@
     "stats": "tsx src/cli/stats.ts",
     "export": "tsx src/cli/export.ts",
     "archive": "tsx scripts/archive-logs.ts",
-    "make-fixture": "tsx scripts/make-fixture.ts"
+    "make-fixture": "tsx scripts/make-fixture.ts",
+    "dist": "npm run app:build && electron-builder --win"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
     "@eslint/js": "^9.17.0",
+    "@firestone-hs/simulate-bgs-battle": "^1.1.755",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.17.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
@@ -45,11 +51,38 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
-    "@firestone-hs/simulate-bgs-battle": "^1.1.755",
     "better-sqlite3": "^13.0.3",
-    "koffi": "^3.3.1",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "recharts": "^3.10.1"
+    "koffi": "^3.3.1"
+  },
+  "main": "dist/app/app.cjs",
+  "productName": "BG Tracker",
+  "author": "Nathan",
+  "build": {
+    "appId": "fr.bgtracker.app",
+    "productName": "BG Tracker",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/app/**/*",
+      "!dist/app/**/*.map",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "app/assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BG Tracker",
+      "artifactName": "BG Tracker Setup ${version}.${ext}"
+    }
   }
 }

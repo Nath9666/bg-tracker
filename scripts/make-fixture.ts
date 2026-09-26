@@ -107,7 +107,7 @@ async function main(): Promise<void> {
 // createGameStateFilter sans declencher la generation de l'extrait.
 const entryPoint = process.argv[1];
 if (entryPoint !== undefined && import.meta.url === pathToFileURL(entryPoint).href) {
-  await main().catch((error: unknown) => {
+  void main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

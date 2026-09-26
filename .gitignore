@@ -10,3 +10,4 @@ fixtures/**/*.log
 
 .DS_Store
 Thumbs.db
+release/
