@@ -527,6 +527,12 @@ export interface RestingView {
   session: { games: number; delta: number | null; averagePlace: number | null };
   /** Les dernieres cotes, de la plus ancienne a la plus recente. */
   history: RatingPoint[];
+  /**
+   * Vrai entre la fin d'une partie et l'arrivee de sa cote : le serveur met
+   * quelques secondes a l'envoyer. `rating` est alors encore l'ancienne, et
+   * l'ecart de la derniere partie n'est pas connu.
+   */
+  pending: boolean;
 }
 
 /**
@@ -540,20 +546,27 @@ export interface RestingView {
 export function restingView(
   points: readonly TimelinePoint[],
   today: string,
-  live: { rating: number | null; place: number | null } = { rating: null, place: null },
+  live: { rating: number | null; place: number | null; pending?: boolean } = {
+    rating: null,
+    place: null,
+  },
   historySize = 40,
 ): RestingView {
   const liveRating = live.rating;
+  const pending = live.pending === true;
   const cotes: RatingPoint[] = points
     .filter((p): p is TimelinePoint & { rating: number } => p.rating !== null)
     .map((p) => ({ startedAt: p.startedAt, rating: p.rating }));
 
   const derniere = cotes.at(-1)?.rating ?? null;
-  const enAvance = liveRating !== null && liveRating !== derniere;
+  const enAvance = !pending && liveRating !== null && liveRating !== derniere;
+  // La partie qui vient de finir n'est ni en base ni dans la cote : elle
+  // compte dans la session, mais sans ecart tant que la cote n'est pas la.
+  const horsBase = enAvance || pending;
   if (enAvance) cotes.push({ startedAt: `${today}T23:59:59`, rating: liveRating });
 
   const n = cotes.length;
-  const lastDelta = n >= 2 ? cotes[n - 1]!.rating - cotes[n - 2]!.rating : null;
+  const lastDelta = pending ? null : n >= 2 ? cotes[n - 1]!.rating - cotes[n - 2]!.rating : null;
 
   // Session du jour : ecart entre la derniere cote et celle d'avant la session.
   const duJour = points.filter((p) => p.startedAt.startsWith(today));
@@ -562,18 +575,19 @@ export function restingView(
   // La partie pas encore importee compte dans la session, avec sa place.
   const places = [
     ...duJour.map((p) => p.place),
-    ...(enAvance ? [live.place] : []),
+    ...(horsBase ? [live.place] : []),
   ].filter((p): p is number => p !== null);
 
   return {
     rating: liveRating ?? derniere,
     lastDelta,
-    lastPlace: enAvance ? live.place : (points.at(-1)?.place ?? null),
+    lastPlace: horsBase ? live.place : (points.at(-1)?.place ?? null),
     session: {
-      games: duJour.length + (enAvance ? 1 : 0),
+      games: duJour.length + (horsBase ? 1 : 0),
       delta: avant !== null && finSession !== null ? finSession - avant : null,
       averagePlace: places.length === 0 ? null : places.reduce((a, b) => a + b, 0) / places.length,
     },
     history: cotes.slice(-historySize),
+    pending,
   };
 }

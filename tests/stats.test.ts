@@ -490,6 +490,16 @@ describe('restingView', () => {
     expect(restingView(beaucoup, AUJOURDHUI).history).toHaveLength(40);
   });
 
+  it('n’annonce ni ecart ni ancienne place tant que la cote n’est pas arrivee', () => {
+    // Juste apres la fin : le jeu donne encore l'ancienne cote (5079). Sans
+    // ce drapeau, l'ecran afficherait l'ecart de la partie precedente.
+    const vue = restingView(POINTS, AUJOURDHUI, { rating: 5079, place: 6, pending: true });
+
+    expect(vue).toMatchObject({ pending: true, rating: 5079, lastDelta: null, lastPlace: 6 });
+    expect(vue.session.games).toBe(4);
+    expect(vue.history).toHaveLength(3);
+  });
+
   it('reste vide sans aucune cote', () => {
     expect(restingView([], AUJOURDHUI)).toMatchObject({ rating: null, lastDelta: null, history: [] });
   });

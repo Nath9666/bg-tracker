@@ -410,6 +410,23 @@ function fichesHeros(offres: readonly string[], types: ReadonlySet<string>): Her
   return fiches.valeur;
 }
 
+/** Dernier etat du tracker, pour redessiner sans attendre une ligne de log. */
+let etatCourant: LiveState | null = null;
+/** Vrai entre la fin d'une partie et l'arrivee de sa nouvelle cote. */
+let coteEnAttente = false;
+
+/**
+ * Redessine les fenetres avec l'etat courant.
+ *
+ * L'overlay ne se redessine d'ordinaire qu'a l'arrivee de lignes de log. Or
+ * apres une partie, dans le menu, le log ne bouge presque plus : la cote qui
+ * arrive quelques secondes apres la fin, ou la partie que le sync vient
+ * d'importer, ne s'afficheraient jamais.
+ */
+async function rediffuser(): Promise<void> {
+  if (etatCourant !== null) broadcast(await buildPayload(etatCourant));
+}
+
 let syncEnCours: Promise<boolean> | null = null;
 
 /**
@@ -499,7 +516,7 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
       : restingView(
           (historique ??= timeline(database())),
           toLocalIso(new Date()).slice(0, 10),
-          { rating: coteAffichee()?.solo ?? null, place: state.place },
+          { rating: coteAffichee()?.solo ?? null, place: state.place, pending: coteEnAttente },
         ),
   };
 }
@@ -532,10 +549,19 @@ async function follow(signal: AbortSignal): Promise<void> {
     }
 
     const state = tracker.state;
-    broadcast(await buildPayload(state));
+    etatCourant = state;
 
     // Debut de partie : on note la cote, pour reconnaitre la nouvelle a la fin.
-    if (!wasInGame && state.inGame) coteAuDebut = lireCote();
+    if (!wasInGame && state.inGame) {
+      coteAuDebut = lireCote();
+      coteEnAttente = false;
+    }
+    // Fin de partie : la cote du jeu est encore l'ancienne, le serveur envoie
+    // la nouvelle quelques secondes plus tard. On le dit, plutot que
+    // d'afficher l'ancienne comme si c'etait celle de cette partie.
+    if (wasInGame && !state.inGame) coteEnAttente = coteAuDebut !== null;
+
+    broadcast(await buildPayload(state));
 
     // La partie vient de se terminer. Dans l'ordre : lire la cote, lancer le
     // sync (qui l'importe et la rattache), et seulement ensuite, si elle
@@ -545,7 +571,13 @@ async function follow(signal: AbortSignal): Promise<void> {
       const avant = coteAuDebut;
       void (async () => {
         if (avant !== null) await enregistrerCote(avant);
+        // Cote arrivee (ou abandon au bout de trois minutes) : on redessine.
+        coteEnAttente = false;
+        await rediffuser();
+
         await lancerSync();
+        // La partie est maintenant en base : courbe et bilan a jour.
+        await rediffuser();
 
         const last = listGames(database()).at(-1);
         if (last !== undefined && last.rating === null) {

@@ -89,11 +89,21 @@ export default function Repos({ vue }: { vue: Vue }): JSX.Element {
         </div>
 
         <div className="cote-heros">
-          <span className="cote-valeur">{vue.rating}</span>
+          {/* En attente, la valeur affichee est encore l'ancienne : on l'estompe. */}
+          <span className={vue.pending ? 'cote-valeur ancienne' : 'cote-valeur'}>{vue.rating}</span>
           <span className="cote-libelle">cote</span>
         </div>
 
-        {vue.lastDelta !== null && (
+        {vue.pending && (
+          <p className="derniere">
+            <span className="en-attente">mise à jour de la cote…</span>
+            <span className="attenue">
+              partie terminée{vue.lastPlace === null ? '' : ` · ${vue.lastPlace}e`}
+            </span>
+          </p>
+        )}
+
+        {!vue.pending && vue.lastDelta !== null && (
           <p className="derniere">
             <Ecart valeur={vue.lastDelta} />
             <span className="attenue">

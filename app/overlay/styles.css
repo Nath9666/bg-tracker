@@ -819,3 +819,23 @@ section h2 {
     stroke-dashoffset: 0;
   }
 }
+
+/* --- cote en attente, juste apres une partie --- */
+
+.cote-valeur.ancienne {
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+
+.en-attente {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  animation: respiration 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .en-attente {
+    animation: none;
+  }
+}
