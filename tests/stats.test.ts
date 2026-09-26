@@ -449,7 +449,7 @@ describe('heroPickCard', () => {
 
 describe('restingView', () => {
   function point(startedAt: string, rating: number | null, place: number | null = 4) {
-    return { gameId: startedAt, startedAt, heroName: 'x', place, rating, rollingPlace: null };
+    return { gameId: startedAt, startedAt, heroName: 'x', heroCardId: 'x', heroBaseId: 'x', place, rating, rollingPlace: null };
   }
   const HIER = '2026-09-23';
   const AUJOURDHUI = '2026-09-24';
@@ -568,5 +568,16 @@ describe('finalBoards', () => {
 
   it('omet une partie sans plateau releve', () => {
     expect(finalBoards(seeded([game({ gameSeed: '9', turns: [] })]))).toEqual({});
+  });
+});
+
+describe('timeline, illustrations du heros', () => {
+  it('remonte le skin joue et son heros de base', () => {
+    // Le skin sert a l'illustration ; le heros de base, de secours.
+    const db = seeded([game({ heroChosen: 'BG22_HERO_000_SKIN_A' })]);
+    expect(timeline(db)[0]).toMatchObject({
+      heroCardId: 'BG22_HERO_000_SKIN_A',
+      heroBaseId: 'BG22_HERO_000',
+    });
   });
 });

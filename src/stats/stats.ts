@@ -103,6 +103,10 @@ export interface TimelinePoint {
   gameId: string;
   startedAt: string;
   heroName: string;
+  /** Heros joue, skin compris : c'est son illustration qu'on affiche. */
+  heroCardId: string;
+  /** Heros de base, illustration de secours si celle du skin manque. */
+  heroBaseId: string;
   place: number | null;
   rating: number | null;
   /** Place moyenne glissante sur les parties precedentes, cette partie comprise. */
@@ -119,6 +123,7 @@ export function timeline(db: Db, filters: StatsFilters = {}, window = 10): Timel
     .prepare(
       `SELECT g.id AS gameId, g.started_at AS startedAt,
               COALESCE(c.name, g.hero_card_id) AS heroName,
+              g.hero_card_id AS heroCardId, g.hero_base_id AS heroBaseId,
               g.final_place AS place, g.rating_after AS rating
        FROM games g
        LEFT JOIN cards c ON c.card_id = g.hero_card_id

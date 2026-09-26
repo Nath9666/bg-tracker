@@ -5,6 +5,8 @@ function point(over: Partial<TimelinePoint> & { startedAt: string }): TimelinePo
   return {
     gameId: over.startedAt,
     heroName: 'Cariel Roame',
+    heroCardId: 'BG21_HERO_000',
+    heroBaseId: 'BG21_HERO_000',
     place: 4,
     rating: 8000,
     rollingPlace: 4,

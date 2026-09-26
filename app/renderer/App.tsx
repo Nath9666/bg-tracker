@@ -154,6 +154,47 @@ function Serviteur({ minion }: { minion: Minion }): JSX.Element {
   );
 }
 
+/**
+ * Portrait de heros, rond comme au choix du heros en jeu, suivi de son nom.
+ *
+ * Le skin joue d'abord : c'est lui que le joueur a vu. A defaut d'image, le
+ * heros de base, puis les initiales.
+ */
+function Heros({
+  cardId,
+  baseId,
+  nom,
+  taille = 'petit',
+}: {
+  cardId: string | null;
+  baseId?: string | null;
+  nom: string | null;
+  taille?: 'petit' | 'grand';
+}): JSX.Element {
+  const candidats = [cardId, baseId].filter((id): id is string => id !== null && id !== undefined && id !== '');
+  const [essai, setEssai] = useState(0);
+  const source = candidats[essai];
+
+  return (
+    <span className="heros">
+      <span className={`portrait-heros ${taille}`}>
+        {source === undefined ? (
+          <span className="initiales">{initiales(nom ?? '?')}</span>
+        ) : (
+          <img
+            src={artUrl(source)}
+            alt=""
+            loading="lazy"
+            draggable={false}
+            onError={() => setEssai((i) => i + 1)}
+          />
+        )}
+      </span>
+      <span className="heros-nom">{nom ?? '—'}</span>
+    </span>
+  );
+}
+
 /** Plateau final d'une partie, de gauche a droite comme en jeu. */
 function PlateauFinal({ board }: { board: Minion[] | undefined }): JSX.Element {
   if (board === undefined || board.length === 0) return <span className="attenue">—</span>;
@@ -224,7 +265,9 @@ function Carriere({
               <span className={troupe.place <= 4 ? 'troupe-place top4' : 'troupe-place'}>
                 {troupe.place}e
               </span>
-              <span className="troupe-heros">{troupe.heroName ?? '—'}</span>
+              <span className="troupe-heros">
+                <Heros cardId={troupe.heroCardId} nom={troupe.heroName} taille="grand" />
+              </span>
               <PlateauFinal
                 board={troupe.minions.map((m, position) => ({ ...m, position: position + 1 }))}
               />
@@ -581,7 +624,9 @@ export default function App(): JSX.Element {
                     .filter((ligne) => ligne.played > 0)
                     .map((ligne) => (
                       <tr key={ligne.heroBaseId}>
-                        <td>{ligne.heroName}</td>
+                        <td>
+                          <Heros cardId={ligne.heroBaseId} nom={ligne.heroName} />
+                        </td>
                         <td>{ligne.played}</td>
                         <td>{ligne.offered}</td>
                         <td>{percent(ligne.pickRate)}</td>
@@ -664,7 +709,9 @@ export default function App(): JSX.Element {
                   {[...timeline].reverse().map((ligne) => (
                     <tr key={ligne.gameId}>
                       <td>{dateTime(ligne.startedAt)}</td>
-                      <td>{ligne.heroName}</td>
+                      <td>
+                        <Heros cardId={ligne.heroCardId} baseId={ligne.heroBaseId} nom={ligne.heroName} />
+                      </td>
                       <td>{ligne.place ?? '—'}</td>
                       <td>
                         <Cote
