@@ -50,6 +50,8 @@ npm run typecheck    # vérification des types sans émission
 npm test             # tests Vitest (une passe)
 npm run test:watch   # tests en continu
 npm run lint         # ESLint
+npm run format       # Prettier : met en forme tout le projet
+npm run format:check # Prettier : vérifie sans rien modifier
 npm run doctor       # vérifie l'installation (logs, log.config, cartes, base)
 npm run parse -- <dossier_de_logs>            # résumé des parties trouvées
 npm run --silent parse -- <dossier> --json    # les GameSummary en JSON (--silent : sans la bannière npm)
@@ -80,6 +82,8 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
 5. **Pas d'invention sur le format de log.** Si un comportement n'est pas documenté dans `docs/LOG_FORMAT.md`, le vérifier dans un vrai fichier de log (avec `grep`) avant de coder, puis compléter `LOG_FORMAT.md`.
 6. **Mettre à jour la doc.** Quand une tâche de `ROADMAP.md` est finie, cocher la case. Quand on découvre quelque chose sur le format de log, l'ajouter à `LOG_FORMAT.md`.
 7. **Langue.** Code, noms de variables et messages de commit en anglais. Documentation et commentaires explicatifs en français.
+8. **Mise en forme.** Prettier fait foi (`.prettierrc.json` : guillemets simples, 100 colonnes). Passer
+   `npm run format` avant de commiter ; ne jamais formater sans cette configuration.
 
 ## Limites à respecter (conditions d'utilisation Blizzard)
 
