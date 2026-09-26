@@ -204,4 +204,24 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    name: 'career_snapshots',
+    sql: `
+      -- Statistiques de carriere des Champs de bataille, lues dans la memoire
+      -- du jeu (aucun log ne les porte, voir docs/LOG_FORMAT.md). Un releve
+      -- date par lecture qui change quelque chose : on suit ainsi leur
+      -- evolution, pas seulement leur derniere valeur.
+      --
+      -- Clef/valeur plutot qu'une colonne par compteur : un compteur decouvert
+      -- plus tard en memoire y entre sans nouvelle migration.
+      CREATE TABLE career_snapshots (
+        taken_at TEXT NOT NULL,          -- ISO 8601, heure locale
+        stat     TEXT NOT NULL,          -- ex. 'top4', 'minionsKilled'
+        value    INTEGER NOT NULL,
+        PRIMARY KEY (taken_at, stat)
+      );
+
+      CREATE INDEX idx_career_stat ON career_snapshots(stat, taken_at);
+    `,
+  },
 ];

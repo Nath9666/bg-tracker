@@ -16,6 +16,8 @@ import {
   writeRatingsTemplate,
 } from '../../src/ratings/ratings.js';
 import { database } from './database.js';
+import { careerView } from '../../src/career/career.js';
+import { toLocalIso } from '../../src/extract/log-clock.js';
 import {
   finalBoardRaces,
   finalBoards,
@@ -40,6 +42,8 @@ export interface Dashboard {
   playedHeroes: ReturnType<typeof playedHeroes>;
   /** Plateau final de chaque partie, par identifiant de partie. */
   finalBoards: ReturnType<typeof finalBoards>;
+  /** Statistiques de carriere, avec leur progression sur 7 jours. `null` sans releve. */
+  career: ReturnType<typeof careerView>;
 }
 
 function buildDashboard(filters: StatsFilters): Dashboard {
@@ -53,6 +57,8 @@ function buildDashboard(filters: StatsFilters): Dashboard {
     races: finalBoardRaces(handle, filters),
     playedHeroes: playedHeroes(handle),
     finalBoards: finalBoards(handle, filters),
+    // Independantes des filtres : ce sont des compteurs de toute la carriere.
+    career: careerView(handle, toLocalIso(new Date(Date.now() - 7 * 86_400_000)).slice(0, 10)),
   };
 }
 

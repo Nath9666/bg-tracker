@@ -317,3 +317,38 @@ input.cote::placeholder {
 th.a-gauche {
   text-align: left;
 }
+
+/* --- statistiques de carriere --- */
+
+.carriere {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--fond);
+}
+
+.stat-valeur {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-libelle {
+  color: var(--attenue);
+  font-size: 12px;
+}
+
+.stat-delta {
+  color: var(--bon);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

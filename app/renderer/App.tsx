@@ -117,6 +117,49 @@ function PlateauFinal({ board }: { board: Minion[] | undefined }): JSX.Element {
   );
 }
 
+type Carriere = NonNullable<Dashboard['career']>;
+
+/** Un grand nombre lisible : 145916 devient « 145 916 ». */
+function milliers(valeur: number): string {
+  return valeur.toLocaleString('fr-FR');
+}
+
+/**
+ * Statistiques de carriere, lues dans le jeu.
+ *
+ * Le plus puissant serviteur tient en deux compteurs (attaque, vie) : on les
+ * reunit sur une seule carte, comme le fait le jeu.
+ */
+function Carriere({ carriere }: { carriere: Carriere }): JSX.Element {
+  const lignes = carriere.lines.filter(
+    (l) => l.key !== 'strongestMinionAtk' && l.key !== 'strongestMinionHealth',
+  );
+  const atk = carriere.lines.find((l) => l.key === 'strongestMinionAtk');
+  const vie = carriere.lines.find((l) => l.key === 'strongestMinionHealth');
+
+  return (
+    <div className="carriere">
+      {lignes.map((ligne) => (
+        <div key={ligne.key} className="stat">
+          <span className="stat-valeur">{milliers(ligne.value)}</span>
+          <span className="stat-libelle">{ligne.label}</span>
+          {ligne.delta !== null && ligne.delta !== 0 && (
+            <span className="stat-delta">+{milliers(ligne.delta)} en 7 jours</span>
+          )}
+        </div>
+      ))}
+      {atk !== undefined && vie !== undefined && (
+        <div className="stat">
+          <span className="stat-valeur">
+            {milliers(atk.value)}/{milliers(vie.value)}
+          </span>
+          <span className="stat-libelle">Plus puissant serviteur</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Lecture sure d'une preference : le stockage peut etre indisponible. */
 function preference(clef: string, defaut: boolean): boolean {
   try {
@@ -499,6 +542,17 @@ export default function App(): JSX.Element {
                 ))}
               </tbody>
             </table>
+          </Section>
+
+          <Section
+            titre="Carrière"
+            aide={
+              donnees.career === null
+                ? 'Lance BG Tracker, puis ouvre l’écran de statistiques des Champs de bataille dans Hearthstone : les chiffres de toute ta carrière s’afficheront ici.'
+                : `Toute ta carrière, lue dans le jeu le ${dateTime(donnees.career.takenAt)}. Indépendant des filtres.`
+            }
+          >
+            {donnees.career !== null && <Carriere carriere={donnees.career} />}
           </Section>
 
           <Section
