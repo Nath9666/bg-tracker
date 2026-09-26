@@ -31,20 +31,20 @@ lancement.
 
 L'application vit **près de l'horloge** (icône BG dorée) :
 
-| Action | Effet |
-|---|---|
-| clic sur l'icône | ouvre le tableau de bord |
-| clic droit → *Afficher l'overlay* | masque ou montre l'overlay, sans arrêter le suivi |
-| clic droit → *Synchroniser maintenant* | archive et importe tout de suite |
-| clic droit → *Lancer au démarrage de Windows* | l'application démarre avec Windows |
-| clic droit → *Ouvrir le dossier des données* | `%AppData%\BG Tracker` |
-| clic droit → *Quitter BG Tracker* | ferme tout |
+| Action                                        | Effet                                             |
+| --------------------------------------------- | ------------------------------------------------- |
+| clic sur l'icône                              | ouvre le tableau de bord                          |
+| clic droit → _Afficher l'overlay_             | masque ou montre l'overlay, sans arrêter le suivi |
+| clic droit → _Synchroniser maintenant_        | archive et importe tout de suite                  |
+| clic droit → _Lancer au démarrage de Windows_ | l'application démarre avec Windows                |
+| clic droit → _Ouvrir le dossier des données_  | `%AppData%\BG Tracker`                            |
+| clic droit → _Quitter BG Tracker_             | ferme tout                                        |
 
 Fermer le tableau de bord ne quitte pas l'application : l'overlay continue de suivre les parties.
 À chaque lancement, elle synchronise les parties jouées pendant qu'elle était fermée.
 
-**Où sont les données** : dans `%AppData%\BG Tracker\data`. Avec l'option *Lancer au démarrage de
-Windows*, la tâche planifiée de [`docs/ARCHIVAGE.md`](docs/ARCHIVAGE.md) devient inutile — et elle
+**Où sont les données** : dans `%AppData%\BG Tracker\data`. Avec l'option _Lancer au démarrage de
+Windows_, la tâche planifiée de [`docs/ARCHIVAGE.md`](docs/ARCHIVAGE.md) devient inutile — et elle
 alimente l'ancien dossier `data/` du projet, pas celui de l'application.
 
 ---
@@ -55,11 +55,11 @@ Pour développer, ou sans installateur.
 
 ### 1. Prérequis
 
-| Il faut | Pourquoi |
-|---|---|
-| **Windows** 10 ou 11 | le jeu, la lecture de la cote et la tâche planifiée sont propres à Windows |
-| **Node.js 20 ou plus** — [nodejs.org](https://nodejs.org), version LTS | fait tourner tout le projet |
-| **Hearthstone**, installé par Battle.net | évidemment |
+| Il faut                                                                | Pourquoi                                                                   |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Windows** 10 ou 11                                                   | le jeu, la lecture de la cote et la tâche planifiée sont propres à Windows |
+| **Node.js 20 ou plus** — [nodejs.org](https://nodejs.org), version LTS | fait tourner tout le projet                                                |
+| **Hearthstone**, installé par Battle.net                               | évidemment                                                                 |
 
 Rien d'autre : pas de compilateur, pas de Python (sauf pour la future partie IA, voir plus bas).
 
@@ -151,7 +151,7 @@ du nouvel ordinateur.
 
 ### Avant de jouer
 
-Avec l'installateur : rien, si l'application démarre avec Windows ; sinon, lancer *BG Tracker*
+Avec l'installateur : rien, si l'application démarre avec Windows ; sinon, lancer _BG Tracker_
 depuis le menu Démarrer. Depuis le code source :
 
 ```bash
@@ -164,12 +164,12 @@ cours de partie : il rattrape ce qui s'est déjà passé.
 
 Les fenêtres laissent passer les clics : elles ne gênent jamais le jeu.
 
-| Où | Quoi |
-|---|---|
-| haut gauche | prochain adversaire, combats passés, adversaires affrontés — **entre deux parties** : la cote et sa courbe |
-| haut centre | estimation du combat en cours : victoire, nul, défaite, létal, dégâts moyens |
+| Où          | Quoi                                                                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| haut gauche | prochain adversaire, combats passés, adversaires affrontés — **entre deux parties** : la cote et sa courbe                                      |
+| haut centre | estimation du combat en cours : victoire, nul, défaite, létal, dégâts moyens                                                                    |
 | haut droite | place, PV, palier, or, cote ; ce que la taverne peut encore proposer ; rythme de paliers — **au choix du héros** : tes statistiques avec chacun |
-| bas centre | bonus cumulés : gemmes de sang, or du tour suivant, râles d'agonie doublés |
+| bas centre  | bonus cumulés : gemmes de sang, or du tour suivant, râles d'agonie doublés                                                                      |
 
 ### Pour analyser ses parties
 
@@ -180,7 +180,7 @@ npm run app
 ```
 
 `npm run app` et `npm run overlay` lancent la même application ; le premier ouvre en plus le tableau
-de bord. Le tableau de bord se relit en revenant sur sa fenêtre, ou avec le bouton *Rafraîchir*. La cote se
+de bord. Le tableau de bord se relit en revenant sur sa fenêtre, ou avec le bouton _Rafraîchir_. La cote se
 corrige en cliquant dessus.
 
 ### Si l'overlay n'était pas lancé
@@ -196,21 +196,21 @@ l'ouverture de session et chaque nuit.
 
 ## Toutes les commandes
 
-| Commande | Rôle |
-|---|---|
-| `npm run overlay` | overlay en jeu — la seule à lancer au quotidien |
-| `npm run app` | tableau de bord |
-| `npm run sync` | archive + import + cotes, en une fois |
-| `npm run doctor` | vérifie l'installation |
-| `npm run dist` | construit l'installateur `release/BG Tracker Setup <version>.exe` |
-| `npm run cards` / `npm run sim-cards` | télécharge les bases de cartes |
-| `npm run stats` | statistiques en ligne de commande (`--from --to --hero`) |
-| `npm run ratings` | complète `data/ratings.csv` et rattache les cotes saisies à la main |
-| `npm run archive` | archive seule (`-- --dry-run` pour simuler) |
-| `npm run import -- <dossier>` | importe un dossier de logs (`--force` pour tout relire) |
-| `npm run parse -- <dossier>` | résumé des parties d'un dossier, sans rien écrire |
-| `npm run export` | jeu de données pour Python (`--top4`) |
-| `npm test` · `npm run lint` · `npm run typecheck` | vérifications de développement |
+| Commande                                          | Rôle                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| `npm run overlay`                                 | overlay en jeu — la seule à lancer au quotidien                     |
+| `npm run app`                                     | tableau de bord                                                     |
+| `npm run sync`                                    | archive + import + cotes, en une fois                               |
+| `npm run doctor`                                  | vérifie l'installation                                              |
+| `npm run dist`                                    | construit l'installateur `release/BG Tracker Setup <version>.exe`   |
+| `npm run cards` / `npm run sim-cards`             | télécharge les bases de cartes                                      |
+| `npm run stats`                                   | statistiques en ligne de commande (`--from --to --hero`)            |
+| `npm run ratings`                                 | complète `data/ratings.csv` et rattache les cotes saisies à la main |
+| `npm run archive`                                 | archive seule (`-- --dry-run` pour simuler)                         |
+| `npm run import -- <dossier>`                     | importe un dossier de logs (`--force` pour tout relire)             |
+| `npm run parse -- <dossier>`                      | résumé des parties d'un dossier, sans rien écrire                   |
+| `npm run export`                                  | jeu de données pour Python (`--top4`)                               |
+| `npm test` · `npm run lint` · `npm run typecheck` | vérifications de développement                                      |
 
 ---
 
@@ -219,12 +219,12 @@ l'ouverture de session et chaque nuit.
 Tout fonctionne sans configuration. Trois variables d'environnement permettent de changer les
 emplacements :
 
-| Variable | Par défaut |
-|---|---|
-| `BG_TRACKER_LOGS` | trouvé dans le registre, sinon `C:\Program Files (x86)\Hearthstone\Logs` |
-| `BG_TRACKER_ARCHIVE` | `data/archive` |
-| `BG_TRACKER_DB` | `data/bg-tracker.db` |
-| `BG_TRACKER_HOME` | dossier contenant `data/` : `%AppData%\BG Tracker` pour l'application installée, le dossier du projet sinon |
+| Variable             | Par défaut                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `BG_TRACKER_LOGS`    | trouvé dans le registre, sinon `C:\Program Files (x86)\Hearthstone\Logs`                                    |
+| `BG_TRACKER_ARCHIVE` | `data/archive`                                                                                              |
+| `BG_TRACKER_DB`      | `data/bg-tracker.db`                                                                                        |
+| `BG_TRACKER_HOME`    | dossier contenant `data/` : `%AppData%\BG Tracker` pour l'application installée, le dossier du projet sinon |
 
 Pour la définir durablement (y compris pour la tâche planifiée) :
 
@@ -238,12 +238,12 @@ setx BG_TRACKER_LOGS "D:\Jeux\Hearthstone\Logs"
 
 Tout est dans `data/`, **à sauvegarder** et **à copier** pour changer d'ordinateur :
 
-| Fichier | Contenu |
-|---|---|
+| Fichier         | Contenu                                                 |
+| --------------- | ------------------------------------------------------- |
 | `bg-tracker.db` | la base SQLite : parties, tours, plateaux, choix, cotes |
-| `archive/` | les logs bruts compressés, 200 dernières parties |
-| `ratings.csv` | les cotes, une ligne par partie, modifiable à la main |
-| `cards/` | les bases de cartes (se retéléchargent) |
+| `archive/`      | les logs bruts compressés, 200 dernières parties        |
+| `ratings.csv`   | les cotes, une ligne par partie, modifiable à la main   |
+| `cards/`        | les bases de cartes (se retéléchargent)                 |
 
 La base se **reconstruit** entièrement depuis l'archive (`npm run import -- data/archive --force`).
 L'archive, elle, ne se reconstruit pas : Hearthstone a effacé les originaux.
@@ -291,14 +291,14 @@ jouez un.
 
 ## Pour aller plus loin
 
-| Document | Contenu |
-|---|---|
-| [`CLAUDE.md`](CLAUDE.md) | règles du projet, limites, commandes |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | les phases et où on en est |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | modules, flux de données, schéma de la base |
-| [`docs/LOG_FORMAT.md`](docs/LOG_FORMAT.md) | le format de `Power.log` et ses pièges |
-| [`docs/ARCHIVAGE.md`](docs/ARCHIVAGE.md) | archivage, rétention, tâche planifiée |
-| [`ml/README.md`](ml/README.md) | le jeu de données pour la future IA (Python) |
+| Document                                       | Contenu                                      |
+| ---------------------------------------------- | -------------------------------------------- |
+| [`CLAUDE.md`](CLAUDE.md)                       | règles du projet, limites, commandes         |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md)           | les phases et où on en est                   |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | modules, flux de données, schéma de la base  |
+| [`docs/LOG_FORMAT.md`](docs/LOG_FORMAT.md)     | le format de `Power.log` et ses pièges       |
+| [`docs/ARCHIVAGE.md`](docs/ARCHIVAGE.md)       | archivage, rétention, tâche planifiée        |
+| [`ml/README.md`](ml/README.md)                 | le jeu de données pour la future IA (Python) |
 
 **Stack** : Node.js et TypeScript, SQLite (`better-sqlite3`), Electron, React, Vite et Recharts ;
 moteur de simulation de Firestone ; lecture mémoire par `koffi`. Tests avec Vitest.

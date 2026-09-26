@@ -139,9 +139,12 @@ export function formatSummary(
     lines.push(`${pad('')}proposés : ${summary.heroOffered.map(name).join(', ')}`);
   }
 
-  const place = summary.finalPlace === null ? 'place inconnue' : `${ordinal(summary.finalPlace)} place`;
+  const place =
+    summary.finalPlace === null ? 'place inconnue' : `${ordinal(summary.finalPlace)} place`;
   const turn = summary.finalTurn === null ? '' : ` au tour ${summary.finalTurn}`;
-  lines.push(`${pad('Résultat')}${place}${turn}${summary.endedAt === null ? ' (partie inachevée)' : ''}`);
+  lines.push(
+    `${pad('Résultat')}${place}${turn}${summary.endedAt === null ? ' (partie inachevée)' : ''}`,
+  );
 
   lines.push(
     `${pad('Paliers')}${
@@ -162,7 +165,9 @@ export function formatSummary(
           `${cell(turn.gold, ' or').padStart(6)}` +
           `${cell(turn.health, ' pv').padStart(7)}` +
           `  ${(RESULT_LABEL[turn.combatResult ?? 'none'] ?? '—').padEnd(8)}` +
-          `${turn.damageTaken !== null && turn.damageTaken > 0 ? `-${turn.damageTaken}` : '  '}`.padStart(5) +
+          `${turn.damageTaken !== null && turn.damageTaken > 0 ? `-${turn.damageTaken}` : '  '}`.padStart(
+            5,
+          ) +
           `  ${String(turn.board.length).padStart(1)} serv.` +
           `  vs ${turn.opponentHero === null ? '—' : name(turn.opponentHero)}`,
       );
@@ -173,7 +178,9 @@ export function formatSummary(
   for (const pick of summary.picks) {
     const source = pick.sourceCardId === '' ? '—' : name(pick.sourceCardId);
     const turn = pick.turn === null ? '' : ` t${pick.turn}`;
-    lines.push(`      #${String(pick.choiceId).padEnd(3)}${turn.padEnd(5)}${source} → ${label(pick.chosen)}`);
+    lines.push(
+      `      #${String(pick.choiceId).padEnd(3)}${turn.padEnd(5)}${source} → ${label(pick.chosen)}`,
+    );
     if (pick.options.length > 0) {
       lines.push(`           parmi ${pick.options.map(name).join(', ')}`);
     }

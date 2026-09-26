@@ -162,7 +162,15 @@ describe('formatSummary', () => {
 
   it('reste lisible quand des valeurs manquent', () => {
     const text = formatSummary(
-      { ...base, finalPlace: null, finalTurn: null, tierUps: [], picks: [], opponents: [], gameSeed: null },
+      {
+        ...base,
+        finalPlace: null,
+        finalTurn: null,
+        tierUps: [],
+        picks: [],
+        opponents: [],
+        gameSeed: null,
+      },
       1,
     ).join('\n');
 

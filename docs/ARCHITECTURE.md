@@ -45,14 +45,17 @@ bg-tracker/
 ## Modules
 
 ### Archivage (phase 0)
+
 `src/archive/` copie les `Power.log` de chaque session vers un dossier d'archive, compressés en gzip,
 et n'y garde que les N dernières parties. Un `manifest.json` évite de refaire le travail à chaque
 passage. Voir `docs/ARCHIVAGE.md`.
 
 ### SessionReader
+
 Entrée : un dossier de session, d'origine ou archivé. Sortie : un itérateur asynchrone de lignes (`AsyncIterable<string>`), `Power_old.log` d'abord puis `Power.log`. Les variantes `.gz` produites par l'archivage sont décompressées au fil de l'eau, sans fichier temporaire. Fournit aussi la date de la session (tirée du nom de dossier) pour dater les lignes.
 
 ### Suivi en direct (phase 4)
+
 `src/reader/live-reader.ts` relit périodiquement ce que le jeu ajoute à `Power.log`, à partir d'un
 offset en **octets** — jamais le fichier entier, qui dépasse couramment 200 Mo. Il encaisse les trois
 événements qui changent la source : l'ajout de lignes, le renommage en `Power_old.log` à la fin d'une
@@ -62,6 +65,7 @@ Une ligne encore incomplète n'est pas rendue : elle attend son saut de ligne, s
 ligne tronquée en cours d'écriture.
 
 ### LineParser
+
 Fonction pure : `parseLine(line: string): LogEvent | null`. Ne garde que les sources `GameState.*`. Renvoie des événements typés (union discriminée) :
 
 - `CreateGame`, `GameEntityDef`, `PlayerDef`
@@ -75,6 +79,7 @@ Fonction pure : `parseLine(line: string): LogEvent | null`. Ne garde que les sou
 Chaque événement porte `timestamp` (horodatage complet) et `indent`.
 
 ### GameStateMachine
+
 Maintient l'état d'une partie en cours :
 
 - `entities: Map<number, Entity>` avec `Entity = { id, cardId, tags: Map<string, string> }`
@@ -84,6 +89,7 @@ Maintient l'état d'une partie en cours :
 Émet des événements métier quand une partie commence ou se termine, et à chaque changement significatif (nouveau tour, changement de tier, choix, place). L'extracteur s'abonne à ces événements.
 
 ### Base de cartes
+
 `src/cards/` télécharge HearthstoneJSON (`frFR` et `enUS`), en construit un index réduit dans
 `data/cards/index.json` et l'écrit dans la table `cards`. Les logs ne contiennent que des `cardId` :
 c'est la seule source des noms, du palier de taverne et des types de serviteur. À rafraîchir après
@@ -93,6 +99,7 @@ Le `SessionReader`, le `LineParser` et le `GameStateMachine` n'en dépendent pas
 affiche les `cardId` bruts et continue de fonctionner.
 
 ### Overlay (phase 4)
+
 Ce qu'il affiche reste dans la limite « papier-crayon » : uniquement des informations que le joueur a
 **déjà eues sous les yeux**. Pas de simulation de combat — décision prise le 23/09/2026, voir
 `CLAUDE.md`.
@@ -157,13 +164,13 @@ et amélioré.
 L'overlay en ouvre quatre pendant les parties, toutes transparentes et traversantes aux clics, plus
 la saisie de cote en fin de partie :
 
-| Mode | Position | Rôle | Composant |
-|---|---|---|---|
-| `left` | haut gauche, 320 px | combats passés et à venir | `Overlay.tsx` |
-| `right` | haut droite, 300 px | jauges et rythme de paliers | `Side.tsx` |
-| `combat` | **haut centre**, 460 px | estimation du combat | `Combat.tsx` |
-| `bonus` | **bas centre**, 720 px | bonus cumulés | `Bonuses.tsx` |
-| `rating` | bas droite | seule fenêtre où l'on peut cliquer | `RatingPrompt.tsx` |
+| Mode     | Position                | Rôle                               | Composant          |
+| -------- | ----------------------- | ---------------------------------- | ------------------ |
+| `left`   | haut gauche, 320 px     | combats passés et à venir          | `Overlay.tsx`      |
+| `right`  | haut droite, 300 px     | jauges et rythme de paliers        | `Side.tsx`         |
+| `combat` | **haut centre**, 460 px | estimation du combat               | `Combat.tsx`       |
+| `bonus`  | **bas centre**, 720 px  | bonus cumulés                      | `Bonuses.tsx`      |
+| `rating` | bas droite              | seule fenêtre où l'on peut cliquer | `RatingPrompt.tsx` |
 
 Quatre fenêtres plutôt qu'un panneau unique parce que chaque coin de l'écran sert à autre chose
 pendant une partie : les combats se consultent avant d'acheter, le rythme quand on hésite à monter
@@ -185,10 +192,10 @@ héros. Un bonus à zéro n'est pas affiché.
 
 ### Limites restantes
 
-| Limite | Conséquence |
-|---|---|
-| Les **pouvoirs héroïques** ne sont pas extraits des logs | un héros dont le pouvoir agit en combat est sous-estimé |
-| Les **PV adverses** ne sont connus que s'il a déjà été affronté | le létal infligé est sous-estimé, jamais surestimé |
+| Limite                                                          | Conséquence                                             |
+| --------------------------------------------------------------- | ------------------------------------------------------- |
+| Les **pouvoirs héroïques** ne sont pas extraits des logs        | un héros dont le pouvoir agit en combat est sous-estimé |
+| Les **PV adverses** ne sont connus que s'il a déjà été affronté | le létal infligé est sous-estimé, jamais surestimé      |
 
 Sans le cache de cartes, l'estimation est simplement absente : le reste de l'overlay fonctionne.
 
@@ -245,6 +252,7 @@ cantonné à ce dossier, doit échouer proprement.
 
   Vérifié en direct sur le jeu : domaine racine résolu, 119 assemblies énumérées, `mscorlib` et
   `Assembly-CSharp` — où vit le code du jeu — retrouvées par leur nom.
+
 - `mono-classes.ts` — classes, champs et statiques d'une image. Toute la disposition (`MonoLayout`)
   est **recalculée au lancement** : décalages lus dans les accesseurs exportés, table des classes
   repérée par sa signature de `MonoInternalHashTable`, `runtime_info` repéré parce que sa vtable
@@ -301,6 +309,7 @@ Le bandeau de combat, lui, disparaît dès la fin de la partie.
 joué bouge (`detectRatingChange`). La ligne ajoutée le note (`lue en jeu (Solo)`).
 
 ### Application Electron
+
 `app/main/` ouvre la base et répond par IPC ; `app/renderer/` est l'interface React (Vite, Recharts).
 Le rendu n'a **ni Node ni accès à SQLite** : `contextIsolation` est activé, `nodeIntegration`
 désactivé, et le preload n'expose qu'une seule fonction, `dashboard(filtres)`.
@@ -311,11 +320,13 @@ source pour les deux surfaces.
 `npm run app` compile (esbuild pour le principal et le preload, Vite pour le rendu) puis lance.
 
 ### Export vers Python (phase 5)
+
 `src/export/` aplatit `decisions` et `decision_cards` en un fichier JSON Lines, une décision par
 ligne, chacune portant **l'issue de sa partie**. Ce format plutôt que du CSV parce qu'une décision
 porte trois listes de longueur variable. Voir `ml/README.md`.
 
 ### Statistiques
+
 `src/stats/` ne fait que lire la base et rendre des objets simples : vue d'ensemble, chronologie avec
 moyenne glissante, table des héros, répartition des places, courbe de montée de taverne et type
 dominant du plateau final. Tout accepte les mêmes filtres (période, héros, mode, parties inachevées).
@@ -327,6 +338,7 @@ Electron s'en servira telle quelle.
 **le même** résolveur, sans quoi un héros à skin apparaîtrait joué mais jamais proposé.
 
 ### Cote (MMR)
+
 `src/ratings/` tient `data/ratings.csv` à jour : une ligne par partie, la plus ancienne d'abord, avec
 la date de fin déjà remplie et la cote à compléter. `npm run ratings` fait les deux sens en un passage,
 ajoute les parties nouvelles sans toucher aux cotes déjà saisies, puis rattache chaque cote à la partie
@@ -336,6 +348,7 @@ Le fichier porte une troisième colonne, `partie`, qui n'est qu'un repère lisib
 chaque passage et jamais relue.
 
 ### GameExtractor
+
 Transforme l'état et les événements métier en objets `GameSummary`, `TurnRecord`, `BoardSnapshot`, `PickRecord`.
 
 Il **suit le flux d'événements en parallèle du `GameStateMachine`** plutôt que de lire l'état final :
@@ -409,13 +422,13 @@ Le schéma réellement créé par `src/db/migrations.ts` s'en écarte sur les po
 
 **`games`**, colonnes ajoutées :
 
-| Colonne | Pourquoi |
-|---|---|
-| `complete` | Une session peut se terminer sur une partie inachevée. Sans ce drapeau, une partie en cours serait prise pour une partie terminée à la place courante. |
-| `game_type` | Permet de vérifier le filtrage après coup, et de repérer un mode inattendu. |
-| `player_name` | Présent dans le `GameSummary`, utile pour distinguer les comptes. |
-| `game_seed` | Composant de la clef, gardé en clair pour pouvoir le retrouver. |
-| `imported_at` | Savoir quand une ligne a été écrite. |
+| Colonne       | Pourquoi                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `complete`    | Une session peut se terminer sur une partie inachevée. Sans ce drapeau, une partie en cours serait prise pour une partie terminée à la place courante. |
+| `game_type`   | Permet de vérifier le filtrage après coup, et de repérer un mode inattendu.                                                                            |
+| `player_name` | Présent dans le `GameSummary`, utile pour distinguer les comptes.                                                                                      |
+| `game_seed`   | Composant de la clef, gardé en clair pour pouvoir le retrouver.                                                                                        |
+| `imported_at` | Savoir quand une ligne a été écrite.                                                                                                                   |
 
 `mode` reste **toujours `NULL`** : aucun indice fiable ne distingue Solo de Duo dans les logs
 (voir `docs/LOG_FORMAT.md`). La colonne existe, elle attend une partie Duo pour être remplie.

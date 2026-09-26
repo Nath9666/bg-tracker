@@ -231,7 +231,13 @@ export class GameExtractor {
         break;
 
       case 'optionSent':
-        this.#recordDecision(event.selectedOption, event.selectedTarget, event.selectedPosition, game, accumulator);
+        this.#recordDecision(
+          event.selectedOption,
+          event.selectedTarget,
+          event.selectedPosition,
+          game,
+          accumulator,
+        );
         break;
 
       case 'choiceMade':
@@ -264,9 +270,10 @@ export class GameExtractor {
   ): void {
     const option = accumulator.options.get(selectedOption);
     const cardId = option?.cardId ?? '';
-    const support = option?.entityId === null || option?.entityId === undefined
-      ? undefined
-      : game.entities.get(option.entityId);
+    const support =
+      option?.entityId === null || option?.entityId === undefined
+        ? undefined
+        : game.entities.get(option.entityId);
 
     const hero = game.heroEntityId === null ? undefined : game.entities.get(game.heroEntityId);
     // `selectedTarget` vaut 0 quand l'action n'a pas de cible.
@@ -403,7 +410,8 @@ export class GameExtractor {
     const hero = game.heroEntityId !== null ? game.entities.get(game.heroEntityId) : undefined;
     const localPlayer =
       game.localPlayerEntityId !== null ? game.players.get(game.localPlayerEntityId) : undefined;
-    const gameEntity = game.gameEntityId !== null ? game.entities.get(game.gameEntityId) : undefined;
+    const gameEntity =
+      game.gameEntityId !== null ? game.entities.get(game.gameEntityId) : undefined;
 
     const mulligan = [...accumulator.choices.values()].find(
       (choice) => choice.choiceType === MULLIGAN,
@@ -564,7 +572,8 @@ export function cardIdOf(ref: EntityRef, game: Game): string {
  * les vrais joueurs du lobby portent une place au classement.
  */
 export function opponentHeroes(game: Game): string[] {
-  const ownHero = game.heroEntityId !== null ? game.entities.get(game.heroEntityId)?.cardId : undefined;
+  const ownHero =
+    game.heroEntityId !== null ? game.entities.get(game.heroEntityId)?.cardId : undefined;
   const heroes = new Set<string>();
 
   for (const entity of game.entities.values()) {

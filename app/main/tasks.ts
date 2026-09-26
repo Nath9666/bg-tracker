@@ -41,7 +41,9 @@ export function runTask(task: Task): Promise<boolean> {
     };
 
     const minuteur = setTimeout(() => terminer(false, 'trop long, abandonné'), DELAI_MAX);
-    enfant.on('message', (message: { ok: boolean; error?: string }) => terminer(message.ok, message.error));
+    enfant.on('message', (message: { ok: boolean; error?: string }) =>
+      terminer(message.ok, message.error),
+    );
     enfant.on('exit', (code) => terminer(false, `processus terminé (code ${code})`));
   }).finally(() => enCours.delete(task));
 

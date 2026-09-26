@@ -86,16 +86,27 @@ function decodeStaticDataAccessor(
   mono: ModuleInfo,
 ): Pick<MonoLayout, 'vtableFlags' | 'vtableHasStaticsBit' | 'classVtableSize' | 'vtableSlots'> {
   const address = findExport(target, mono, 'mono_vtable_get_static_field_data');
-  if (address === null) throw new MonoLayoutError('Export absent : mono_vtable_get_static_field_data');
+  if (address === null)
+    throw new MonoLayoutError('Export absent : mono_vtable_get_static_field_data');
 
   const b = readMemory(target, address, 22);
   const attendu =
     b !== null &&
-    b[0] === 0xf6 && b[1] === 0x41 &&
-    b[4] === 0x75 && b[6] === 0x33 && b[8] === 0xc3 &&
-    b[9] === 0x48 && b[10] === 0x8b && b[11] === 0x01 &&
-    b[12] === 0x48 && b[13] === 0x63 && b[14] === 0x40 &&
-    b[16] === 0x48 && b[17] === 0x8b && b[18] === 0x44 && b[19] === 0xc1;
+    b[0] === 0xf6 &&
+    b[1] === 0x41 &&
+    b[4] === 0x75 &&
+    b[6] === 0x33 &&
+    b[8] === 0xc3 &&
+    b[9] === 0x48 &&
+    b[10] === 0x8b &&
+    b[11] === 0x01 &&
+    b[12] === 0x48 &&
+    b[13] === 0x63 &&
+    b[14] === 0x40 &&
+    b[16] === 0x48 &&
+    b[17] === 0x8b &&
+    b[18] === 0x44 &&
+    b[19] === 0xc1;
   if (!attendu) {
     throw new MonoLayoutError(
       `mono_vtable_get_static_field_data : prologue inattendu (${b?.toString('hex') ?? '?'})`,
@@ -188,11 +199,7 @@ function locateRuntimeInfo(target: ProcessHandle, cls: bigint): bigint | null {
  * `runtime_info` soit reperable : n'importe quelle classe deja utilisee par
  * le jeu convient, `Assembly-CSharp` en regorge.
  */
-export function resolveLayout(
-  target: ProcessHandle,
-  mono: ModuleInfo,
-  image: bigint,
-): MonoLayout {
+export function resolveLayout(target: ProcessHandle, mono: ModuleInfo, image: bigint): MonoLayout {
   const cache = locateClassCache(target, mono, image);
   const partiel = {
     className: BigInt(fieldOffsetFromAccessor(target, mono, 'mono_class_get_name')),

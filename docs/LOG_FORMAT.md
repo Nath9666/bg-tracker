@@ -1,6 +1,6 @@
 # Format de Power.log (mode Champs de bataille)
 
-Ce document rassemble ce qui a été **vérifié sur un vrai log** (build `251952`, client en français). Tout ce qui n'est pas vérifié est marqué *(à vérifier)*. Compléter ce fichier à chaque découverte.
+Ce document rassemble ce qui a été **vérifié sur un vrai log** (build `251952`, client en français). Tout ce qui n'est pas vérifié est marqué _(à vérifier)_. Compléter ce fichier à chaque découverte.
 
 ## Activation des logs
 
@@ -20,7 +20,7 @@ Verbose=True
 - Les logs sont dans `<dossier d'installation Hearthstone>\Logs\`, avec **un sous-dossier par session de jeu**, nommé `Hearthstone_AAAA_MM_JJ_HH_MM_SS` (vérifié : `Hearthstone_2026_09_22_00_28_13`). C'est la seule source de la **date** des lignes, qui ne portent que l'heure.
 - Installation de référence chez l'utilisateur : `F:\SteamLibrary\Hearthstone`, donc les sessions sont dans `F:\SteamLibrary\Hearthstone\Logs\`.
 - Un dossier de session contient une quinzaine de fichiers (`Hearthstone.log`, `LoadingScreen.log`, `Achievements.log`…). Seuls `Power.log` et `Power_old.log` nous intéressent.
-- Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie *(déclencheur exact à vérifier ; probablement un seuil de taille)*.
+- Dans une session terminée, on trouve un `Power_old.log` en plus de `Power.log`. Hearthstone renomme l'ancien fichier et en recommence un nouveau. Dans le fichier de référence, `Power_old.log` commence directement par `CREATE_GAME`, donc la rotation s'est faite au début d'une partie _(déclencheur exact à vérifier ; probablement un seuil de taille)_.
 - ⚠️ **Le renommage fait disparaître `Power.log`, pas son contenu.** Une copie archivée sous l'ancien
   nom devient donc un doublon exact de `Power_old.log`. Lire les deux à la suite relit toute la
   session deux fois, et l'heure qui repasse en arrière (20:12 après 20:12… puis 16:51) fait croire à
@@ -33,7 +33,7 @@ Verbose=True
   le `Power.log` de `Hearthstone_2026_09_22_00_28_13`, lu à 177 Mo pendant que l'utilisateur jouait, est
   devenu `Power_old.log` à 226 Mo à la fermeture du jeu, sans qu'un nouveau `Power.log` soit créé. La
   règle « lire `Power_old.log` puis `Power.log` » reste la bonne, mais en pratique il n'y en a qu'un.
-- ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie. Mesuré sur la session `Hearthstone_2026_09_22_00_28_13` : un seul `Power.log` de **177 Mo** (1 305 659 lignes) contenant **6 `CREATE_GAME` pour 5 `STATE=COMPLETE`** (la 6ᵉ partie était en cours), toutes en `GT_BATTLEGROUNDS`, et **aucun `Power_old.log`**. La rotation n'est donc pas un simple seuil à 150 Mo *(déclencheur toujours à déterminer)*. Le découpage se fait sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
+- ⚠️ **Un fichier contient plusieurs parties.** La rotation n'a pas lieu à chaque partie. Mesuré sur la session `Hearthstone_2026_09_22_00_28_13` : un seul `Power.log` de **177 Mo** (1 305 659 lignes) contenant **6 `CREATE_GAME` pour 5 `STATE=COMPLETE`** (la 6ᵉ partie était en cours), toutes en `GT_BATTLEGROUNDS`, et **aucun `Power_old.log`**. La rotation n'est donc pas un simple seuil à 150 Mo _(déclencheur toujours à déterminer)_. Le découpage se fait sur les `CREATE_GAME` / `STATE=COMPLETE`, jamais sur les fichiers. Le fichier de référence `sample-game-1` est un cas particulier : il ne contient qu'une seule partie.
 - Une session peut donc se terminer sur une partie **incomplète** (`CREATE_GAME` sans `STATE=COMPLETE`), si le joueur est encore en partie ou si le jeu a été fermé brutalement.
 - **Règle :** pour une session, lire `Power_old.log` puis `Power.log`, dans cet ordre, comme un seul flux continu.
 - Taille : environ **40 Mo et 300 000 lignes pour une partie de 25 minutes**. Lecture en flux obligatoire.
@@ -43,7 +43,7 @@ Verbose=True
 ## Format d'une ligne
 
 ```
-D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=3 
+D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 tag=RESOURCES value=3
 ```
 
 - `D` : niveau de log. `E` existe aussi pour les erreurs du client (19 lignes dans le fichier de référence, toutes hors `GameState.*`).
@@ -51,22 +51,22 @@ D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=AkiLif#2498 t
 - `GameState.DebugPrintPower()` : la source. Voir ci-dessous.
 - ⚠️ Toutes les sources ne suivent pas la forme `Classe.Methode()` : certaines portent un suffixe entre crochets, comme `PowerSpellController [taskListId=1766].InitPowerSpell()`. Une expression régulière naïve sur `\w+\.\w+\(\)` les rate. Sans conséquence pour nous, puisqu'on ne garde que `GameState.`.
 - **Aucune ligne ne s'étale sur plusieurs lignes** : chaque ligne physique porte son propre préfixe, y compris les tags indentés et les options d'un choix. Le découpage par saut de ligne est donc sans piège.
-- L'**indentation** après ` - ` indique l'imbrication (un `TAG_CHANGE` à l'intérieur d'un `BLOCK_START`, ou les tags listés sous un `FULL_ENTITY`).
+- L'**indentation** après `-` indique l'imbrication (un `TAG_CHANGE` à l'intérieur d'un `BLOCK_START`, ou les tags listés sous un `FULL_ENTITY`).
 - Beaucoup de lignes se terminent par un espace avant `\r`. Toujours faire un `trim`.
 
 ## Sources de lignes
 
-| Source | Utilité |
-|---|---|
-| `GameState.DebugPrintPower()` | **Source principale.** Tous les événements de la partie. |
-| `GameState.DebugPrintGame()` | Métadonnées : `BuildNumber`, `GameType`, `FormatType`, `ScenarioID`, `PlayerID=…, PlayerName=…` |
-| `GameState.DebugPrintEntityChoices()` | Un choix proposé au joueur (héros, découverte, triple, bibelot) avec la liste des options |
-| `GameState.SendChoices()` / `GameState.DebugPrintEntitiesChosen()` | L'option choisie |
-| `GameState.DebugPrintPowerList()` | Marqueur `Count=N` annonçant un lot de N lignes `DebugPrintPower` qui suivent. Sans intérêt pour le parseur. |
-| `GameState.DebugPrintOptions()` | Les actions disponibles à un instant donné (fin de tour, pouvoir héroïque, achat…). Très utile pour la phase IA. |
-| `GameState.SendOption()` | L'action effectivement jouée (`selectedOption`, `selectedTarget`, `selectedPosition`) |
-| `PowerTaskList.DebugPrintPower()` | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. ⚠️ Piège de comptage : un `grep` qui ne filtre pas sur la source compte **deux fois** chaque événement. |
-| `PowerProcessor.*`, `PowerTaskList.DebugDump()` | Interne. À ignorer. |
+| Source                                                             | Utilité                                                                                                                                                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GameState.DebugPrintPower()`                                      | **Source principale.** Tous les événements de la partie.                                                                                                                             |
+| `GameState.DebugPrintGame()`                                       | Métadonnées : `BuildNumber`, `GameType`, `FormatType`, `ScenarioID`, `PlayerID=…, PlayerName=…`                                                                                      |
+| `GameState.DebugPrintEntityChoices()`                              | Un choix proposé au joueur (héros, découverte, triple, bibelot) avec la liste des options                                                                                            |
+| `GameState.SendChoices()` / `GameState.DebugPrintEntitiesChosen()` | L'option choisie                                                                                                                                                                     |
+| `GameState.DebugPrintPowerList()`                                  | Marqueur `Count=N` annonçant un lot de N lignes `DebugPrintPower` qui suivent. Sans intérêt pour le parseur.                                                                         |
+| `GameState.DebugPrintOptions()`                                    | Les actions disponibles à un instant donné (fin de tour, pouvoir héroïque, achat…). Très utile pour la phase IA.                                                                     |
+| `GameState.SendOption()`                                           | L'action effectivement jouée (`selectedOption`, `selectedTarget`, `selectedPosition`)                                                                                                |
+| `PowerTaskList.DebugPrintPower()`                                  | **Doublon** des événements `GameState`, rejoués pour l'animation. À ignorer. ⚠️ Piège de comptage : un `grep` qui ne filtre pas sur la source compte **deux fois** chaque événement. |
+| `PowerProcessor.*`, `PowerTaskList.DebugDump()`                    | Interne. À ignorer.                                                                                                                                                                  |
 
 ## Types d'événements (dans `GameState.DebugPrintPower()`)
 
@@ -86,17 +86,17 @@ Fréquences observées sur une partie : `TAG_CHANGE` ~63 000, `BLOCK_START` ~3 3
 `Hearthstone_2026_09_22_00_28_13` :
 
 | `Player EntityID` | `PlayerID` | `GameAccountId` |
-|---|---|---|
-| 2 | 1 | réel |
-| 3 | 9 | `hi=0 lo=0` |
-| 8 | 3 | réel |
-| 9 | 11 | `hi=0 lo=0` |
-| 14 | 5 | réel |
-| 15 | 13 | `hi=0 lo=0` |
-| 20 | 7 | réel |
-| 21 | 15 | `hi=0 lo=0` |
-| 23 | 8 | réel |
-| 24 | 16 | `hi=0 lo=0` |
+| ----------------- | ---------- | --------------- |
+| 2                 | 1          | réel            |
+| 3                 | 9          | `hi=0 lo=0`     |
+| 8                 | 3          | réel            |
+| 9                 | 11         | `hi=0 lo=0`     |
+| 14                | 5          | réel            |
+| 15                | 13         | `hi=0 lo=0`     |
+| 20                | 7          | réel            |
+| 21                | 15         | `hi=0 lo=0`     |
+| 23                | 8          | réel            |
+| 24                | 16         | `hi=0 lo=0`     |
 
 La régularité observée : le joueur fictif porte `PlayerID` + 8 et `EntityID` + 1 par rapport à l'utilisateur.
 **Ne jamais coder en dur 7 et 15.** Le seul critère fiable reste le `GameAccountId` non nul.
@@ -159,7 +159,7 @@ de 6 parties). Toutes ces formes sont couvertes par `tests/line-parser.test.ts`.
   le joueur a acheté ou posé.
 - **`BLOCK_START` : `TriggerKeyword=` est optionnel**, absent sur environ 260 lignes du log de référence.
 - **`EffectCardId` contient des crochets et un accent grave** : `System.Collections.Generic.Listˈ1[System.String]`.
-- **`Info[i]`, `Source` et `Targets[i]` écrivent ` = ` avec des espaces**, contrairement à tout le reste du
+- **`Info[i]`, `Source` et `Targets[i]` écrivent `=` avec des espaces**, contrairement à tout le reste du
   log qui écrit `clé=valeur`. Ces lignes-là sont des sous-lignes de `META_DATA` et `SUB_SPELL_START`.
 - **L'indentation n'est pas toujours un multiple de 4.** Les sous-lignes `Source` et `Targets[i]` utilisent
   22, 26, 30 ou 34 espaces.
@@ -171,24 +171,24 @@ de 6 parties). Toutes ces formes sont couvertes par `tests/line-parser.test.ts`.
 
 Méthodes `GameState.*` vues sur une session de 6 parties :
 
-| Méthode | Lignes |
-|---|---|
-| `DebugPrintPower()` | 601 951 |
-| `DebugPrintOptions()` | 97 673 |
-| `DebugPrintPowerList()` | 3 835 |
-| `SendOption()` | 936 |
-| `DebugPrintEntityChoices()` | 323 |
-| `SendChoices()` | 122 |
-| `DebugPrintEntitiesChosen()` | 122 |
-| `DebugPrintGame()` | 36 |
-| `OnEntityChoices()` | 1 |
+| Méthode                      | Lignes  |
+| ---------------------------- | ------- |
+| `DebugPrintPower()`          | 601 951 |
+| `DebugPrintOptions()`        | 97 673  |
+| `DebugPrintPowerList()`      | 3 835   |
+| `SendOption()`               | 936     |
+| `DebugPrintEntityChoices()`  | 323     |
+| `SendChoices()`              | 122     |
+| `DebugPrintEntitiesChosen()` | 122     |
+| `DebugPrintGame()`           | 36      |
+| `OnEntityChoices()`          | 1       |
 
 ## Faits propres aux Champs de bataille
 
 ### Métadonnées
 
 - `GameType=GT_BATTLEGROUNDS` identifie une partie Champs de bataille. `FormatType=FT_WILD` et `ScenarioID=3459` observés en Solo.
-- Mode Solo vs Duo : *(à vérifier)*. Le tag `BACON_DUOS_PUNISH_LEAVERS` est présent sur `GameEntity` même dans une partie qui semble Solo, il ne suffit donc pas. Chercher d'autres indices (`ScenarioID`, nombre de joueurs, tags `BACON_DUO*` sur les joueurs).
+- Mode Solo vs Duo : _(à vérifier)_. Le tag `BACON_DUOS_PUNISH_LEAVERS` est présent sur `GameEntity` même dans une partie qui semble Solo, il ne suffit donc pas. Chercher d'autres indices (`ScenarioID`, nombre de joueurs, tags `BACON_DUO*` sur les joueurs).
 - `GAME_SEED` sur `GameEntity` : candidat pour identifier une partie de façon stable.
 
 ### Joueurs
@@ -230,7 +230,7 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
 
 - `PLAYER_LEADERBOARD_PLACE` sur l'entité héros : place actuelle, mise à jour en continu.
 - Élimination : `TAG_CHANGE Entity=<joueur> tag=PLAYSTATE value=LOST` (précédé de `LOSING`). **Place finale = dernière valeur de `PLAYER_LEADERBOARD_PLACE` sur le héros du joueur à ce moment.**
-- Victoire (1re place) : sur une partie gagnée observée (session du 22/09, dernière partie), `PLAYER_LEADERBOARD_PLACE` vaut bien **1** sur le héros du joueur. Le `PLAYSTATE` associé reste *(à confirmer)*, mais la place suffit : c'est la même lecture que pour une défaite.
+- Victoire (1re place) : sur une partie gagnée observée (session du 22/09, dernière partie), `PLAYER_LEADERBOARD_PLACE` vaut bien **1** sur le héros du joueur. Le `PLAYSTATE` associé reste _(à confirmer)_, mais la place suffit : c'est la même lecture que pour une défaite.
 - Fin de partie : `TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE`. Des lignes peuvent encore suivre, à ignorer jusqu'au prochain `CREATE_GAME`. Mesuré sur le fichier de référence : **2 lignes traînent 48 secondes après** le `COMPLETE` de 03:13:48, un `DebugPrintPowerList() - Count=1` et un `TAG_CHANGE tag=PLAYER_TRIPLES` sur une copie de héros adverse en `SETASIDE`. Le fichier ne se termine donc pas sur le `COMPLETE`.
 - Dégâts reçus : tag `DAMAGE` sur le héros (valeur cumulée).
 
@@ -254,16 +254,16 @@ Méthodes `GameState.*` vues sur une session de 6 parties :
 ⚠️ Le `type=` d'une option ne dit **rien** de l'action : il ne vaut que `POWER` ou `END_TURN`. Tout
 le sens est dans la **carte support** de l'option :
 
-| Carte | Action |
-|---|---|
-| `TB_BaconShop_DragBuy` | acheter un serviteur |
-| `TB_BaconShop_DragBuy_Spell` | acheter un sort |
-| `TB_BaconShop_DragSell` | vendre |
-| `…Reroll_Button` | actualiser la boutique |
-| `…LockAll_Button` | geler |
-| `TB_BaconShopTechUp0N_Button` | monter au palier N |
-| carte de type `HERO_POWER` | pouvoir héroïque |
-| toute autre carte | jouer cette carte |
+| Carte                         | Action                 |
+| ----------------------------- | ---------------------- |
+| `TB_BaconShop_DragBuy`        | acheter un serviteur   |
+| `TB_BaconShop_DragBuy_Spell`  | acheter un sort        |
+| `TB_BaconShop_DragSell`       | vendre                 |
+| `…Reroll_Button`              | actualiser la boutique |
+| `…LockAll_Button`             | geler                  |
+| `TB_BaconShopTechUp0N_Button` | monter au palier N     |
+| carte de type `HERO_POWER`    | pouvoir héroïque       |
+| toute autre carte             | jouer cette carte      |
 
 Le pouvoir héroïque est le seul que le `cardId` ne trahit pas, puisqu'il change avec le héros : il se
 reconnaît à son `CARDTYPE`.
@@ -324,10 +324,10 @@ Vérifié sur 11 parties : **exactement 7 adversaires à chaque fois**, sans auc
 
 Tout se lit autour de `BACON_IN_COMBAT_PHASE`, sur l'entité de jeu :
 
-| Phase | `TURN` | `BACON_IN_COMBAT_PHASE` |
-|---|---|---|
-| Recrutement du tour N | impair, `2N-1` | `0` |
-| Combat du tour N | pair, `2N` | `1` |
+| Phase                 | `TURN`         | `BACON_IN_COMBAT_PHASE` |
+| --------------------- | -------------- | ----------------------- |
+| Recrutement du tour N | impair, `2N-1` | `0`                     |
+| Combat du tour N      | pair, `2N`     | `1`                     |
 
 Au début d'un combat, le **joueur fictif prend le héros de l'adversaire** (`HERO_ENTITY`), puis reprend
 Bob à la fin. C'est de là que vient l'adversaire de chaque tour, sans avoir à connaître `TB_BaconShopBob` :
@@ -362,27 +362,27 @@ revient jamais à `0`. Il faut le clôturer à la fin de la partie, sinon le tou
   joueur, puis en `PLAY` une fois posée.
   ⚠️ **Pendant un combat, cette même zone porte le plateau adverse**, pas la boutique. Il faut donc
   la lire hors combat uniquement, sinon on prend les serviteurs de l'adversaire pour une offre.
-- Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby *(à vérifier)*.
+- Tags `BACON_SUBSET_*` (`UNDEAD`, `BEAST`, `MURLOC`…) : liés au pool de serviteurs, mais **ne suffisent pas** à déterminer les types présents dans le lobby _(à vérifier)_.
 
 ## Mots-cles des serviteurs et degats subis
 
 Verifie par `grep` sur une session reelle (`Hearthstone_2026_09_23_03_26_12`, 102 Mo) et sur
 l'extrait versionne. Frequences sur la session reelle, source `GameState` uniquement :
 
-| Tag | Occurrences | Remarque |
-|---|---|---|
-| `HEALTH` | 8 645 | vie **maximale**, pas les PV restants |
-| `ATK` | 8 629 | |
-| `DAMAGE` | 1 674 | degats subis ; PV restants = `HEALTH - DAMAGE` |
-| `TAUNT` | 595 | |
-| `PREMIUM` | 535 | dore |
-| `REBORN` | 479 | |
-| `DIVINE_SHIELD` | 479 | |
-| `VENOMOUS` | 438 | |
-| `WINDFURY` | 110 | |
-| `STEALTH` | 104 | |
-| `POISONOUS` | **0** | remplace par `VENOMOUS` |
-| `MEGA_WINDFURY` | **0** | absent de cette session |
+| Tag             | Occurrences | Remarque                                       |
+| --------------- | ----------- | ---------------------------------------------- |
+| `HEALTH`        | 8 645       | vie **maximale**, pas les PV restants          |
+| `ATK`           | 8 629       |                                                |
+| `DAMAGE`        | 1 674       | degats subis ; PV restants = `HEALTH - DAMAGE` |
+| `TAUNT`         | 595         |                                                |
+| `PREMIUM`       | 535         | dore                                           |
+| `REBORN`        | 479         |                                                |
+| `DIVINE_SHIELD` | 479         |                                                |
+| `VENOMOUS`      | 438         |                                                |
+| `WINDFURY`      | 110         |                                                |
+| `STEALTH`       | 104         |                                                |
+| `POISONOUS`     | **0**       | remplace par `VENOMOUS`                        |
+| `MEGA_WINDFURY` | **0**       | absent de cette session                        |
 
 Trois points qui ont demande une verification :
 
@@ -413,20 +413,20 @@ Les effets permanents que rien n'affiche sur le plateau. Tous sont portes par l'
 (`Entity=AkiLif#2498`), pas par le heros ni par un serviteur — `#refreshHero` ne les verrait donc
 jamais. Verifie sur les sessions archivees.
 
-| Tag | Sens | Exemple releve |
-|---|---|---|
-| `BACON_BLOODGEMBUFFATKVALUE` | attaque donnee par une gemme de sang | 1, puis 2, puis 3 |
-| `BACON_BLOODGEMBUFFHEALTHVALUE` | vie donnee par une gemme de sang | 1, puis 2, puis 3 |
-| `BACON_PLAYER_EXTRA_GOLD_NEXT_TURN` | or supplementaire au tour suivant | `value=2`, puis `0` |
-| `BACON_FREE_REFRESH_COUNT` | actualisations offertes | — |
-| `EXTRA_DEATHRATTLES_ADDITIONAL` | rales d'agonie **en plus** du premier | — |
+| Tag                                 | Sens                                  | Exemple releve      |
+| ----------------------------------- | ------------------------------------- | ------------------- |
+| `BACON_BLOODGEMBUFFATKVALUE`        | attaque donnee par une gemme de sang  | 1, puis 2, puis 3   |
+| `BACON_BLOODGEMBUFFHEALTHVALUE`     | vie donnee par une gemme de sang      | 1, puis 2, puis 3   |
+| `BACON_PLAYER_EXTRA_GOLD_NEXT_TURN` | or supplementaire au tour suivant     | `value=2`, puis `0` |
+| `BACON_FREE_REFRESH_COUNT`          | actualisations offertes               | —                   |
+| `EXTRA_DEATHRATTLES_ADDITIONAL`     | rales d'agonie **en plus** du premier | —                   |
 
 Deux points verifies :
 
 - **Les gemmes de sang s'accumulent** : le tag porte la valeur courante, pas un increment. Releve
   `1` → `2/1` → `2/2` → `3/3` au fil d'une partie.
 - **Les adversaires portent les memes tags.** `Entity=Icenberg tag=BACON_BLOODGEMBUFFATKVALUE
-  value=3` apparait comme le notre : filtrer sur l'entite du joueur local est indispensable.
+value=3` apparait comme le notre : filtrer sur l'entite du joueur local est indispensable.
 
 Un tag remis a `0` est un bonus consomme, l'or supplementaire par exemple : il doit disparaitre de
 l'affichage.
@@ -464,7 +464,7 @@ par le serveur, qui couvrent toute la carriere, bien au-dela des parties vues pa
 ## Types du lobby : toujours pas declares
 
 `BACON_SUBSET_<TYPE>` existe pour les onze types, mais il est porte par **chaque carte** et enumere
-les sous-ensembles auxquels *elle* appartient. Les onze apparaissent avec `value=1` au fil d'une
+les sous-ensembles auxquels _elle_ appartient. Les onze apparaissent avec `value=1` au fil d'une
 partie : ce n'est donc pas la liste des types tires pour le lobby. Releve a cote de
 `IS_BACON_POOL_MINION` et `TECH_LEVEL` sur une carte de la taverne.
 
@@ -484,34 +484,34 @@ toutes les parties.
 ## Ce qui n'est PAS dans les logs
 
 - **La cote (MMR)** : aucun tag de rating trouvé. Saisie manuelle.
-- Les types de serviteurs du lobby ne sont pas donnés directement *(à confirmer)*.
+- Les types de serviteurs du lobby ne sont pas donnés directement _(à confirmer)_.
 
 ## Mesures sur le fichier de référence
 
 `fixtures/sample-game-1/Power_old.log`, une partie Solo complète de 25 minutes :
 
-| Mesure | Valeur |
-|---|---|
-| Taille | 40 372 216 octets (40 Mo) |
-| Lignes | 298 697, **toutes** terminées par `
-` (298 697 `
-` pour 298 697 `
-`) |
-| Lignes `GameState.*` | 141 637 (47 %), soit 19 090 124 octets |
-| Idem, compressé en gzip -9 | 857 564 octets |
+| Mesure                     | Valeur                                 |
+| -------------------------- | -------------------------------------- |
+| Taille                     | 40 372 216 octets (40 Mo)              |
+| Lignes                     | 298 697, **toutes** terminées par `    |
+| `(298 697`                 |
+| `pour 298 697`             |
+| `)                         |
+| Lignes `GameState.*`       | 141 637 (47 %), soit 19 090 124 octets |
+| Idem, compressé en gzip -9 | 857 564 octets                         |
 
 Répartition des lignes `GameState.*` :
 
-| Source | Lignes |
-|---|---|
-| `DebugPrintPower()` | 125 359 |
-| `DebugPrintOptions()` | 15 394 |
-| `DebugPrintPowerList()` | 651 |
-| `SendOption()` | 134 |
-| `DebugPrintEntityChoices()` | 53 |
-| `SendChoices()` | 20 |
-| `DebugPrintEntitiesChosen()` | 20 |
-| `DebugPrintGame()` | 6 |
+| Source                       | Lignes  |
+| ---------------------------- | ------- |
+| `DebugPrintPower()`          | 125 359 |
+| `DebugPrintOptions()`        | 15 394  |
+| `DebugPrintPowerList()`      | 651     |
+| `SendOption()`               | 134     |
+| `DebugPrintEntityChoices()`  | 53      |
+| `SendChoices()`              | 20      |
+| `DebugPrintEntitiesChosen()` | 20      |
+| `DebugPrintGame()`           | 6       |
 
 Le bloc `DebugPrintGame()` complet, en tête de partie :
 
@@ -531,17 +531,17 @@ GameState.DebugPrintGame() - PlayerID=15, PlayerName=МиниНиндзя
 
 Mesuré avec le `SessionReader` (`readline` sur un flux, ligne par ligne) :
 
-| Fichier | Lignes | Temps | Heap |
-|---|---|---|---|
-| `sample-game-1/Power_old.log` (40 Mo) | 298 697 | 0,22 s | 17 Mo |
+| Fichier                                              | Lignes    | Temps  | Heap  |
+| ---------------------------------------------------- | --------- | ------ | ----- |
+| `sample-game-1/Power_old.log` (40 Mo)                | 298 697   | 0,22 s | 17 Mo |
 | `Hearthstone_2026_09_22_00_28_13/Power.log` (177 Mo) | 1 305 659 | 0,83 s | 19 Mo |
 
 Lecture **et** parsage des lignes en événements typés :
 
-| Fichier | Lignes | Événements | Temps |
-|---|---|---|---|
-| `sample-game-1/Power_old.log` | 298 697 | 137 186 | 0,31 s |
-| Session de 6 parties (200 Mo) | 1 496 091 | 695 997 | 1,48 s |
+| Fichier                       | Lignes    | Événements | Temps  |
+| ----------------------------- | --------- | ---------- | ------ |
+| `sample-game-1/Power_old.log` | 298 697   | 137 186    | 0,31 s |
+| Session de 6 parties (200 Mo) | 1 496 091 | 695 997    | 1,48 s |
 
 La mémoire ne grimpe pas avec la taille du fichier : la lecture est bien en flux. Lire un `Power.log`
 pendant que le jeu écrit dedans ne pose aucun problème.

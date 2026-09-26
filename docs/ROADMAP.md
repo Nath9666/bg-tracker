@@ -82,7 +82,7 @@ Prérequis : plusieurs centaines de parties en base.
 - [ ] Modèle de référence naïf (statistiques simples) comme score plancher
 - [ ] Modèles supervisés (behavior cloning), dans l'ordre : choix du héros, découvertes, bibelots, puis décisions de boutique
       ⚠️ **Entraîner sur les seules parties de top 4**, ou pondérer par la place. Un modèle appris sur
-      toutes les parties prédit *ce que le joueur ferait*, erreurs comprises, et lui recommanderait ses
+      toutes les parties prédit _ce que le joueur ferait_, erreurs comprises, et lui recommanderait ses
       propres mauvaises habitudes. L'écart entre ce qu'il propose et ce que le joueur a fait est
       justement le signal utile.
 - [ ] Évaluation : accord top 1 / top 3 avec les vrais choix, sur des parties jamais vues

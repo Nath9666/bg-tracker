@@ -8,12 +8,7 @@
  * Seules les lignes `GameState.*` sont retenues. `PowerTaskList` rejoue les
  * memes evenements pour l'animation : les prendre en compte doublerait tout.
  */
-import type {
-  EntityRef,
-  LogEvent,
-  LogEventMeta,
-  LogEventSource,
-} from './events.js';
+import type { EntityRef, LogEvent, LogEventMeta, LogEventSource } from './events.js';
 
 /** `D 02:48:30.3211164 GameState.DebugPrintPower() - <indentation><corps>` */
 const LINE = /^[A-Z] (\d{2}:\d{2}:\d{2}\.\d+) GameState\.(\w+)\(\) - (.*)$/;
@@ -52,7 +47,13 @@ export function parseEntityRef(raw: string): EntityRef | null {
   const block = ENTITY_BLOCK.exec(text);
   if (block !== null) {
     const [, entityName, id, zone, zonePos, cardId, player] = block as unknown as [
-      string, string, string, string, string, string, string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
     ];
     return {
       kind: 'entity',

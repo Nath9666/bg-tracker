@@ -40,7 +40,13 @@ import {
 import { createHeroBaseResolver } from '../../src/db/hero-base.js';
 import { openRatingReader, type RatingReader } from '../../src/memory/rating-reader.js';
 import { toLocalIso } from '../../src/extract/log-clock.js';
-import { loadPool, poolByTier, racesSeen, type PoolMinion, type TierPool } from '../../src/pool/minion-pool.js';
+import {
+  loadPool,
+  poolByTier,
+  racesSeen,
+  type PoolMinion,
+  type TierPool,
+} from '../../src/pool/minion-pool.js';
 import { SIM_CARDS_PATH, loadSimCards, type SimCards } from '../../src/sim/sim-cards.js';
 import { combatOdds, oddsSignature, type CombatEstimate } from '../../src/sim/combat-odds.js';
 
@@ -492,11 +498,11 @@ async function buildPayload(state: LiveState): Promise<OverlayPayload> {
     heroPicks: state.heroOffers.length === 0 ? [] : fichesHeros(state.heroOffers, races),
     resting: state.inGame
       ? null
-      : restingView(
-          (historique ??= timeline(database())),
-          toLocalIso(new Date()).slice(0, 10),
-          { rating: coteAffichee()?.solo ?? null, place: state.place, pending: coteEnAttente },
-        ),
+      : restingView((historique ??= timeline(database())), toLocalIso(new Date()).slice(0, 10), {
+          rating: coteAffichee()?.solo ?? null,
+          place: state.place,
+          pending: coteEnAttente,
+        }),
   };
 }
 

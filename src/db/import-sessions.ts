@@ -6,11 +6,7 @@
  * **sautee** : c'est ce qui rend la commande assez rapide pour etre planifiee.
  */
 import { importGames } from './import.js';
-import {
-  isSessionImported,
-  markSessionImported,
-  sessionFingerprint,
-} from './session-state.js';
+import { isSessionImported, markSessionImported, sessionFingerprint } from './session-state.js';
 import { extractGames } from '../extract/game-extractor.js';
 import { openSession, readSessionLines, resolveSessionDate } from '../reader/session-reader.js';
 import type { Db } from './database.js';

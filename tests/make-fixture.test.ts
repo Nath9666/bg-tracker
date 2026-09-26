@@ -26,10 +26,8 @@ async function runFilter(
 
 // Lignes reelles copiees depuis fixtures/sample-game-1/Power_old.log.
 const GAME_STATE = 'D 02:48:30.3211164 GameState.DebugPrintPowerList() - Count=44\r\n';
-const GAME_STATE_POWER =
-  'D 02:48:30.3211164 GameState.DebugPrintPower() - CREATE_GAME\r\n';
-const TASK_LIST =
-  'D 02:48:30.3211164 PowerTaskList.DebugPrintPower() - CREATE_GAME\r\n';
+const GAME_STATE_POWER = 'D 02:48:30.3211164 GameState.DebugPrintPower() - CREATE_GAME\r\n';
+const TASK_LIST = 'D 02:48:30.3211164 PowerTaskList.DebugPrintPower() - CREATE_GAME\r\n';
 const SPELL_CONTROLLER =
   'D 02:55:28.7166620 PowerSpellController [taskListId=1766].InitPowerSpell() - FAILED to attach\r\n';
 

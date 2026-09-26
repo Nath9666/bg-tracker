@@ -46,7 +46,8 @@ const TASKS: Record<Task, () => Promise<unknown>> = {
 };
 
 const task = process.argv.at(-1) as Task;
-const port = (process as unknown as { parentPort?: { postMessage(message: unknown): void } }).parentPort;
+const port = (process as unknown as { parentPort?: { postMessage(message: unknown): void } })
+  .parentPort;
 
 const run = TASKS[task];
 void (run === undefined ? Promise.reject(new Error(`Tâche inconnue : ${task}`)) : run())

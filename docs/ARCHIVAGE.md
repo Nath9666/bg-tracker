@@ -49,11 +49,11 @@ d'annoncer ce que la rétention supprimerait. **À lancer avant tout changement 
 
 ### Réglages par défaut
 
-| Réglage | Valeur | Variable d'environnement |
-|---|---|---|
-| Source | `F:\SteamLibrary\Hearthstone\Logs` | `BG_TRACKER_LOGS` |
-| Archive | `data/archive` (dans le projet, ignoré par Git) | `BG_TRACKER_ARCHIVE` |
-| Rétention | 200 parties | — (option `--keep`) |
+| Réglage   | Valeur                                          | Variable d'environnement |
+| --------- | ----------------------------------------------- | ------------------------ |
+| Source    | `F:\SteamLibrary\Hearthstone\Logs`              | `BG_TRACKER_LOGS`        |
+| Archive   | `data/archive` (dans le projet, ignoré par Git) | `BG_TRACKER_ARCHIVE`     |
+| Rétention | 200 parties                                     | — (option `--keep`)      |
 
 ## Rétention : ce qu'élaguer coûte vraiment
 
@@ -110,10 +110,10 @@ pas s'y exposer en pleine partie.
 Les deux sont planifiables. Ça n'a pas toujours été vrai : `sync` mettait **13,9 s** et réécrivait
 `data/ratings.csv` à chaque passage. Deux corrections l'ont rendu utilisable en tâche de fond.
 
-| Commande | À vide | Pendant qu'on joue | Effet de bord |
-|---|---|---|---|
-| `npm run archive` | 0,9 s | ~10 s | aucun |
-| `npm run sync` | ~1 s | 2,8 s | réécrit `ratings.csv` **seulement** si une partie s'ajoute |
+| Commande          | À vide | Pendant qu'on joue | Effet de bord                                              |
+| ----------------- | ------ | ------------------ | ---------------------------------------------------------- |
+| `npm run archive` | 0,9 s  | ~10 s              | aucun                                                      |
+| `npm run sync`    | ~1 s   | 2,8 s              | réécrit `ratings.csv` **seulement** si une partie s'ajoute |
 
 Ce qui a changé :
 
@@ -191,17 +191,17 @@ Un **code de retour `0`** signifie que le passage s'est bien terminé (`267011` 
 
 ### Par l'interface
 
-1. Ouvrir **Planificateur de tâches** → *Créer une tâche*.
-2. Onglet **Général** : nom `BG Tracker - archivage`. *Exécuter avec les autorisations maximales*
+1. Ouvrir **Planificateur de tâches** → _Créer une tâche_.
+2. Onglet **Général** : nom `BG Tracker - archivage`. _Exécuter avec les autorisations maximales_
    n'est **pas** nécessaire.
-3. Onglet **Déclencheurs** : un déclencheur *À l'ouverture de session* limité à ton compte, et un
-   déclencheur *Quotidien* à 4 h.
+3. Onglet **Déclencheurs** : un déclencheur _À l'ouverture de session_ limité à ton compte, et un
+   déclencheur _Quotidien_ à 4 h.
 4. Onglet **Actions** : programme `powershell.exe`, arguments
-   `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run sync"`, *Commencer dans* le
+   `-WindowStyle Hidden -NonInteractive -NoProfile -Command "npm run sync"`, _Commencer dans_ le
    dossier du projet.
-5. Onglet **Conditions** : décocher *N'exécuter que si l'ordinateur est sur secteur* sur un portable.
-6. Onglet **Paramètres** : cocher *Exécuter la tâche dès que possible si un démarrage planifié est
-   manqué*, pour rattraper les jours où le PC était éteint à 4 h.
+5. Onglet **Conditions** : décocher _N'exécuter que si l'ordinateur est sur secteur_ sur un portable.
+6. Onglet **Paramètres** : cocher _Exécuter la tâche dès que possible si un démarrage planifié est
+   manqué_, pour rattraper les jours où le PC était éteint à 4 h.
 
 ## Après une session de jeu
 
@@ -218,7 +218,7 @@ disponibles séparément (`npm run archive`, `npm run import`, `npm run ratings`
 le bon ordre est la source d'erreur la plus courante : une cote saisie sans `npm run ratings` reste
 dans le fichier sans jamais arriver en base.
 
-Le tableau de bord relit la base **en revenant sur sa fenêtre**, et un bouton *Rafraîchir* est là pour
+Le tableau de bord relit la base **en revenant sur sa fenêtre**, et un bouton _Rafraîchir_ est là pour
 le forcer : pas besoin de le relancer après un `npm run sync`.
 
 ## Relire l'archive

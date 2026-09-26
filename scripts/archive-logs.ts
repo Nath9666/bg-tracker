@@ -106,7 +106,8 @@ async function main(): Promise<void> {
     copiedCount += 1;
     copiedSource += file.sourceSize;
     copiedArchive += file.archivedSize;
-    const ratio = file.archivedSize > 0 ? ` (${(file.sourceSize / file.archivedSize).toFixed(0)}x)` : '';
+    const ratio =
+      file.archivedSize > 0 ? ` (${(file.sourceSize / file.archivedSize).toFixed(0)}x)` : '';
     console.log(
       `  + ${sessionLabel(file.session)}  ${file.file}  ${mo(file.sourceSize)} -> ${mo(file.archivedSize)}${ratio}  ${file.games} partie(s)`,
     );
@@ -123,7 +124,9 @@ async function main(): Promise<void> {
 
   console.log();
   if (copiedCount > 0) {
-    console.log(`${copiedCount} fichier(s) archive(s) : ${mo(copiedSource)} -> ${mo(copiedArchive)}`);
+    console.log(
+      `${copiedCount} fichier(s) archive(s) : ${mo(copiedSource)} -> ${mo(copiedArchive)}`,
+    );
   } else {
     console.log('Rien de nouveau a archiver.');
   }

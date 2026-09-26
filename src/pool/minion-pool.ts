@@ -77,10 +77,7 @@ export function inLobby(minion: PoolMinion, races: ReadonlySet<string>): boolean
  * Sans type connu, on ne filtre pas : tout le pool est annonce, ce qui est la
  * verite tant qu'on n'a rien vu.
  */
-export function poolByTier(
-  pool: readonly PoolMinion[],
-  races: ReadonlySet<string>,
-): TierPool[] {
+export function poolByTier(pool: readonly PoolMinion[], races: ReadonlySet<string>): TierPool[] {
   const paliers = new Map<number, Map<string, number>>();
 
   for (const minion of pool) {
@@ -97,8 +94,7 @@ export function poolByTier(
       tier,
       // Un serviteur a deux types ne doit compter qu'une fois dans le total.
       total: pool.filter(
-        (minion) =>
-          minion.techLevel === tier && (races.size === 0 || inLobby(minion, races)),
+        (minion) => minion.techLevel === tier && (races.size === 0 || inLobby(minion, races)),
       ).length,
       byRace: [...parType.entries()]
         .map(([race, count]) => ({ race, count }))

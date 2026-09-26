@@ -150,7 +150,9 @@ export async function* followLogs(
     }
 
     if (path !== null) {
-      const exists = await stat(path).then(() => true).catch(() => false);
+      const exists = await stat(path)
+        .then(() => true)
+        .catch(() => false);
       if (!exists) {
         // `Power.log` a ete renomme en `Power_old.log` : on reprend la suite
         // au meme offset, le contenu etant le meme fichier.

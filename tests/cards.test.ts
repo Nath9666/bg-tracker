@@ -2,12 +2,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  CardIndex,
-  buildIndex,
-  loadIndex,
-  saveIndex,
-} from '../src/cards/card-database.js';
+import { CardIndex, buildIndex, loadIndex, saveIndex } from '../src/cards/card-database.js';
 import { importCards } from '../src/cards/import-cards.js';
 import { parseCardsArgs } from '../src/cli/cards.js';
 import { openDatabase, type Db } from '../src/db/database.js';
@@ -18,10 +13,39 @@ import type { GameSummary } from '../src/types.js';
 
 // Cartes reelles, copiees de HearthstoneJSON.
 const FRENCH = [
-  { id: 'BG36_760', dbfId: 133075, name: 'Capitaine Macaron', type: 'MINION', techLevel: 4, races: ['MURLOC', 'PIRATE'], cardClass: 'NEUTRAL', isBattlegroundsPoolMinion: true },
-  { id: 'BG22_HERO_000', dbfId: 77987, name: 'Tavish Foudrepique', type: 'HERO', cardClass: 'NEUTRAL', battlegroundsHero: true },
-  { id: 'BG22_HERO_000_SKIN_A', dbfId: 98808, name: 'Maître-éclaireur Tavish', type: 'HERO', cardClass: 'NEUTRAL', battlegroundsSkinParentId: 77987 },
-  { id: 'BG30_MagicItem_547', dbfId: 112399, name: 'Cercueil confortable', type: 'BATTLEGROUND_TRINKET', cardClass: 'NEUTRAL' },
+  {
+    id: 'BG36_760',
+    dbfId: 133075,
+    name: 'Capitaine Macaron',
+    type: 'MINION',
+    techLevel: 4,
+    races: ['MURLOC', 'PIRATE'],
+    cardClass: 'NEUTRAL',
+    isBattlegroundsPoolMinion: true,
+  },
+  {
+    id: 'BG22_HERO_000',
+    dbfId: 77987,
+    name: 'Tavish Foudrepique',
+    type: 'HERO',
+    cardClass: 'NEUTRAL',
+    battlegroundsHero: true,
+  },
+  {
+    id: 'BG22_HERO_000_SKIN_A',
+    dbfId: 98808,
+    name: 'Maître-éclaireur Tavish',
+    type: 'HERO',
+    cardClass: 'NEUTRAL',
+    battlegroundsSkinParentId: 77987,
+  },
+  {
+    id: 'BG30_MagicItem_547',
+    dbfId: 112399,
+    name: 'Cercueil confortable',
+    type: 'BATTLEGROUND_TRINKET',
+    cardClass: 'NEUTRAL',
+  },
   { name: 'sans identifiant' },
 ];
 
@@ -144,8 +168,11 @@ describe('importCards', () => {
     const { n } = database.prepare('SELECT COUNT(*) AS n FROM cards').get() as { n: number };
     expect(n).toBe(4);
     expect(
-      (database.prepare('SELECT name FROM cards WHERE card_id = ?').get('BG36_760') as { name: string })
-        .name,
+      (
+        database.prepare('SELECT name FROM cards WHERE card_id = ?').get('BG36_760') as {
+          name: string;
+        }
+      ).name,
     ).toBe('Nouveau nom');
   });
 });

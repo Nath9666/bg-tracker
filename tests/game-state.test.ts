@@ -40,10 +40,7 @@ const OPENING = [
   game('PlayerID=15, PlayerName=МиниНиндзя'),
 ];
 
-const COMPLETE = power(
-  'TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE',
-  '03:13:48.9378732',
-);
+const COMPLETE = power('TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE', '03:13:48.9378732');
 
 describe('bornes de partie', () => {
   it('ouvre au CREATE_GAME et ferme au STATE=COMPLETE', async () => {
@@ -111,7 +108,9 @@ describe('identification du joueur local', () => {
     const [first] = await runLines([
       power('CREATE_GAME'),
       power('    GameEntity EntityID=13'),
-      power('    Player EntityID=14 PlayerID=5 GameAccountId=[hi=144115198130930503 lo=1025141059]'),
+      power(
+        '    Player EntityID=14 PlayerID=5 GameAccountId=[hi=144115198130930503 lo=1025141059]',
+      ),
       power('    Player EntityID=15 PlayerID=13 GameAccountId=[hi=0 lo=0]'),
       COMPLETE,
     ]);

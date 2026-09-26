@@ -80,8 +80,12 @@ export function oddsSignature(state: LiveState): string {
   const combat = state.currentCombat;
   if (combat === null) return `${state.phase ?? '-'}|aucun`;
 
-  const minion = (m: { cardId: string; atk: number | null; health: number | null; damage: number }): string =>
-    `${m.cardId}/${m.atk ?? '-'}/${(m.health ?? 0) - m.damage}`;
+  const minion = (m: {
+    cardId: string;
+    atk: number | null;
+    health: number | null;
+    damage: number;
+  }): string => `${m.cardId}/${m.atk ?? '-'}/${(m.health ?? 0) - m.damage}`;
 
   return [
     combat.turn,

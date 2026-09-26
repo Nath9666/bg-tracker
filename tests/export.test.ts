@@ -13,15 +13,37 @@ import type { BoardMinion, DecisionRecord, GameSummary } from '../src/types.js';
 
 const CARDS = buildIndex(
   [
-    { id: 'BG36_760', dbfId: 1, name: 'Capitaine Macaron', type: 'MINION', techLevel: 4, races: ['MURLOC', 'PIRATE'] },
-    { id: 'BG28_300', dbfId: 2, name: 'Liche inoffensive', type: 'MINION', techLevel: 1, races: ['UNDEAD'] },
+    {
+      id: 'BG36_760',
+      dbfId: 1,
+      name: 'Capitaine Macaron',
+      type: 'MINION',
+      techLevel: 4,
+      races: ['MURLOC', 'PIRATE'],
+    },
+    {
+      id: 'BG28_300',
+      dbfId: 2,
+      name: 'Liche inoffensive',
+      type: 'MINION',
+      techLevel: 1,
+      races: ['UNDEAD'],
+    },
     { id: 'BG26_HERO_104', dbfId: 3, name: 'Cariel Roame', type: 'HERO' },
   ],
   [],
 );
 
 function minion(cardId: string, position: number): BoardMinion {
-  return { position, cardId, atk: 3, health: 2, damage: 0, golden: false, keywords: emptyKeywords() };
+  return {
+    position,
+    cardId,
+    atk: 3,
+    health: 2,
+    damage: 0,
+    golden: false,
+    keywords: emptyKeywords(),
+  };
 }
 
 function decision(over: Partial<DecisionRecord> = {}): DecisionRecord {

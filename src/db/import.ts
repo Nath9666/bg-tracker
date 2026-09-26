@@ -120,9 +120,7 @@ export function importGames(
   const insertHeroOffer = db.prepare(
     'INSERT OR REPLACE INTO hero_offers (game_id, card_id, position, chosen) VALUES (?, ?, ?, ?)',
   );
-  const insertTierUp = db.prepare(
-    'INSERT INTO tier_ups (game_id, tier, turn) VALUES (?, ?, ?)',
-  );
+  const insertTierUp = db.prepare('INSERT INTO tier_ups (game_id, tier, turn) VALUES (?, ?, ?)');
   const insertPick = db.prepare(`
     INSERT INTO picks (game_id, choice_id, turn, source_card, kind, option_card, position, chosen)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)

@@ -11,7 +11,13 @@
 import type { LogEvent } from '../parser/events.js';
 import { parseLine } from '../parser/line-parser.js';
 import { GameStateMachine, type Game } from '../state/game-state.js';
-import { cardIdOf, combatResult, gameTurn, readBoard, readZone } from '../extract/game-extractor.js';
+import {
+  cardIdOf,
+  combatResult,
+  gameTurn,
+  readBoard,
+  readZone,
+} from '../extract/game-extractor.js';
 import { readBonuses, type PlayerBonus } from '../extract/player-bonuses.js';
 import type { BoardMinion, CombatResult, TierUp } from '../types.js';
 

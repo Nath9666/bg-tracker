@@ -53,7 +53,12 @@ export function parseSessionFolderName(name: string): Date | null {
   if (match === null) return null;
 
   const [year, month, day, hours, minutes, seconds] = match.slice(1).map(Number) as [
-    number, number, number, number, number, number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
   ];
 
   // Heure locale : c'est l'horloge du joueur qui date les logs.

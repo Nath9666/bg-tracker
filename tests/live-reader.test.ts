@@ -123,11 +123,7 @@ describe('readFrom', () => {
 
 describe('followLogs', () => {
   /** Collecte les lots jusqu'a en avoir `attendus`, puis arrete le suivi. */
-  async function collecter(
-    root: string,
-    attendus: number,
-    fromStart = true,
-  ): Promise<LiveBatch[]> {
+  async function collecter(root: string, attendus: number, fromStart = true): Promise<LiveBatch[]> {
     const controle = new AbortController();
     const lots: LiveBatch[] = [];
 

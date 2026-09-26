@@ -103,7 +103,10 @@ function dictionaryValues(target: ProcessHandle, dict: bigint, layout: MonoLayou
 
   const valeurs: bigint[] = [];
   for (let i = 0n; i < BigInt(Math.min(count, MAX_ITEMS)); i += 1n) {
-    const valeur = readPointer(target, entries + ARRAY_DATA + i * DICT_ENTRY_SIZE + DICT_ENTRY_VALUE);
+    const valeur = readPointer(
+      target,
+      entries + ARRAY_DATA + i * DICT_ENTRY_SIZE + DICT_ENTRY_VALUE,
+    );
     if (valeur !== 0n) valeurs.push(valeur);
   }
   return valeurs;
@@ -156,7 +159,8 @@ function prepare(pid: number): Context {
     const statique = listFields(target, serviceManager, layout).find(
       (f) => f.isStatic && f.name === 's_runtimeServices',
     );
-    if (statique === undefined) throw new MonoLayoutError('ServiceManager.s_runtimeServices introuvable');
+    if (statique === undefined)
+      throw new MonoLayoutError('ServiceManager.s_runtimeServices introuvable');
 
     return {
       target,
@@ -181,7 +185,11 @@ function readRating(ctx: Context): BattlegroundsRating {
   const locator = readPointer(target, statiques + ctx.runtimeServicesOffset);
   if (locator === 0n) throw new RatingUnavailable('Services pas encore initialisés');
 
-  const netCache = dictionaryValues(target, readField(target, locator, layout, 'm_services'), layout)
+  const netCache = dictionaryValues(
+    target,
+    readField(target, locator, layout, 'm_services'),
+    layout,
+  )
     .map((info) => readField(target, info, layout, '<Service>k__BackingField'))
     .find((service) => typeName(target, service, layout) === 'NetCache');
   if (netCache === undefined) throw new RatingUnavailable('NetCache pas encore enregistré');
@@ -192,8 +200,14 @@ function readRating(ctx: Context): BattlegroundsRating {
   if (info === undefined) throw new RatingUnavailable('Cote pas encore reçue du serveur');
 
   const cls = classOf(target, info);
-  const solo = readInt32(target, info + fieldOffset(target, cls, layout, '<Rating>k__BackingField'));
-  const duos = readInt32(target, info + fieldOffset(target, cls, layout, '<DuosRating>k__BackingField'));
+  const solo = readInt32(
+    target,
+    info + fieldOffset(target, cls, layout, '<Rating>k__BackingField'),
+  );
+  const duos = readInt32(
+    target,
+    info + fieldOffset(target, cls, layout, '<DuosRating>k__BackingField'),
+  );
   if (solo === null || duos === null) throw new RatingUnavailable('Cote illisible');
 
   return { solo, duos };
@@ -236,11 +250,17 @@ function readLobbyRaces(ctx: Context): string[] | null {
   const instance = readPointer(target, statiques + BigInt(statique.offset));
   if (instance === 0n) return null;
 
-  const liste = readField(target, instance, layout, 'm_availableRacesInBattlegroundsExcludingAmalgam');
+  const liste = readField(
+    target,
+    instance,
+    layout,
+    'm_availableRacesInBattlegroundsExcludingAmalgam',
+  );
   if (liste === 0n) return null;
 
   const items = readField(target, liste, layout, '_items');
-  const taille = readInt32(target, liste + fieldOffset(target, classOf(target, liste), layout, '_size')) ?? 0;
+  const taille =
+    readInt32(target, liste + fieldOffset(target, classOf(target, liste), layout, '_size')) ?? 0;
 
   const noms: string[] = [];
   for (let i = 0n; i < BigInt(Math.min(taille, 32)); i += 1n) {

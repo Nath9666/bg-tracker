@@ -37,10 +37,13 @@ export function checkLogConfig(contenu: string | null): Check {
   if (contenu === null) return { label, verdict: 'fail', detail: 'fichier absent', fix };
 
   const section = /\[Power\]([\s\S]*?)(?=\n\[|$)/.exec(contenu)?.[1];
-  if (section === undefined) return { label, verdict: 'fail', detail: 'section [Power] absente', fix };
+  if (section === undefined)
+    return { label, verdict: 'fail', detail: 'section [Power] absente', fix };
 
-  const vrai = (cle: string): boolean => new RegExp(`^\\s*${cle}\\s*=\\s*True\\s*$`, 'mi').test(section);
-  if (!vrai('FilePrinting')) return { label, verdict: 'fail', detail: 'FilePrinting n’est pas à True', fix };
+  const vrai = (cle: string): boolean =>
+    new RegExp(`^\\s*${cle}\\s*=\\s*True\\s*$`, 'mi').test(section);
+  if (!vrai('FilePrinting'))
+    return { label, verdict: 'fail', detail: 'FilePrinting n’est pas à True', fix };
   if (!vrai('Verbose')) return { label, verdict: 'fail', detail: 'Verbose n’est pas à True', fix };
 
   return { label, verdict: 'ok', detail: '[Power] avec FilePrinting et Verbose' };
@@ -66,9 +69,11 @@ export function runChecks(): Check[] {
   });
 
   const logs = findLogsFolder();
-  const provenance = { env: 'BG_TRACKER_LOGS', registry: 'registre Windows', default: 'emplacement par défaut' }[
-    logs.source
-  ];
+  const provenance = {
+    env: 'BG_TRACKER_LOGS',
+    registry: 'registre Windows',
+    default: 'emplacement par défaut',
+  }[logs.source];
   checks.push({
     label: 'Dossier des logs de Hearthstone',
     verdict: logs.exists ? 'ok' : 'fail',
@@ -79,7 +84,9 @@ export function runChecks(): Check[] {
   const localAppData = process.env['LOCALAPPDATA'];
   checks.push(
     checkLogConfig(
-      localAppData === undefined ? null : lire(join(localAppData, 'Blizzard', 'Hearthstone', 'log.config')),
+      localAppData === undefined
+        ? null
+        : lire(join(localAppData, 'Blizzard', 'Hearthstone', 'log.config')),
     ),
   );
 

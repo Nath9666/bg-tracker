@@ -18,7 +18,14 @@
  * avant, la lecture rend `null`.
  */
 import { findAssembly, getRootDomain, listAssemblies, MonoLayoutError } from './mono-runtime.js';
-import { classOf, className, findClass, listFields, resolveLayout, type MonoLayout } from './mono-classes.js';
+import {
+  classOf,
+  className,
+  findClass,
+  listFields,
+  resolveLayout,
+  type MonoLayout,
+} from './mono-classes.js';
 import {
   closeProcess,
   findModule,
@@ -77,11 +84,20 @@ export interface CareerReading {
 }
 
 /** Champs d'instance d'une classe et de ses parents, par nom. Mis en cache. */
-function offsets(target: ProcessHandle, layout: MonoLayout, cache: Map<bigint, Map<string, bigint>>, cls: bigint) {
+function offsets(
+  target: ProcessHandle,
+  layout: MonoLayout,
+  cache: Map<bigint, Map<string, bigint>>,
+  cls: bigint,
+) {
   let table = cache.get(cls);
   if (table === undefined) {
     table = new Map();
-    for (let c = cls, n = 0; c !== 0n && n < 20; c = readPointer(target, c + CLASS_PARENT), n += 1) {
+    for (
+      let c = cls, n = 0;
+      c !== 0n && n < 20;
+      c = readPointer(target, c + CLASS_PARENT), n += 1
+    ) {
       for (const f of listFields(target, c, layout)) {
         if (!f.isStatic && !table.has(f.name)) table.set(f.name, BigInt(f.offset));
       }
@@ -96,12 +112,16 @@ function lecteur(target: ProcessHandle, layout: MonoLayout) {
   const decalage = (obj: bigint, nom: string): bigint => {
     const off = offsets(target, layout, cache, classOf(target, obj)).get(nom);
     if (off === undefined) {
-      throw new MonoLayoutError(`Champ ${nom} introuvable sur ${className(target, classOf(target, obj), layout)}`);
+      throw new MonoLayoutError(
+        `Champ ${nom} introuvable sur ${className(target, classOf(target, obj), layout)}`,
+      );
     }
     return off;
   };
-  const pointeur = (obj: bigint, nom: string): bigint => readPointer(target, obj + decalage(obj, nom));
-  const entier = (obj: bigint, nom: string): number | null => readInt32(target, obj + decalage(obj, nom));
+  const pointeur = (obj: bigint, nom: string): bigint =>
+    readPointer(target, obj + decalage(obj, nom));
+  const entier = (obj: bigint, nom: string): number | null =>
+    readInt32(target, obj + decalage(obj, nom));
   const chaine = (obj: bigint): string | null => {
     if (obj === 0n) return null;
     const n = readInt32(target, obj + STRING_LENGTH);
@@ -162,7 +182,10 @@ export function readCareer(): CareerReading | null {
   try {
     const mono = findModule(target, /^mono.*\.dll$/i);
     if (mono === null) return null;
-    const csharp = findAssembly(listAssemblies(target, mono, getRootDomain(target, mono)), 'Assembly-CSharp');
+    const csharp = findAssembly(
+      listAssemblies(target, mono, getRootDomain(target, mono)),
+      'Assembly-CSharp',
+    );
     if (csharp === null) return null;
 
     const layout = resolveLayout(target, mono, csharp.image);
@@ -171,7 +194,8 @@ export function readCareer(): CareerReading | null {
 
     // Classe jamais utilisee dans la session : pas de vtable, donc pas d'instance.
     const runtimeInfo = readPointer(target, cls + layout.classRuntimeInfo);
-    const vtable = runtimeInfo === 0n ? 0n : readPointer(target, runtimeInfo + RUNTIME_INFO_FIRST_VTABLE);
+    const vtable =
+      runtimeInfo === 0n ? 0n : readPointer(target, runtimeInfo + RUNTIME_INFO_FIRST_VTABLE);
     if (vtable === 0n) return null;
 
     const l = lecteur(target, layout);
@@ -188,7 +212,11 @@ export function readCareer(): CareerReading | null {
 
         // Une vraie instance a une liste de parties passees bien formee.
         const passees = l.pointeur(objet, 'm_PastGames');
-        if (passees === 0n || className(target, classOf(target, passees), layout) !== 'DataModelList`1') continue;
+        if (
+          passees === 0n ||
+          className(target, classOf(target, passees), layout) !== 'DataModelList`1'
+        )
+          continue;
 
         candidats.push({ stats, warbands: l.liste(passees).map((p) => lireTroupe(l, p)) });
       } catch {

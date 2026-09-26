@@ -23,25 +23,25 @@ d = pd.read_json("data/export/decisions.jsonl", lines=True)
 
 ## Colonnes
 
-| Colonne | Contenu |
-|---|---|
-| `gameId` | identifiant stable de la partie |
-| `finalPlace`, `top4`, `ratingAfter` | **l'issue** : les étiquettes d'apprentissage |
-| `heroCardId`, `startedAt` | contexte de la partie |
-| `sequence`, `turn` | position de la décision |
-| `action` | `buy`, `buySpell`, `sell`, `reroll`, `freeze`, `tierUp`, `heroPower`, `play` |
-| `targetCardId` | la carte retenue : **c'est la cible à prédire** |
-| `position` | emplacement de pose |
-| `gold`, `tavernTier`, `health` | état du joueur |
-| `board`, `hand`, `shop` | ce qu'il avait sous les yeux |
+| Colonne                             | Contenu                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `gameId`                            | identifiant stable de la partie                                              |
+| `finalPlace`, `top4`, `ratingAfter` | **l'issue** : les étiquettes d'apprentissage                                 |
+| `heroCardId`, `startedAt`           | contexte de la partie                                                        |
+| `sequence`, `turn`                  | position de la décision                                                      |
+| `action`                            | `buy`, `buySpell`, `sell`, `reroll`, `freeze`, `tierUp`, `heroPower`, `play` |
+| `targetCardId`                      | la carte retenue : **c'est la cible à prédire**                              |
+| `position`                          | emplacement de pose                                                          |
+| `gold`, `tavernTier`, `health`      | état du joueur                                                               |
+| `board`, `hand`, `shop`             | ce qu'il avait sous les yeux                                                 |
 
 Chaque carte de `board` / `hand` / `shop` porte `cardId`, `name`, `techLevel`,
 `races`, `position`, `atk`, `health`, `golden`.
 
 ## ⚠️ Imiter n'est pas conseiller
 
-Un modèle entraîné sur **toutes** les parties apprend à prédire *ce que le
-joueur ferait* — ses erreurs comprises. Il recommanderait ses propres mauvaises
+Un modèle entraîné sur **toutes** les parties apprend à prédire _ce que le
+joueur ferait_ — ses erreurs comprises. Il recommanderait ses propres mauvaises
 habitudes.
 
 Pour qu'il conseille au lieu d'imiter, n'entraîner que sur les parties
@@ -79,7 +79,7 @@ print(f"prend le plus haut palier disponible : {100 * (t.pris == t.dispo_max).me
 
 ## Volume
 
-Le prérequis de la phase 5 est *plusieurs centaines de parties*. À titre de
+Le prérequis de la phase 5 est _plusieurs centaines de parties_. À titre de
 repère, 28 parties donnent environ 4 500 décisions et 50 000 cartes visibles.
 Les modèles supervisés attendent ce volume ; l'export, lui, fonctionne dès
 maintenant.

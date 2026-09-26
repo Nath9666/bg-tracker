@@ -15,7 +15,8 @@ import { readSessionLines } from '../src/reader/session-reader.js';
 
 const CREATE_GAME = 'D 02:48:30.3211164 GameState.DebugPrintPower() - CREATE_GAME';
 const NOISE = 'D 02:48:30.3211164 PowerTaskList.DebugPrintPower() - CREATE_GAME';
-const TAG = 'D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=19 tag=TURN value=1';
+const TAG =
+  'D 02:48:30.3211164 GameState.DebugPrintPower() - TAG_CHANGE Entity=19 tag=TURN value=1';
 
 /** Contenu d'un Power.log contenant `games` parties. */
 function logWith(games: number): string {

@@ -1,0 +1,11 @@
+# Genere ou volumineux : jamais reformate.
+dist/
+release/
+data/
+node_modules/
+coverage/
+fixtures/
+tests/fixtures/
+package-lock.json
+# Les .cmd doivent garder leurs fins de ligne Windows.
+*.cmd

@@ -18,7 +18,10 @@ body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+  font:
+    14px/1.5 'Segoe UI',
+    system-ui,
+    sans-serif;
 }
 
 .app {

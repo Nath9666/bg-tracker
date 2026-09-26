@@ -41,7 +41,9 @@ export default function Side(): JSX.Element | null {
               <header>
                 <span className="nom">{fiche.heroName}</span>
                 <span className="meta">
-                  {fiche.played === 0 ? 'jamais joué' : `${fiche.played} partie${fiche.played > 1 ? 's' : ''}`}
+                  {fiche.played === 0
+                    ? 'jamais joué'
+                    : `${fiche.played} partie${fiche.played > 1 ? 's' : ''}`}
                 </span>
               </header>
               {fiche.played > 0 && (
@@ -52,11 +54,15 @@ export default function Side(): JSX.Element | null {
                   </div>
                   <div>
                     <dt>top 4</dt>
-                    <dd>{fiche.top4Rate === null ? '—' : `${Math.round(fiche.top4Rate * 100)} %`}</dd>
+                    <dd>
+                      {fiche.top4Rate === null ? '—' : `${Math.round(fiche.top4Rate * 100)} %`}
+                    </dd>
                   </div>
                   <div>
                     <dt>choisi</dt>
-                    <dd>{fiche.pickRate === null ? '—' : `${Math.round(fiche.pickRate * 100)} %`}</dd>
+                    <dd>
+                      {fiche.pickRate === null ? '—' : `${Math.round(fiche.pickRate * 100)} %`}
+                    </dd>
                   </div>
                 </dl>
               )}
@@ -92,13 +98,13 @@ export default function Side(): JSX.Element | null {
         />
         <Pastille valeur={state.gold === null ? '—' : String(state.gold)} libelle="or" />
         {/* Lue dans la memoire du jeu ; absente plutot que fausse si la lecture echoue. */}
-        {payload.rating !== null && <Pastille valeur={String(payload.rating.solo)} libelle="cote" />}
+        {payload.rating !== null && (
+          <Pastille valeur={String(payload.rating.solo)} libelle="cote" />
+        )}
       </div>
 
       <section className="taverne">
-        <h2>
-          Taverne{lobbyRaces.length > 0 ? ` · ${lobbyRaces.map(raceName).join(', ')}` : ''}
-        </h2>
+        <h2>Taverne{lobbyRaces.length > 0 ? ` · ${lobbyRaces.map(raceName).join(', ')}` : ''}</h2>
         {lobbyRaces.length === 0 ? (
           // Rien vu encore : annoncer tout le pool serait exact mais inutile.
           <p className="perime">types du lobby pas encore identifiés</p>

@@ -299,7 +299,9 @@ async function supersededSnapshot(
   if (hasCurrent || !hasRotated) return false;
 
   const snapshot = join(dest, session, 'Power.log.gz');
-  const archived = await stat(snapshot).then(() => true).catch(() => false);
+  const archived = await stat(snapshot)
+    .then(() => true)
+    .catch(() => false);
   if (!archived) return false;
 
   if (!dryRun) await rm(snapshot, { force: true });
@@ -355,7 +357,9 @@ export async function pruneArchive(
 
 /** Cree `data/ratings.csv` s'il n'existe pas : la cote n'est pas dans les logs. */
 export async function ensureRatingsFile(path: string): Promise<boolean> {
-  const exists = await stat(path).then(() => true).catch(() => false);
+  const exists = await stat(path)
+    .then(() => true)
+    .catch(() => false);
   if (exists) return false;
 
   await mkdir(join(path, '..'), { recursive: true });

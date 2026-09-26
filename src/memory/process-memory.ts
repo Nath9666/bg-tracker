@@ -64,9 +64,11 @@ export interface ModuleInfo {
 export class ProcessNotFound extends Error {}
 
 function utf16(buffer: Uint16Array): string {
-  return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-    .toString('utf16le')
-    .split('\0')[0] ?? '';
+  return (
+    Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      .toString('utf16le')
+      .split('\0')[0] ?? ''
+  );
 }
 
 /**
@@ -244,13 +246,18 @@ export function findPointerOccurrences(target: ProcessHandle, value: bigint): bi
   let adresse = 0n;
   while (adresse < USER_SPACE_END) {
     const info: Record<string, number | bigint> = {};
-    if (VirtualQueryEx(target.handle, adresse, info, koffi.sizeof(MemoryBasicInformation)) === 0) break;
+    if (VirtualQueryEx(target.handle, adresse, info, koffi.sizeof(MemoryBasicInformation)) === 0)
+      break;
 
     const base = BigInt(info['BaseAddress']!);
     const taille = BigInt(info['RegionSize']!);
     if (taille === 0n) break;
 
-    if (info['State'] === MEM_COMMIT && info['Protect'] === PAGE_READWRITE && info['Type'] === MEM_PRIVATE) {
+    if (
+      info['State'] === MEM_COMMIT &&
+      info['Protect'] === PAGE_READWRITE &&
+      info['Type'] === MEM_PRIVATE
+    ) {
       for (let off = 0n; off < taille; off += SCAN_CHUNK) {
         const n = taille - off < SCAN_CHUNK ? taille - off : SCAN_CHUNK;
         const bloc = readMemory(target, base + off, Number(n));

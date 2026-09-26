@@ -127,7 +127,10 @@ describe.skipIf(!moteurDisponible)('simulateCombat', () => {
     // Le meme serviteur deja blesse de 6 n'a plus que 4 PV : il meurt au
     // premier echange et laisse un 5/1 debout en face -> defaite.
     const intact = odds([minion({ atk: 5, health: 10 })], [minion({ atk: 5, health: 6 })]);
-    const blesse = odds([minion({ atk: 5, health: 10, damage: 6 })], [minion({ atk: 5, health: 6 })]);
+    const blesse = odds(
+      [minion({ atk: 5, health: 10, damage: 6 })],
+      [minion({ atk: 5, health: 6 })],
+    );
 
     expect(intact!.tiePercent).toBeGreaterThan(90);
     expect(blesse!.lossPercent).toBeGreaterThan(90);

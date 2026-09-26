@@ -99,7 +99,9 @@ export function buildIndex(french: readonly RawCard[], english: readonly RawCard
       nameEn: englishNames.get(cardId) ?? name,
       type: asString(card.type),
       techLevel: typeof card.techLevel === 'number' ? card.techLevel : null,
-      races: Array.isArray(card.races) ? card.races.filter((r): r is string => typeof r === 'string') : [],
+      races: Array.isArray(card.races)
+        ? card.races.filter((r): r is string => typeof r === 'string')
+        : [],
       cardClass: asString(card.cardClass),
       skinParentDbfId:
         typeof card.battlegroundsSkinParentId === 'number' ? card.battlegroundsSkinParentId : null,

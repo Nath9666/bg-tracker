@@ -10,17 +10,17 @@ Objectif à long terme (phase 5, pas maintenant) : entraîner une IA qui imite l
 
 ## Documentation à lire
 
-| Fichier | Contenu | Quand le lire |
-|---|---|---|
-| `docs/ROADMAP.md` | Les phases du projet, avec critères de fin | Toujours, pour savoir où on en est |
-| `docs/LOG_FORMAT.md` | Format de `Power.log`, tags utiles, pièges connus | Avant de toucher au parseur |
-| `docs/ARCHITECTURE.md` | Modules, flux de données, schéma SQLite | Avant de créer un module ou une table |
-| `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée | Pour comprendre le parseur |
-| `docs/ARCHIVAGE.md` | Archivage des logs, rétention, tâche planifiée | Pour toucher à `scripts/archive-logs` |
-| `ml/README.md` | Jeu de données d'entraînement, chargement pandas | Avant de toucher à la phase 5 |
+| Fichier                         | Contenu                                           | Quand le lire                         |
+| ------------------------------- | ------------------------------------------------- | ------------------------------------- |
+| `docs/ROADMAP.md`               | Les phases du projet, avec critères de fin        | Toujours, pour savoir où on en est    |
+| `docs/LOG_FORMAT.md`            | Format de `Power.log`, tags utiles, pièges connus | Avant de toucher au parseur           |
+| `docs/ARCHITECTURE.md`          | Modules, flux de données, schéma SQLite           | Avant de créer un module ou une table |
+| `docs/phases/phase-1-parser.md` | Spécification de la phase 1, terminée             | Pour comprendre le parseur            |
+| `docs/ARCHIVAGE.md`             | Archivage des logs, rétention, tâche planifiée    | Pour toucher à `scripts/archive-logs` |
+| `ml/README.md`                  | Jeu de données d'entraînement, chargement pandas  | Avant de toucher à la phase 5         |
 
 **Phase en cours : Phase 5 — IA d'imitation, étape de collecte.**
-Les phases 0 à 4 sont terminées. La phase 5 exige *plusieurs centaines de parties* ; en attendant,
+Les phases 0 à 4 sont terminées. La phase 5 exige _plusieurs centaines de parties_ ; en attendant,
 les **points de décision** sont collectés à chaque import (table `decisions`) car ils n'existent
 que dans les logs bruts, qui sont élagués au-delà de 200 parties.
 
@@ -94,8 +94,8 @@ Les scripts TypeScript sont exécutés avec `tsx` (pas de compilation préalable
   - les **statistiques de carrière et les dernières troupes de guerre**, celles de l'écran de
     statistiques du jeu : les propres chiffres du joueur, sans effet sur une partie. Jamais lues
     pendant une partie (balayage d'environ 2 Go du tas).
-  Toute nouvelle donnée lue en mémoire doit d'abord être cherchée dans les logs, puis ajoutée à
-  cette liste.
+    Toute nouvelle donnée lue en mémoire doit d'abord être cherchée dans les logs, puis ajoutée à
+    cette liste.
   - **En lecture seule.** Rien n'est jamais écrit dans le processus du jeu.
   - Limité à ce que les logs ne donnent pas. Tout le reste continue de passer par `Power.log` :
     une donnée lisible dans un log ne doit pas être lue en mémoire.

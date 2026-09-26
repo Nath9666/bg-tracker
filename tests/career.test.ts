@@ -78,7 +78,10 @@ describe('careerView', () => {
   it('garde un compteur inconnu, sous son nom brut', () => {
     const db = openDatabase(':memory:');
     saveSnapshot(db, '2026-09-26T12:00:00', { top4: 1188, nouveauCompteur: 7 });
-    expect(careerView(db, '2026-09-01')?.lines.at(-1)).toMatchObject({ key: 'nouveauCompteur', value: 7 });
+    expect(careerView(db, '2026-09-01')?.lines.at(-1)).toMatchObject({
+      key: 'nouveauCompteur',
+      value: 7,
+    });
   });
 
   it('rend null sans aucun releve', () => {
@@ -127,6 +130,10 @@ describe('troupes de guerre', () => {
   it('restitue les serviteurs, dores compris, avec leur nom a defaut de la base', () => {
     const db = openDatabase(':memory:');
     saveWarbands(db, '2026-09-26T12:00:00', [CARIEL]);
-    expect(recentWarbands(db)[0]?.minions[1]).toMatchObject({ cardId: 'BG36_103_G', golden: true, name: 'BG36_103_G' });
+    expect(recentWarbands(db)[0]?.minions[1]).toMatchObject({
+      cardId: 'BG36_103_G',
+      golden: true,
+      name: 'BG36_103_G',
+    });
   });
 });

@@ -13,11 +13,15 @@ export default function RatingPrompt(): JSX.Element {
   const [texte, setTexte] = useState('');
   const [etat, setEtat] = useState<'saisie' | 'enregistre'>('saisie');
 
-  useEffect(() => bridge().onPrompt((recu) => {
-    setGame(recu);
-    setTexte('');
-    setEtat('saisie');
-  }), []);
+  useEffect(
+    () =>
+      bridge().onPrompt((recu) => {
+        setGame(recu);
+        setTexte('');
+        setEtat('saisie');
+      }),
+    [],
+  );
 
   const enregistrer = (): void => {
     if (game === null) return;
@@ -33,7 +37,12 @@ export default function RatingPrompt(): JSX.Element {
       });
   };
 
-  if (game === null) return <div className="saisie"><p>…</p></div>;
+  if (game === null)
+    return (
+      <div className="saisie">
+        <p>…</p>
+      </div>
+    );
 
   return (
     <div className="saisie">

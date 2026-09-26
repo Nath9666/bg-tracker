@@ -43,7 +43,14 @@ const OPENING = [
 const COMPLETE = power('TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE', '03:13:48.9378732');
 
 /** Cree un serviteur sur le plateau du joueur. */
-function minion(id: number, cardId: string, position: number, atk: number, health: number, golden = false): string[] {
+function minion(
+  id: number,
+  cardId: string,
+  position: number,
+  atk: number,
+  health: number,
+  golden = false,
+): string[] {
   const lines = [
     power(`FULL_ENTITY - Creating ID=${id} CardID=${cardId}`),
     power('        tag=CARDTYPE value=MINION'),
@@ -368,7 +375,11 @@ describe('decisions', () => {
 
   it('laisse la cible vide quand l’action n’en a pas', async () => {
     // Le log ecrit `selectedTarget=0` dans ce cas.
-    const [only] = await runLines([...OPENING, ...action(1, 'TB_BaconShopLockAll_Button'), COMPLETE]);
+    const [only] = await runLines([
+      ...OPENING,
+      ...action(1, 'TB_BaconShopLockAll_Button'),
+      COMPLETE,
+    ]);
     expect(only?.decisions[0]?.targetCardId).toBeNull();
   });
 
@@ -483,9 +494,9 @@ describe('import des tours et des plateaux', () => {
     expect(n).toBeGreaterThan(1000);
 
     // Les trois zones sont representées.
-    const zones = db
-      .prepare('SELECT DISTINCT zone FROM decision_cards ORDER BY zone')
-      .all() as { zone: string }[];
+    const zones = db.prepare('SELECT DISTINCT zone FROM decision_cards ORDER BY zone').all() as {
+      zone: string;
+    }[];
     expect(zones.map((z) => z.zone)).toEqual(['board', 'hand', 'shop']);
   });
 

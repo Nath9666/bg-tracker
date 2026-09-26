@@ -27,11 +27,7 @@ const MAX_EXPORT_NAME = 128;
 export class PeParseError extends Error {}
 
 /** Adresse (pas seulement RVA) d'un export, prete a lire ou a sonder. */
-export function findExport(
-  target: ProcessHandle,
-  module: ModuleInfo,
-  name: string,
-): bigint | null {
+export function findExport(target: ProcessHandle, module: ModuleInfo, name: string): bigint | null {
   const dos = readMemory(target, module.base, DOS_HEADER_SIZE);
   if (dos === null || dos.toString('latin1', 0, 2) !== 'MZ') {
     throw new PeParseError(`${module.name} : en-tête DOS invalide`);
@@ -44,7 +40,11 @@ export function findExport(
   }
 
   const sizeOfOptionalHeader = coff.readUInt16LE(20);
-  const optHeader = readMemory(target, peBase + BigInt(OPTIONAL_HEADER_OFFSET), sizeOfOptionalHeader);
+  const optHeader = readMemory(
+    target,
+    peBase + BigInt(OPTIONAL_HEADER_OFFSET),
+    sizeOfOptionalHeader,
+  );
   if (optHeader === null || optHeader.readUInt16LE(0) !== PE64_MAGIC) {
     throw new PeParseError(`${module.name} : n'est pas un module PE32+ (x64)`);
   }

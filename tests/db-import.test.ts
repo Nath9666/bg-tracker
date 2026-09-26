@@ -143,7 +143,9 @@ describe('importGames', () => {
     const db = freshDb();
     importGames(db, [BASE], 'x');
 
-    expect(rows(db, 'SELECT option_card, position, chosen, kind, turn FROM picks ORDER BY position')).toEqual([
+    expect(
+      rows(db, 'SELECT option_card, position, chosen, kind, turn FROM picks ORDER BY position'),
+    ).toEqual([
       { option_card: 'BG35_143', position: 0, chosen: 0, kind: 'triple', turn: 4 },
       { option_card: 'BG36_760', position: 1, chosen: 1, kind: 'triple', turn: 4 },
     ]);
@@ -151,11 +153,7 @@ describe('importGames', () => {
 
   it('enregistre un choix dont l’option retenue n’est pas dans la liste', () => {
     const db = freshDb();
-    importGames(
-      db,
-      [{ ...BASE, picks: [{ ...BASE.picks[0]!, chosen: 'BG99_999' }] }],
-      'x',
-    );
+    importGames(db, [{ ...BASE, picks: [{ ...BASE.picks[0]!, chosen: 'BG99_999' }] }], 'x');
 
     expect(rows(db, 'SELECT option_card FROM picks WHERE chosen = 1')).toEqual([
       { option_card: 'BG99_999' },

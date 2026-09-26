@@ -19,9 +19,7 @@ export function useLive(): OverlayPayload | null {
 }
 
 /** Nom francais d'une carte, son `cardId` a defaut. */
-export function nommeur(
-  cards: OverlayPayload['cards'],
-): (cardId: string | null) => string {
+export function nommeur(cards: OverlayPayload['cards']): (cardId: string | null) => string {
   return (cardId) => (cardId === null ? '—' : (cards[cardId]?.name ?? cardId));
 }
 

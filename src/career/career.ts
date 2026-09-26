@@ -61,7 +61,9 @@ export function saveSnapshot(db: Db, takenAt: string, stats: CareerStats): boole
     entrees.every(([k, v]) => precedent[k] === v);
   if (identique) return false;
 
-  const inserer = db.prepare('INSERT OR REPLACE INTO career_snapshots (taken_at, stat, value) VALUES (?, ?, ?)');
+  const inserer = db.prepare(
+    'INSERT OR REPLACE INTO career_snapshots (taken_at, stat, value) VALUES (?, ?, ?)',
+  );
   db.transaction(() => {
     for (const [stat, value] of entrees) inserer.run(takenAt, stat, Math.round(value));
   })();
@@ -80,10 +82,7 @@ export interface CareerLine {
  * Derniers chiffres, avec leur progression depuis `since` (le premier releve
  * posterieur ou egal a cette date).
  */
-export function careerView(
-  db: Db,
-  since: string,
-): { takenAt: string; lines: CareerLine[] } | null {
+export function careerView(db: Db, since: string): { takenAt: string; lines: CareerLine[] } | null {
   const dernier = latestSnapshot(db);
   if (dernier === null) return null;
 
@@ -179,16 +178,25 @@ export function recentWarbands(db: Db, limit = 5): WarbandView[] {
       `SELECT first_seen AS firstSeen, hero_card_id AS heroCardId, hero_name AS heroName, place, minions
        FROM warbands ORDER BY first_seen DESC, rank ASC LIMIT ?`,
     )
-    .all(limit) as { firstSeen: string; heroCardId: string | null; heroName: string | null; place: number; minions: string }[];
+    .all(limit) as {
+    firstSeen: string;
+    heroCardId: string | null;
+    heroName: string | null;
+    place: number;
+    minions: string;
+  }[];
 
-  const carte = db.prepare('SELECT name, races, tech_level AS techLevel FROM cards WHERE card_id = ?');
+  const carte = db.prepare(
+    'SELECT name, races, tech_level AS techLevel FROM cards WHERE card_id = ?',
+  );
   return rows.map((row) => ({
     firstSeen: row.firstSeen,
     heroCardId: row.heroCardId,
     heroName: row.heroName,
     place: row.place,
     minions: (JSON.parse(row.minions) as StoredWarbandMinion[]).map((m) => {
-      const info = carte.get(m.cardId) as { name: string; races: string | null; techLevel: number | null } | undefined;
+      const info = carte.get(m.cardId) as
+        { name: string; races: string | null; techLevel: number | null } | undefined;
       return {
         ...m,
         name: info?.name ?? m.cardId,

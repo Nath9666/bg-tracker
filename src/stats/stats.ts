@@ -201,8 +201,12 @@ export function aggregateTimeline(
   }
 
   return [...paquets.entries()].map(([key, paquet]) => {
-    const places = paquet.map((point) => point.place).filter((place): place is number => place !== null);
-    const cotes = paquet.map((point) => point.rating).filter((cote): cote is number => cote !== null);
+    const places = paquet
+      .map((point) => point.place)
+      .filter((place): place is number => place !== null);
+    const cotes = paquet
+      .map((point) => point.rating)
+      .filter((cote): cote is number => cote !== null);
 
     return {
       key,
@@ -210,7 +214,9 @@ export function aggregateTimeline(
       games: paquet.length,
       rating: cotes.length === 0 ? null : cotes[cotes.length - 1]!,
       averagePlace:
-        places.length === 0 ? null : places.reduce((total, place) => total + place, 0) / places.length,
+        places.length === 0
+          ? null
+          : places.reduce((total, place) => total + place, 0) / places.length,
     };
   });
 }
@@ -276,10 +282,12 @@ export function heroStats(db: Db, filters: StatsFilters = {}): HeroStat[] {
   }
 
   const names = new Map(
-    (db.prepare('SELECT card_id AS cardId, name FROM cards').all() as {
-      cardId: string;
-      name: string;
-    }[]).map((card) => [card.cardId, card.name]),
+    (
+      db.prepare('SELECT card_id AS cardId, name FROM cards').all() as {
+        cardId: string;
+        name: string;
+      }[]
+    ).map((card) => [card.cardId, card.name]),
   );
 
   const byHero = new Map<string, HeroStat>();
@@ -498,9 +506,10 @@ export function heroPickCard(
 
   const name =
     stat?.heroName ??
-    (db.prepare('SELECT name FROM cards WHERE card_id = ?').get(heroBaseId) as
-      | { name: string }
-      | undefined)?.name ??
+    (
+      db.prepare('SELECT name FROM cards WHERE card_id = ?').get(heroBaseId) as
+        { name: string } | undefined
+    )?.name ??
     heroBaseId;
 
   return {
@@ -578,10 +587,9 @@ export function restingView(
   const avant = cotes.filter((c) => !c.startedAt.startsWith(today)).at(-1)?.rating ?? null;
   const finSession = cotes.filter((c) => c.startedAt.startsWith(today)).at(-1)?.rating ?? null;
   // La partie pas encore importee compte dans la session, avec sa place.
-  const places = [
-    ...duJour.map((p) => p.place),
-    ...(horsBase ? [live.place] : []),
-  ].filter((p): p is number => p !== null);
+  const places = [...duJour.map((p) => p.place), ...(horsBase ? [live.place] : [])].filter(
+    (p): p is number => p !== null,
+  );
 
   return {
     rating: liveRating ?? derniere,

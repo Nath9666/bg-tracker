@@ -24,13 +24,51 @@ import type { GameSummary } from '../src/types.js';
 // BG20_HERO_201, que le retrait du suffixe ne donne pas.
 const CARDS = buildIndex(
   [
-    { id: 'BG22_HERO_000', dbfId: 77987, name: 'Tavish Foudrepique', type: 'HERO', battlegroundsHero: true },
-    { id: 'BG22_HERO_000_SKIN_A', dbfId: 98808, name: 'Maître-éclaireur Tavish', type: 'HERO', battlegroundsSkinParentId: 77987 },
+    {
+      id: 'BG22_HERO_000',
+      dbfId: 77987,
+      name: 'Tavish Foudrepique',
+      type: 'HERO',
+      battlegroundsHero: true,
+    },
+    {
+      id: 'BG22_HERO_000_SKIN_A',
+      dbfId: 98808,
+      name: 'Maître-éclaireur Tavish',
+      type: 'HERO',
+      battlegroundsSkinParentId: 77987,
+    },
     { id: 'BG20_HERO_201', dbfId: 71463, name: 'Vol’jin', type: 'HERO', battlegroundsHero: true },
-    { id: 'TB_BaconShop_HERO_201_SKIN_D', dbfId: 96572, name: 'Vol’aileron', type: 'HERO', battlegroundsSkinParentId: 71463 },
-    { id: 'BG26_HERO_104', dbfId: 90000, name: 'Cariel Roame', type: 'HERO', battlegroundsHero: true },
-    { id: 'BG36_760', dbfId: 133075, name: 'Capitaine Macaron', type: 'MINION', techLevel: 4, races: ['MURLOC', 'PIRATE'] },
-    { id: 'BG28_300', dbfId: 104551, name: 'Liche inoffensive', type: 'MINION', techLevel: 1, races: ['UNDEAD'] },
+    {
+      id: 'TB_BaconShop_HERO_201_SKIN_D',
+      dbfId: 96572,
+      name: 'Vol’aileron',
+      type: 'HERO',
+      battlegroundsSkinParentId: 71463,
+    },
+    {
+      id: 'BG26_HERO_104',
+      dbfId: 90000,
+      name: 'Cariel Roame',
+      type: 'HERO',
+      battlegroundsHero: true,
+    },
+    {
+      id: 'BG36_760',
+      dbfId: 133075,
+      name: 'Capitaine Macaron',
+      type: 'MINION',
+      techLevel: 4,
+      races: ['MURLOC', 'PIRATE'],
+    },
+    {
+      id: 'BG28_300',
+      dbfId: 104551,
+      name: 'Liche inoffensive',
+      type: 'MINION',
+      techLevel: 1,
+      races: ['UNDEAD'],
+    },
     { id: 'BG35_143', dbfId: 120677, name: 'Sans type', type: 'MINION', techLevel: 2 },
   ],
   [],
@@ -141,7 +179,11 @@ describe('placeDistribution', () => {
 describe('heroStats', () => {
   it('compte les parties jouees et les propositions', () => {
     const db = seeded([
-      game({ gameSeed: '1', heroChosen: 'BG26_HERO_104', heroOffered: ['BG26_HERO_104', 'BG22_HERO_000'] }),
+      game({
+        gameSeed: '1',
+        heroChosen: 'BG26_HERO_104',
+        heroOffered: ['BG26_HERO_104', 'BG22_HERO_000'],
+      }),
       game({ gameSeed: '2', heroChosen: 'BG26_HERO_104', heroOffered: ['BG26_HERO_104'] }),
     ]);
 
@@ -183,7 +225,14 @@ describe('heroStats', () => {
 describe('tierCurve', () => {
   it('separe les parties de top 4 du reste', () => {
     const db = seeded([
-      game({ gameSeed: '1', finalPlace: 2, tierUps: [{ tier: 2, turn: 2 }, { tier: 3, turn: 4 }] }),
+      game({
+        gameSeed: '1',
+        finalPlace: 2,
+        tierUps: [
+          { tier: 2, turn: 2 },
+          { tier: 3, turn: 4 },
+        ],
+      }),
       game({ gameSeed: '2', finalPlace: 7, tierUps: [{ tier: 2, turn: 4 }] }),
     ]);
 
@@ -342,7 +391,9 @@ describe('stripSkinSuffix', () => {
 
 describe('parseStatsArgs', () => {
   it('lit les filtres', () => {
-    expect(parseStatsArgs(['--from', '2026-09-20', '--hero', 'BG22_HERO_000', '--incomplete'])).toEqual({
+    expect(
+      parseStatsArgs(['--from', '2026-09-20', '--hero', 'BG22_HERO_000', '--incomplete']),
+    ).toEqual({
       db: 'data/bg-tracker.db',
       from: '2026-09-20',
       heroBaseId: 'BG22_HERO_000',
@@ -358,7 +409,12 @@ describe('parseStatsArgs', () => {
 
 describe('heroPickCard', () => {
   /** Une partie avec Cariel, dont le plateau final est fait de ces cartes. */
-  function partie(seed: string, place: number, cards: string[], over: Partial<GameSummary> = {}): GameSummary {
+  function partie(
+    seed: string,
+    place: number,
+    cards: string[],
+    over: Partial<GameSummary> = {},
+  ): GameSummary {
     return game({
       gameSeed: seed,
       finalPlace: place,
@@ -395,7 +451,11 @@ describe('heroPickCard', () => {
       partie('1', 2, UNDEAD, { heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'] }),
       partie('2', 6, UNDEAD, { heroOffered: ['BG26_HERO_104'] }),
       // Proposee sans etre choisie : fait baisser le taux de selection.
-      game({ gameSeed: '3', heroChosen: 'BG20_HERO_201', heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'] }),
+      game({
+        gameSeed: '3',
+        heroChosen: 'BG20_HERO_201',
+        heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'],
+      }),
     ]);
 
     expect(heroPickCard(db, 'BG26_HERO_104')).toMatchObject({
@@ -415,7 +475,10 @@ describe('heroPickCard', () => {
     ]);
 
     // Mort-vivant est joue deux fois, mais Murloc a donne la victoire.
-    expect(heroPickCard(db, 'BG26_HERO_104').bestRace).toMatchObject({ race: 'MURLOC', averagePlace: 1 });
+    expect(heroPickCard(db, 'BG26_HERO_104').bestRace).toMatchObject({
+      race: 'MURLOC',
+      averagePlace: 1,
+    });
   });
 
   it('se limite aux types de la partie quand ils sont connus', () => {
@@ -449,7 +512,16 @@ describe('heroPickCard', () => {
 
 describe('restingView', () => {
   function point(startedAt: string, rating: number | null, place: number | null = 4) {
-    return { gameId: startedAt, startedAt, heroName: 'x', heroCardId: 'x', heroBaseId: 'x', place, rating, rollingPlace: null };
+    return {
+      gameId: startedAt,
+      startedAt,
+      heroName: 'x',
+      heroCardId: 'x',
+      heroBaseId: 'x',
+      place,
+      rating,
+      rollingPlace: null,
+    };
   }
   const HIER = '2026-09-23';
   const AUJOURDHUI = '2026-09-24';
@@ -461,11 +533,19 @@ describe('restingView', () => {
   ];
 
   it('prend la derniere cote enregistree et l’ecart de la derniere partie', () => {
-    expect(restingView(POINTS, AUJOURDHUI)).toMatchObject({ rating: 5079, lastDelta: 29, lastPlace: 1 });
+    expect(restingView(POINTS, AUJOURDHUI)).toMatchObject({
+      rating: 5079,
+      lastDelta: 29,
+      lastPlace: 1,
+    });
   });
 
   it('resume la session du jour, parties sans cote comprises', () => {
-    expect(restingView(POINTS, AUJOURDHUI).session).toEqual({ games: 3, delta: 79, averagePlace: 2 });
+    expect(restingView(POINTS, AUJOURDHUI).session).toEqual({
+      games: 3,
+      delta: 79,
+      averagePlace: 2,
+    });
   });
 
   it('prefere la cote lue dans le jeu, en avance sur la base', () => {
@@ -486,7 +566,10 @@ describe('restingView', () => {
 
   it('borne la courbe aux dernieres parties', () => {
     const beaucoup = Array.from({ length: 60 }, (_, i) =>
-      point(`${HIER}T${String(i % 24).padStart(2, '0')}:${String(i).padStart(2, '0')}:00`, 5000 + i),
+      point(
+        `${HIER}T${String(i % 24).padStart(2, '0')}:${String(i).padStart(2, '0')}:00`,
+        5000 + i,
+      ),
     );
     expect(restingView(beaucoup, AUJOURDHUI).history).toHaveLength(40);
   });
@@ -502,7 +585,11 @@ describe('restingView', () => {
   });
 
   it('reste vide sans aucune cote', () => {
-    expect(restingView([], AUJOURDHUI)).toMatchObject({ rating: null, lastDelta: null, history: [] });
+    expect(restingView([], AUJOURDHUI)).toMatchObject({
+      rating: null,
+      lastDelta: null,
+      history: [],
+    });
   });
 });
 

@@ -313,11 +313,7 @@ describe('prochain adversaire', () => {
   ];
 
   it('nomme l’adversaire annonce', () => {
-    const live = tracker([
-      ...OPENING,
-      ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6),
-      ANNONCE(6),
-    ]);
+    const live = tracker([...OPENING, ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6), ANNONCE(6)]);
 
     expect(live.state.nextOpponentHero).toBe('BG30_HERO_304');
   });
@@ -328,11 +324,7 @@ describe('prochain adversaire', () => {
   });
 
   it('resout l’annonce des que le heros devient connu', () => {
-    const live = tracker([
-      ...OPENING,
-      ANNONCE(6),
-      ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6),
-    ]);
+    const live = tracker([...OPENING, ANNONCE(6), ...HEROS_ADVERSE(500, 'BG30_HERO_304', 6)]);
 
     expect(live.state.nextOpponentHero).toBe('BG30_HERO_304');
   });
@@ -560,10 +552,7 @@ describe('heros proposes', () => {
   });
 
   it('ignore les decouvertes, qui ne sont pas un choix de heros', () => {
-    const live = tracker([
-      ...OPENING,
-      power('Player=AkiLif#2498 id=5 ChoiceType=GENERAL'),
-    ]);
+    const live = tracker([...OPENING, power('Player=AkiLif#2498 id=5 ChoiceType=GENERAL')]);
     expect(live.state.heroOffers).toEqual([]);
   });
 });

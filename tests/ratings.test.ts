@@ -17,9 +17,24 @@ import { importGames } from '../src/db/import.js';
 import type { GameSummary } from '../src/types.js';
 
 const GAMES: RatedGame[] = [
-  { id: 'a', datetime: '2026-09-22T02:04:04.660+02:00', label: 'Souveraine Cire-Reine 4e', rating: null },
-  { id: 'b', datetime: '2026-09-22T02:29:15.814+02:00', label: 'Guff Totem-Runique 6e', rating: null },
-  { id: 'c', datetime: '2026-09-22T02:56:47.033+02:00', label: 'Cénarius, seigneur de la forêt 1e', rating: null },
+  {
+    id: 'a',
+    datetime: '2026-09-22T02:04:04.660+02:00',
+    label: 'Souveraine Cire-Reine 4e',
+    rating: null,
+  },
+  {
+    id: 'b',
+    datetime: '2026-09-22T02:29:15.814+02:00',
+    label: 'Guff Totem-Runique 6e',
+    rating: null,
+  },
+  {
+    id: 'c',
+    datetime: '2026-09-22T02:56:47.033+02:00',
+    label: 'Cénarius, seigneur de la forêt 1e',
+    rating: null,
+  },
 ];
 
 async function tempFile(): Promise<string> {
@@ -99,11 +114,7 @@ describe('writeRatingsTemplate', () => {
   it('ajoute les nouvelles parties sans perdre les anciennes cotes', async () => {
     const path = await tempFile();
     await writeRatingsTemplate(path, GAMES.slice(0, 1));
-    await writeFile(
-      path,
-      (await readFile(path, 'utf8')).replace('02:00,,', '02:00,8000,'),
-      'utf8',
-    );
+    await writeFile(path, (await readFile(path, 'utf8')).replace('02:00,,', '02:00,8000,'), 'utf8');
 
     const second = await writeRatingsTemplate(path, GAMES);
     expect(second).toMatchObject({ added: 2, kept: 1 });

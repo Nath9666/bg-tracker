@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isIgnoredBody, isIgnoredSource, parseEntityRef, parseLine } from '../src/parser/line-parser.js';
+import {
+  isIgnoredBody,
+  isIgnoredSource,
+  parseEntityRef,
+  parseLine,
+} from '../src/parser/line-parser.js';
 import { readSessionLines } from '../src/reader/session-reader.js';
 import { SAMPLE_SESSION_LINE_COUNT, sampleSessionFolder } from './helpers/sample-session.js';
 
@@ -240,17 +245,17 @@ describe('parseLine : DebugPrintPower', () => {
   });
 
   it('lit BLOCK_END', () => {
-    expect(
-      parseLine('D 02:48:30.3211164 GameState.DebugPrintPower() - BLOCK_END'),
-    ).toMatchObject({ type: 'blockEnd' });
+    expect(parseLine('D 02:48:30.3211164 GameState.DebugPrintPower() - BLOCK_END')).toMatchObject({
+      type: 'blockEnd',
+    });
   });
 });
 
 describe('parseLine : DebugPrintGame', () => {
   it('lit une metadonnee simple', () => {
-    expect(parseLine('D 02:48:30.3211164 GameState.DebugPrintGame() - BuildNumber=251952')).toMatchObject(
-      { type: 'gameMeta', key: 'BuildNumber', value: '251952', source: 'game' },
-    );
+    expect(
+      parseLine('D 02:48:30.3211164 GameState.DebugPrintGame() - BuildNumber=251952'),
+    ).toMatchObject({ type: 'gameMeta', key: 'BuildNumber', value: '251952', source: 'game' });
     expect(
       parseLine('D 02:48:30.3211164 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS'),
     ).toMatchObject({ type: 'gameMeta', key: 'GameType', value: 'GT_BATTLEGROUNDS' });
@@ -258,7 +263,9 @@ describe('parseLine : DebugPrintGame', () => {
 
   it('lit un couple PlayerID / PlayerName', () => {
     expect(
-      parseLine('D 02:48:30.3211164 GameState.DebugPrintGame() - PlayerID=15, PlayerName=МиниНиндзя'),
+      parseLine(
+        'D 02:48:30.3211164 GameState.DebugPrintGame() - PlayerID=15, PlayerName=МиниНиндзя',
+      ),
     ).toMatchObject({ type: 'playerMeta', playerId: 15, playerName: 'МиниНиндзя' });
   });
 });
@@ -295,7 +302,10 @@ describe('parseLine : choix', () => {
       parseLine(
         'D 02:55:10.5031264 GameState.DebugPrintEntityChoices() -   Source=[entityName=Bibelot inférieur id=321 zone=PLAY zonePos=0 cardId=BG30_Trinket_1st player=7]',
       ),
-    ).toMatchObject({ type: 'choiceSource', entity: { kind: 'entity', cardId: 'BG30_Trinket_1st' } });
+    ).toMatchObject({
+      type: 'choiceSource',
+      entity: { kind: 'entity', cardId: 'BG30_Trinket_1st' },
+    });
   });
 
   it('lit une source qui n’est qu’un nom, comme au mulligan', () => {

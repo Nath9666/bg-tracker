@@ -75,7 +75,9 @@ function main(): void {
   }
 
   console.log('═══ Vue d’ensemble ═══');
-  console.log(`  ${summary.games} parties, du ${summary.firstGame?.slice(0, 10)} au ${summary.lastGame?.slice(0, 10)}`);
+  console.log(
+    `  ${summary.games} parties, du ${summary.firstGame?.slice(0, 10)} au ${summary.lastGame?.slice(0, 10)}`,
+  );
   console.log(`  Place moyenne  ${num(summary.averagePlace)}`);
   console.log(`  Top 4          ${pct(summary.top4Rate)}`);
   console.log(`  Victoires      ${summary.wins}`);
@@ -83,7 +85,9 @@ function main(): void {
 
   console.log('\n═══ Répartition des places ═══');
   for (const row of placeDistribution(db, filters)) {
-    console.log(`  ${row.place}e  ${bar(row.share)} ${String(row.games).padStart(2)}  ${pct(row.share).padStart(5)}`);
+    console.log(
+      `  ${row.place}e  ${bar(row.share)} ${String(row.games).padStart(2)}  ${pct(row.share).padStart(5)}`,
+    );
   }
 
   console.log('\n═══ Héros ═══');
@@ -108,7 +112,8 @@ function main(): void {
   console.log('\n═══ Montée de taverne : top 4 contre le reste ═══');
   console.log('  palier   top 4    reste   écart');
   for (const row of tierCurve(db, filters)) {
-    const gap = row.top4Turn !== null && row.otherTurn !== null ? row.top4Turn - row.otherTurn : null;
+    const gap =
+      row.top4Turn !== null && row.otherTurn !== null ? row.top4Turn - row.otherTurn : null;
     const sign = gap === null ? '' : gap < 0 ? ' (plus tôt)' : ' (plus tard)';
     console.log(
       `  T${row.tier}     ${num(row.top4Turn, 1).padStart(6)}   ${num(row.otherTurn, 1).padStart(6)}` +
@@ -136,7 +141,9 @@ function main(): void {
   }
 
   const heroes = playedHeroes(db);
-  console.log(`\n${heroes.length} héros différents joués. Filtrer avec --hero <cardId>, --from, --to.`);
+  console.log(
+    `\n${heroes.length} héros différents joués. Filtrer avec --hero <cardId>, --from, --to.`,
+  );
   db.close();
 }
 

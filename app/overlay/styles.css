@@ -23,7 +23,10 @@ body {
   margin: 0;
   background: transparent;
   color: var(--texte);
-  font: 12px/1.45 "Segoe UI", system-ui, sans-serif;
+  font:
+    12px/1.45 'Segoe UI',
+    system-ui,
+    sans-serif;
   /* La fenetre laisse passer les clics ; rien ne doit paraitre selectionnable. */
   user-select: none;
   cursor: default;

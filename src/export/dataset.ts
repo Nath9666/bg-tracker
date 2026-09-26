@@ -131,7 +131,10 @@ export function buildDataset(db: Db, options: ExportOptions = {}): ExportedDecis
 
   // Regroupement par decision, en une passe : une jointure par decision serait
   // des milliers de requetes.
-  const parDecision = new Map<string, { board: ExportedCard[]; hand: ExportedCard[]; shop: ExportedCard[] }>();
+  const parDecision = new Map<
+    string,
+    { board: ExportedCard[]; hand: ExportedCard[]; shop: ExportedCard[] }
+  >();
   for (const card of cards) {
     const clef = `${card.gameId}#${card.sequence}`;
     const zones = parDecision.get(clef) ?? { board: [], hand: [], shop: [] };

@@ -57,7 +57,9 @@ async function main(): Promise<void> {
 
   const template = await writeRatingsTemplate(options.file, games);
   console.log(`${resolve(options.file)}`);
-  console.log(`  ${games.length} partie(s), ${template.added} sans cote, ${template.kept} déjà saisie(s)`);
+  console.log(
+    `  ${games.length} partie(s), ${template.added} sans cote, ${template.kept} déjà saisie(s)`,
+  );
 
   const ratings = parseRatings(await readFile(options.file, 'utf8'));
   const matches = matchRatings(games, ratings);
@@ -76,7 +78,9 @@ async function main(): Promise<void> {
       const match = matches.find((m) => m.gameId === game.id);
       if (match === undefined) continue;
       const gap = match.gapMinutes === 0 ? '' : ` (${match.gapMinutes} min d’écart)`;
-      console.log(`  ${game.datetime.slice(0, 16).replace('T', ' ')}  ${match.rating}  ${game.label}${gap}`);
+      console.log(
+        `  ${game.datetime.slice(0, 16).replace('T', ' ')}  ${match.rating}  ${game.label}${gap}`,
+      );
     }
   }
 

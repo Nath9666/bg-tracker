@@ -10,12 +10,7 @@
 import process from 'node:process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-  DEFAULT_INDEX_PATH,
-  buildIndex,
-  fetchCards,
-  saveIndex,
-} from '../cards/card-database.js';
+import { DEFAULT_INDEX_PATH, buildIndex, fetchCards, saveIndex } from '../cards/card-database.js';
 import { importCards } from '../cards/import-cards.js';
 import { DEFAULT_DB_PATH, openDatabase } from '../db/database.js';
 

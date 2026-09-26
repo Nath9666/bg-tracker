@@ -27,13 +27,19 @@ function Courbe({ points }: { points: Vue['history'] }): JSX.Element | null {
   const x = (i: number): number => MARGE + (i / (points.length - 1)) * (LARGEUR - 2 * MARGE);
   const y = (v: number): number => MARGE + (1 - (v - min) / etendue) * (HAUTEUR - 2 * MARGE);
 
-  const ligne = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.rating).toFixed(1)}`).join(' ');
+  const ligne = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.rating).toFixed(1)}`)
+    .join(' ');
   const aire = `${ligne} L${x(points.length - 1).toFixed(1)},${HAUTEUR} L${x(0).toFixed(1)},${HAUTEUR} Z`;
   const fin = points.length - 1;
 
   return (
     <figure className="courbe">
-      <svg viewBox={`0 0 ${LARGEUR} ${HAUTEUR}`} role="img" aria-label={`Cote sur les ${points.length} dernières parties, de ${min} à ${max}`}>
+      <svg
+        viewBox={`0 0 ${LARGEUR} ${HAUTEUR}`}
+        role="img"
+        aria-label={`Cote sur les ${points.length} dernières parties, de ${min} à ${max}`}
+      >
         <defs>
           <linearGradient id="remplissage" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
