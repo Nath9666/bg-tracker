@@ -18,6 +18,7 @@ import {
 import { database } from './database.js';
 import {
   finalBoardRaces,
+  finalBoards,
   heroStats,
   overview,
   placeDistribution,
@@ -37,6 +38,8 @@ export interface Dashboard {
   races: ReturnType<typeof finalBoardRaces>;
   /** Liste pour le filtre par heros. */
   playedHeroes: ReturnType<typeof playedHeroes>;
+  /** Plateau final de chaque partie, par identifiant de partie. */
+  finalBoards: ReturnType<typeof finalBoards>;
 }
 
 function buildDashboard(filters: StatsFilters): Dashboard {
@@ -49,6 +52,7 @@ function buildDashboard(filters: StatsFilters): Dashboard {
     tiers: tierCurve(handle, filters),
     races: finalBoardRaces(handle, filters),
     playedHeroes: playedHeroes(handle),
+    finalBoards: finalBoards(handle, filters),
   };
 }
 

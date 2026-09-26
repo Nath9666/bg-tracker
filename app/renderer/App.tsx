@@ -64,19 +64,75 @@ function Indicateur({ valeur, libelle }: { valeur: string; libelle: string }): J
 function Section({
   titre,
   aide,
+  action,
   children,
 }: {
   titre: string;
   aide?: string;
+  /** Commande placee a droite du titre. */
+  action?: React.ReactNode;
   children: React.ReactNode;
 }): JSX.Element {
   return (
     <section>
-      <h2>{titre}</h2>
+      <div className="section-tete">
+        <h2>{titre}</h2>
+        {action}
+      </div>
       {aide !== undefined && <p className="aide">{aide}</p>}
       {children}
     </section>
   );
+}
+
+type Minion = Dashboard['finalBoards'][string][number];
+
+/**
+ * Plateau final d'une partie : un jeton par serviteur, de gauche a droite.
+ * Le type et le palier sont dans l'infobulle, pour garder la ligne courte.
+ */
+function PlateauFinal({ board }: { board: Minion[] | undefined }): JSX.Element {
+  if (board === undefined || board.length === 0) return <span className="attenue">—</span>;
+  return (
+    <div className="plateau-final">
+      {board.map((minion) => (
+        <span
+          key={minion.position}
+          className={minion.golden ? 'jeton dore' : 'jeton'}
+          title={[
+            minion.golden ? 'Doré' : null,
+            minion.techLevel === null ? null : `Palier ${minion.techLevel}`,
+            minion.races.length === 0 ? null : minion.races.map(raceName).join(', '),
+          ]
+            .filter((x) => x !== null)
+            .join(' · ')}
+        >
+          <span className="jeton-nom">{minion.name}</span>
+          <span className="jeton-stats">
+            {minion.atk ?? '?'}/{minion.health ?? '?'}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Lecture sure d'une preference : le stockage peut etre indisponible. */
+function preference(clef: string, defaut: boolean): boolean {
+  try {
+    const valeur = window.localStorage.getItem(clef);
+    return valeur === null ? defaut : valeur === '1';
+  } catch {
+    return defaut;
+  }
+}
+
+function retenir(clef: string, valeur: boolean): void {
+  try {
+    window.localStorage.setItem(clef, valeur ? '1' : '0');
+  } catch {
+    // Sans stockage, le choix vaut pour la session : ce n'est pas grave.
+  }
 }
 
 /**
@@ -144,6 +200,7 @@ function Cote({
 export default function App(): JSX.Element {
   const [jours, setJours] = useState<number | null>(null);
   const [finesse, setFinesse] = useState<TimelineGranularity>('game');
+  const [plateaux, setPlateaux] = useState(() => preference('plateaux-finaux', true));
   const [hero, setHero] = useState<string>('');
   const [donnees, setDonnees] = useState<Dashboard | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -447,6 +504,19 @@ export default function App(): JSX.Element {
           <Section
             titre="Parties"
             aide="La cote se saisit directement dans le tableau : Entrée pour valider, Échap pour annuler."
+            action={
+              <button
+                type="button"
+                className="bascule"
+                aria-pressed={plateaux}
+                onClick={() => {
+                  setPlateaux(!plateaux);
+                  retenir('plateaux-finaux', !plateaux);
+                }}
+              >
+                {plateaux ? 'Masquer les plateaux' : 'Afficher les plateaux'}
+              </button>
+            }
           >
             <div className="defile">
               <table>
@@ -457,6 +527,7 @@ export default function App(): JSX.Element {
                     <th>Place</th>
                     <th>Cote</th>
                     <th>Moy. glissante</th>
+                    {plateaux && <th className="a-gauche">Plateau final</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -473,6 +544,11 @@ export default function App(): JSX.Element {
                         />
                       </td>
                       <td>{turn(ligne.rollingPlace)}</td>
+                      {plateaux && (
+                        <td>
+                          <PlateauFinal board={donnees.finalBoards[ligne.gameId]} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

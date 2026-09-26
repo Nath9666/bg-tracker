@@ -591,3 +591,64 @@ export function restingView(
     pending,
   };
 }
+
+/** Un serviteur du plateau final, pret a afficher. */
+export interface FinalMinion {
+  position: number;
+  cardId: string;
+  name: string;
+  atk: number | null;
+  health: number | null;
+  golden: boolean;
+  techLevel: number | null;
+  races: string[];
+}
+
+/**
+ * Plateau final de chaque partie : celui du dernier combat, par partie.
+ *
+ * Une seule requete pour toutes les parties retenues par les filtres : le
+ * tableau de bord les affiche toutes a la fois. Une partie sans plateau
+ * releve (elimine avant le premier combat) est simplement absente.
+ */
+export function finalBoards(db: Db, filters: StatsFilters = {}): Record<string, FinalMinion[]> {
+  const where = buildWhere(filters);
+  const rows = db
+    .prepare(
+      `SELECT b.game_id AS gameId, b.position, b.card_id AS cardId, b.atk, b.health,
+              b.golden, c.name, c.tech_level AS techLevel, c.races
+       FROM boards b
+       JOIN (SELECT game_id, MAX(turn) AS turn FROM boards GROUP BY game_id) dernier
+         ON dernier.game_id = b.game_id AND dernier.turn = b.turn
+       JOIN games g ON g.id = b.game_id
+       LEFT JOIN cards c ON c.card_id = b.card_id
+       WHERE ${where.clause}
+       ORDER BY b.game_id, b.position`,
+    )
+    .all(where.params) as {
+    gameId: string;
+    position: number;
+    cardId: string;
+    atk: number | null;
+    health: number | null;
+    golden: number;
+    name: string | null;
+    techLevel: number | null;
+    races: string | null;
+  }[];
+
+  const parPartie: Record<string, FinalMinion[]> = {};
+  for (const row of rows) {
+    (parPartie[row.gameId] ??= []).push({
+      position: row.position,
+      cardId: row.cardId,
+      name: row.name ?? row.cardId,
+      atk: row.atk,
+      health: row.health,
+      golden: row.golden === 1,
+      techLevel: row.techLevel,
+      races: row.races === null || row.races === '' ? [] : row.races.split(','),
+    });
+  }
+  return parPartie;
+}

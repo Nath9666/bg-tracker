@@ -245,3 +245,75 @@ input.cote::placeholder {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* --- titre de section avec une commande a droite --- */
+
+.section-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.bascule {
+  background: transparent;
+  color: var(--attenue);
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bascule:hover {
+  border-color: var(--accent);
+  color: var(--texte);
+}
+
+/* --- plateau final d'une partie --- */
+
+.plateau-final {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  /* Assez large pour sept jetons sur deux lignes au plus. */
+  min-width: 360px;
+}
+
+.jeton {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: var(--fond);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Dore : la bordure seule le signale, et l'infobulle le dit en toutes lettres. */
+.jeton.dore {
+  border-color: var(--accent);
+}
+
+.jeton-nom {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jeton-stats {
+  color: var(--attenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.attenue {
+  color: var(--attenue);
+}
+
+/* Colonne de texte dans un tableau dont les nombres sont alignes a droite. */
+th.a-gauche {
+  text-align: left;
+}

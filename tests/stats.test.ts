@@ -7,6 +7,7 @@ import { createHeroBaseResolver, stripSkinSuffix } from '../src/db/hero-base.js'
 import { parseStatsArgs } from '../src/cli/stats.js';
 import {
   finalBoardRaces,
+  finalBoards,
   heroPickCard,
   restingView,
   heroStats,
@@ -502,5 +503,70 @@ describe('restingView', () => {
 
   it('reste vide sans aucune cote', () => {
     expect(restingView([], AUJOURDHUI)).toMatchObject({ rating: null, lastDelta: null, history: [] });
+  });
+});
+
+describe('finalBoards', () => {
+  function avecTours(seed: string, tours: Array<{ turn: number; cards: string[] }>): GameSummary {
+    return game({
+      gameSeed: seed,
+      turns: tours.map(({ turn, cards }) => ({
+        turn,
+        tavernTier: 3,
+        gold: 7,
+        health: 20,
+        opponentHero: null,
+        combatResult: 'win' as const,
+        damageTaken: 0,
+        board: cards.map((cardId, index) => ({
+          position: index + 1,
+          cardId,
+          atk: 4,
+          health: 5,
+          damage: 0,
+          golden: cardId === 'BG36_760',
+          keywords: emptyKeywords(),
+        })),
+      })),
+    });
+  }
+
+  it('rend le plateau du dernier tour, pas un plateau intermediaire', () => {
+    const db = seeded([
+      avecTours('1', [
+        { turn: 3, cards: ['BG35_143'] },
+        { turn: 9, cards: ['BG28_300', 'BG36_760'] },
+      ]),
+    ]);
+
+    const [partie] = Object.values(finalBoards(db));
+    expect(partie?.map((m) => m.cardId)).toEqual(['BG28_300', 'BG36_760']);
+  });
+
+  it('nomme les cartes et donne leurs types, dore compris', () => {
+    const db = seeded([avecTours('1', [{ turn: 5, cards: ['BG36_760'] }])]);
+
+    expect(Object.values(finalBoards(db))[0]?.[0]).toMatchObject({
+      name: 'Capitaine Macaron',
+      golden: true,
+      techLevel: 4,
+      races: ['MURLOC', 'PIRATE'],
+      atk: 4,
+      health: 5,
+    });
+  });
+
+  it('separe les parties et respecte les filtres', () => {
+    const db = seeded([
+      avecTours('1', [{ turn: 5, cards: ['BG28_300'] }]),
+      { ...avecTours('2', [{ turn: 5, cards: ['BG35_143'] }]), heroChosen: 'BG20_HERO_201' },
+    ]);
+
+    expect(Object.keys(finalBoards(db))).toHaveLength(2);
+    expect(Object.keys(finalBoards(db, { heroBaseId: 'BG20_HERO_201' }))).toHaveLength(1);
+  });
+
+  it('omet une partie sans plateau releve', () => {
+    expect(finalBoards(seeded([game({ gameSeed: '9', turns: [] })]))).toEqual({});
   });
 });
