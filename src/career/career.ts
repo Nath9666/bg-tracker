@@ -22,7 +22,8 @@ export const CAREER_STATS = [
   { key: 'maxMinionDamage', label: 'Dégâts max d’un serviteur' },
   { key: 'strongestMinionAtk', label: 'Plus puissant serviteur (attaque)' },
   { key: 'strongestMinionHealth', label: 'Plus puissant serviteur (vie)' },
-  { key: 'hoursPlayed', label: 'Heures de jeu' },
+  // En secondes, comme le jeu : en heures, les progressions perdraient leur precision.
+  { key: 'secondsPlayed', label: 'Heures de jeu' },
   { key: 'bestStreak', label: 'Meilleure série' },
 ] as const;
 
@@ -114,4 +115,86 @@ export function careerView(
   ];
 
   return { takenAt: dernier.takenAt, lines: lignes };
+}
+
+export interface StoredWarbandMinion {
+  cardId: string;
+  atk: number;
+  health: number;
+  golden: boolean;
+}
+
+export interface StoredWarband {
+  heroCardId: string | null;
+  heroName: string | null;
+  place: number;
+  minions: StoredWarbandMinion[];
+}
+
+/** Identite d'une troupe : la meme partie donne toujours la meme signature. */
+export function warbandSignature(w: StoredWarband): string {
+  const serviteurs = w.minions.map((m) => `${m.cardId}:${m.atk}/${m.health}`).join(',');
+  return `${w.heroCardId ?? w.heroName ?? '?'}|${w.place}|${serviteurs}`;
+}
+
+/**
+ * Enregistre les troupes jamais vues. `warbands` va de la plus recente a la
+ * plus ancienne, comme dans le jeu. Rend le nombre de troupes nouvelles.
+ */
+export function saveWarbands(db: Db, takenAt: string, warbands: readonly StoredWarband[]): number {
+  const inserer = db.prepare(
+    `INSERT OR IGNORE INTO warbands (signature, first_seen, rank, hero_card_id, hero_name, place, minions)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  );
+  let nouvelles = 0;
+  db.transaction(() => {
+    warbands.forEach((w, rang) => {
+      const r = inserer.run(
+        warbandSignature(w),
+        takenAt,
+        rang,
+        w.heroCardId,
+        w.heroName,
+        w.place,
+        JSON.stringify(w.minions),
+      );
+      nouvelles += r.changes;
+    });
+  })();
+  return nouvelles;
+}
+
+export interface WarbandView extends StoredWarband {
+  firstSeen: string;
+  minions: Array<StoredWarbandMinion & { name: string; races: string[]; techLevel: number | null }>;
+}
+
+/**
+ * Les troupes enregistrees, de la plus recente a la plus ancienne : par date
+ * de premiere lecture, puis par rang dans ce releve.
+ */
+export function recentWarbands(db: Db, limit = 5): WarbandView[] {
+  const rows = db
+    .prepare(
+      `SELECT first_seen AS firstSeen, hero_card_id AS heroCardId, hero_name AS heroName, place, minions
+       FROM warbands ORDER BY first_seen DESC, rank ASC LIMIT ?`,
+    )
+    .all(limit) as { firstSeen: string; heroCardId: string | null; heroName: string | null; place: number; minions: string }[];
+
+  const carte = db.prepare('SELECT name, races, tech_level AS techLevel FROM cards WHERE card_id = ?');
+  return rows.map((row) => ({
+    firstSeen: row.firstSeen,
+    heroCardId: row.heroCardId,
+    heroName: row.heroName,
+    place: row.place,
+    minions: (JSON.parse(row.minions) as StoredWarbandMinion[]).map((m) => {
+      const info = carte.get(m.cardId) as { name: string; races: string | null; techLevel: number | null } | undefined;
+      return {
+        ...m,
+        name: info?.name ?? m.cardId,
+        races: info?.races ? info.races.split(',') : [],
+        techLevel: info?.techLevel ?? null,
+      };
+    }),
+  }));
 }

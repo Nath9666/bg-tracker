@@ -12,13 +12,37 @@
 import { runCards } from '../../src/cli/cards.js';
 import { runSync } from '../../src/cli/sync.js';
 import { downloadSimCards } from '../../src/sim/sim-cards.js';
+import { readCareer } from '../../src/memory/career-reader.js';
+import { saveSnapshot, saveWarbands } from '../../src/career/career.js';
+import { DEFAULT_DB_PATH, openDatabase } from '../../src/db/database.js';
+import { toLocalIso } from '../../src/extract/log-clock.js';
 
-type Task = 'sync' | 'cards' | 'sim-cards';
+type Task = 'sync' | 'cards' | 'sim-cards' | 'career';
+
+/**
+ * Statistiques de carriere : ~2 s de balayage du tas du jeu, d'ou ce
+ * processus a part. Sans ecran de statistiques ouvert dans la session du
+ * jeu, il n'y a rien a lire, et rien n'est ecrit.
+ */
+async function releverCarriere(): Promise<void> {
+  const lecture = readCareer();
+  if (lecture === null) return;
+
+  const db = openDatabase(DEFAULT_DB_PATH);
+  try {
+    const maintenant = toLocalIso(new Date());
+    saveSnapshot(db, maintenant, lecture.stats);
+    saveWarbands(db, maintenant, lecture.warbands);
+  } finally {
+    db.close();
+  }
+}
 
 const TASKS: Record<Task, () => Promise<unknown>> = {
   sync: () => runSync(),
   cards: () => runCards(),
   'sim-cards': () => downloadSimCards(),
+  career: releverCarriere,
 };
 
 const task = process.argv.at(-1) as Task;

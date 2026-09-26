@@ -557,6 +557,8 @@ async function follow(signal: AbortSignal): Promise<void> {
         await lancerSync();
         // La partie est maintenant en base : courbe et bilan a jour.
         await rediffuser();
+        // Et le releve de carriere, si l'ecran de statistiques a ete ouvert.
+        void runTask('career');
 
         const last = listGames(database()).at(-1);
         if (last !== undefined && last.rating === null) {
@@ -620,6 +622,11 @@ export function reloadSimCards(): void {
   simCards = null;
   oddsCache = null;
   startSimCards();
+}
+
+/** Vrai pendant une partie : les travaux lourds attendent la fin. */
+export function isInGame(): boolean {
+  return etatCourant?.inGame === true;
 }
 
 /** Synchronise maintenant, a la demande, puis redessine. */

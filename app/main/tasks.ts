@@ -8,7 +8,7 @@
 import { utilityProcess } from 'electron';
 import { join } from 'node:path';
 
-export type Task = 'sync' | 'cards' | 'sim-cards';
+export type Task = 'sync' | 'cards' | 'sim-cards' | 'career';
 
 /** Plafond : un sync normal prend quelques secondes, un telechargement une minute. */
 const DELAI_MAX = 10 * 60_000;

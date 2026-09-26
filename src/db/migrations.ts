@@ -224,4 +224,22 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX idx_career_stat ON career_snapshots(stat, taken_at);
     `,
   },
+  {
+    name: 'warbands',
+    sql: `
+      -- Dernieres troupes de guerre, telles que l'ecran de statistiques du jeu
+      -- les montre (les cinq plus recentes). Elles couvrent aussi les parties
+      -- jouees sans le tracker. Chaque troupe n'est gardee qu'une fois, a sa
+      -- premiere lecture : le jeu remontre les memes a chaque ouverture.
+      CREATE TABLE warbands (
+        signature    TEXT PRIMARY KEY,   -- heros, place et serviteurs
+        first_seen   TEXT NOT NULL,      -- ISO 8601, heure locale
+        rank         INTEGER NOT NULL,   -- 0 = la plus recente, a ce releve
+        hero_card_id TEXT,
+        hero_name    TEXT,
+        place        INTEGER NOT NULL,
+        minions      TEXT NOT NULL       -- JSON : [{ cardId, atk, health, golden }]
+      );
+    `,
+  },
 ];

@@ -352,3 +352,41 @@ th.a-gauche {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- dernieres troupes de guerre --- */
+
+.troupes {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+
+.troupes h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--attenue);
+}
+
+.troupe {
+  display: grid;
+  grid-template-columns: 38px 190px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--bord);
+}
+
+/* Place en chiffre et en couleur : le top 4 se voit, mais se lit aussi. */
+.troupe-place {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--attenue);
+}
+
+.troupe-place.top4 {
+  color: var(--accent);
+}
+
+.troupe-heros {
+  font-weight: 600;
+}

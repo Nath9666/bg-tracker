@@ -202,3 +202,65 @@ export function readCString(target: ProcessHandle, address: bigint, max = 256): 
   const fin = buffer.indexOf(0);
   return buffer.toString('utf8', 0, fin === -1 ? max : fin);
 }
+
+const MemoryBasicInformation = koffi.struct('MEMORY_BASIC_INFORMATION', {
+  BaseAddress: 'uint64',
+  AllocationBase: 'uint64',
+  AllocationProtect: 'uint32',
+  PartitionId: 'uint16',
+  RegionSize: 'uint64',
+  State: 'uint32',
+  Protect: 'uint32',
+  Type: 'uint32',
+});
+const VirtualQueryEx = kernel32.func(
+  'size_t VirtualQueryEx(void* handle, uint64 address, _Out_ MEMORY_BASIC_INFORMATION* info, size_t length)',
+);
+
+const MEM_COMMIT = 0x1000;
+const MEM_PRIVATE = 0x20000;
+const PAGE_READWRITE = 0x04;
+/** Bloc de lecture : assez gros pour aller vite, assez petit pour ne pas saturer la memoire. */
+const SCAN_CHUNK = 0x400000n;
+const USER_SPACE_END = 0x7fffffffffffn;
+
+/**
+ * Adresses alignees ou figure ce pointeur, dans le tas du processus.
+ *
+ * Ne parcourt que la memoire privee, engagee et en lecture-ecriture : c'est la
+ * que vivent les objets geres. Sert a retrouver les instances d'une classe par
+ * leur pointeur de table virtuelle, quand aucune variable globale n'y mene.
+ * Environ 1,8 s pour les ~1,9 Go d'un Hearthstone en cours (mesure le
+ * 26/09/2026) : a lancer hors du processus principal.
+ *
+ * Toutes les occurrences ne sont pas des objets vivants : de la memoire
+ * liberee ou un tableau peut porter la meme valeur. A l'appelant de verifier.
+ */
+export function findPointerOccurrences(target: ProcessHandle, value: bigint): bigint[] {
+  const motif = Buffer.alloc(8);
+  motif.writeBigUInt64LE(value);
+
+  const trouves: bigint[] = [];
+  let adresse = 0n;
+  while (adresse < USER_SPACE_END) {
+    const info: Record<string, number | bigint> = {};
+    if (VirtualQueryEx(target.handle, adresse, info, koffi.sizeof(MemoryBasicInformation)) === 0) break;
+
+    const base = BigInt(info['BaseAddress']!);
+    const taille = BigInt(info['RegionSize']!);
+    if (taille === 0n) break;
+
+    if (info['State'] === MEM_COMMIT && info['Protect'] === PAGE_READWRITE && info['Type'] === MEM_PRIVATE) {
+      for (let off = 0n; off < taille; off += SCAN_CHUNK) {
+        const n = taille - off < SCAN_CHUNK ? taille - off : SCAN_CHUNK;
+        const bloc = readMemory(target, base + off, Number(n));
+        if (bloc === null) continue;
+        for (let i = bloc.indexOf(motif); i !== -1; i = bloc.indexOf(motif, i + 1)) {
+          if (i % 8 === 0) trouves.push(base + off + BigInt(i));
+        }
+      }
+    }
+    adresse = base + taille;
+  }
+  return trouves;
+}

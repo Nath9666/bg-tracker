@@ -259,6 +259,20 @@ cantonné à ce dossier, doit échouer proprement.
   Vérifié le 24/09/2026 contre la dernière ligne de `ratings.csv` (5079, identique), puis sur une
   partie réelle : 5079 lu 17 secondes avant la fin, 5000 après une 6ᵉ place.
 
+- `career-reader.ts` — statistiques de carrière et 5 dernières troupes, dans
+  `BaconStatsPageDataModel`, le modèle de l'écran de statistiques du jeu. Aucune variable globale
+  n'y mène : l'instance est retrouvée **par son pointeur de table virtuelle dans le tas**
+  (`findPointerOccurrences`, ~1,9 s pour ~1,9 Go), puis triée parmi les faux positifs (mémoire
+  libérée, tableaux) par des contrôles de cohérence : compteurs positifs, top 4 ≥ victoires,
+  `m_PastGames` bien formé. Tout par nom de champ. L'instance n'existe qu'une fois l'écran ouvert
+  dans la session du jeu. Vérifié le 26/09/2026 : les onze compteurs identiques à ceux affichés,
+  et la première troupe identique au plateau final tiré des logs pour la même partie.
+
+  Lancé dans le processus de travail (tâche `career`) : au démarrage, après chaque partie, et
+  toutes les 10 minutes **hors partie**. Rangé par `src/career/career.ts` : un relevé daté par
+  lecture qui change quelque chose (`career_snapshots`, clef/valeur), les troupes dédoublonnées par
+  signature (`warbands`). Le temps de jeu reste en secondes, comme dans le jeu.
+
 **Branchement dans l'overlay.** La cote est lue au début de chaque partie. À la fin, l'overlay la
 relit toutes les deux secondes jusqu'à ce que le serveur envoie la nouvelle valeur (trois minutes
 au plus), puis **ajoute une ligne datée** à `ratings.csv`. La partie n'est pas encore en base à ce

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { careerView, latestSnapshot, saveSnapshot } from '../src/career/career.js';
+import {
+  careerView,
+  latestSnapshot,
+  recentWarbands,
+  saveSnapshot,
+  saveWarbands,
+  warbandSignature,
+} from '../src/career/career.js';
 import { openDatabase } from '../src/db/database.js';
 
 // Les chiffres de l'utilisateur, tels qu'affiches par le jeu le 26/09/2026.
@@ -12,8 +19,8 @@ const RELEVE = {
   playersEliminated: 1449,
   maxMinionDamage: 124303,
   strongestMinionAtk: 29805,
-  strongestMinionHealth: 59794,
-  hoursPlayed: 890,
+  strongestMinionHealth: 58794,
+  secondsPlayed: 3204502,
   bestStreak: 14,
 };
 
@@ -76,5 +83,50 @@ describe('careerView', () => {
 
   it('rend null sans aucun releve', () => {
     expect(careerView(openDatabase(':memory:'), '2026-09-01')).toBeNull();
+  });
+});
+
+describe('troupes de guerre', () => {
+  const CARIEL = {
+    heroCardId: 'BG21_HERO_000',
+    heroName: 'Cariel Roame',
+    place: 2,
+    minions: [
+      { cardId: 'BG23_318', atk: 38, health: 34, golden: false },
+      { cardId: 'BG36_103_G', atk: 287, health: 273, golden: true },
+    ],
+  };
+  const THORIM = { heroCardId: 'BG27_HERO_801', heroName: 'Thorim', place: 1, minions: [] };
+
+  it('enregistre les troupes jamais vues, une seule fois', () => {
+    const db = openDatabase(':memory:');
+    expect(saveWarbands(db, '2026-09-26T12:00:00', [CARIEL, THORIM])).toBe(2);
+    // Le jeu remontre les memes a chaque ouverture de l'ecran.
+    expect(saveWarbands(db, '2026-09-26T13:00:00', [CARIEL, THORIM])).toBe(0);
+  });
+
+  it('les rend de la plus recente a la plus ancienne', () => {
+    const db = openDatabase(':memory:');
+    saveWarbands(db, '2026-09-25T12:00:00', [THORIM]);
+    saveWarbands(db, '2026-09-26T12:00:00', [CARIEL, THORIM]);
+
+    expect(recentWarbands(db).map((w) => w.heroName)).toEqual(['Cariel Roame', 'Thorim']);
+  });
+
+  it('garde l’ordre du jeu au sein d’un meme releve', () => {
+    const db = openDatabase(':memory:');
+    saveWarbands(db, '2026-09-26T12:00:00', [CARIEL, THORIM]);
+    expect(recentWarbands(db).map((w) => w.place)).toEqual([2, 1]);
+  });
+
+  it('distingue deux parties du meme heros', () => {
+    const autre = { ...CARIEL, place: 5 };
+    expect(warbandSignature(autre)).not.toBe(warbandSignature(CARIEL));
+  });
+
+  it('restitue les serviteurs, dores compris, avec leur nom a defaut de la base', () => {
+    const db = openDatabase(':memory:');
+    saveWarbands(db, '2026-09-26T12:00:00', [CARIEL]);
+    expect(recentWarbands(db)[0]?.minions[1]).toMatchObject({ cardId: 'BG36_103_G', golden: true, name: 'BG36_103_G' });
   });
 });

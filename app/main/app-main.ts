@@ -23,7 +23,14 @@ import { DEFAULT_INDEX_PATH } from '../../src/cards/card-database.js';
 import { SIM_CARDS_PATH } from '../../src/sim/sim-cards.js';
 import { closeDatabase } from './database.js';
 import { openDashboard } from './main.js';
-import { reloadSimCards, setOverlayVisible, startOverlay, stopOverlay, syncNow } from './overlay-main.js';
+import {
+  isInGame,
+  reloadSimCards,
+  setOverlayVisible,
+  startOverlay,
+  stopOverlay,
+  syncNow,
+} from './overlay-main.js';
 import { runTask } from './tasks.js';
 
 app.setName('BG Tracker');
@@ -43,6 +50,9 @@ mkdirSync(racine, { recursive: true });
 process.chdir(racine);
 
 let tray: Tray | null = null;
+
+/** Frequence du releve de carriere hors partie. */
+const RELEVE_CARRIERE_MS = 10 * 60_000;
 let overlayVisible = true;
 
 /**
@@ -119,7 +129,7 @@ function menu(): Menu {
     {
       label: 'Synchroniser maintenant',
       click: () => {
-        void syncNow();
+        void syncNow().then(() => runTask('career'));
       },
     },
     {
@@ -162,6 +172,13 @@ if (!app.requestSingleInstanceLock()) {
     await cartesManquantes();
     // Rattrape les parties jouees sans l'application ouverte.
     await syncNow();
+    await runTask('career');
+
+    // Statistiques de carriere : l'ecran du jeu peut s'ouvrir a tout moment.
+    // Jamais pendant une partie : le balayage lit ~2 Go de memoire du jeu.
+    setInterval(() => {
+      if (!isInGame()) void runTask('career');
+    }, RELEVE_CARRIERE_MS);
   });
 
   // Fermer le tableau de bord ne quitte pas : l'overlay et l'icone restent.
