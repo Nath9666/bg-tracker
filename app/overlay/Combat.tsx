@@ -49,7 +49,11 @@ export default function Combat(): JSX.Element | null {
           {enCours ? 'Combat' : 'Dernier combat'}
           {odds.opponentHero === null ? '' : ` · ${nom(odds.opponentHero)}`}
         </span>
-        <span className="bandeau-tour">tour {odds.turn}</span>
+        <span className="bandeau-tour">
+          tour {odds.turn}
+          {/* Le plafond explique un letal absent malgre un plateau ecrasant. */}
+          {odds.odds.damageCap !== null && ` · dégâts max ${odds.odds.damageCap}`}
+        </span>
       </div>
 
       <div className="barre">

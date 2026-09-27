@@ -202,3 +202,59 @@ describe('toBoardEntity', () => {
     expect(toBoardEntity(blesse, 1)).toMatchObject({ attack: 4, health: 4, maxHealth: 10 });
   });
 });
+
+describe.skipIf(!moteurDisponible)('plafond de degats', () => {
+  beforeAll(async () => {
+    sim = await loadSimCards();
+  }, 60_000);
+
+  // Plateau ecrasant : trois 20/20 au palier 6 contre un 1/1 au palier 2.
+  // Degats bruts du vainqueur : 6 (palier) + 3 serviteurs restants = 9.
+  const fort = [
+    minion({ position: 1, atk: 20, health: 20 }),
+    minion({ position: 2, atk: 20, health: 20 }),
+    minion({ position: 3, atk: 20, health: 20 }),
+  ];
+  const faible = [minion({ atk: 1, health: 1 })];
+  const cote = (board: BoardMinion[], health: number, tavernTier: number): CombatSide => ({
+    heroCardId: 'TB_BaconShop_HERO_08',
+    health,
+    tavernTier,
+    board,
+  });
+
+  function estimer(pvJoueur: number, damageCap: number | null) {
+    return simulateCombat(
+      sim,
+      {
+        turn: 6,
+        player: cote(faible, pvJoueur, 2),
+        opponent: cote(fort, 30, 6),
+        opponentBoardTurn: 6,
+        damageCap,
+      },
+      { simulations: 200 },
+    );
+  }
+
+  it('annonce le letal sans plafond', () => {
+    // 9 degats contre 8 PV : mort certaine.
+    expect(estimer(8, null)!.lethalTakenPercent).toBeGreaterThan(95);
+  });
+
+  it('ne l’annonce plus sous un plafond plus bas que les PV', () => {
+    // Plafond de 5 : 5 degats au plus contre 8 PV, on survit forcement.
+    const estimation = estimer(8, 5)!;
+    expect(estimation.lethalTakenPercent).toBe(0);
+    expect(estimation.averageDamageTaken).toBe(5);
+    expect(estimation.damageCap).toBe(5);
+  });
+
+  it('laisse les degats intacts sous un plafond plus haut', () => {
+    expect(estimer(30, 15)!.averageDamageTaken).toBe(9);
+  });
+
+  it('ne change pas l’issue du combat, seulement ses degats', () => {
+    expect(estimer(8, 5)!.lossPercent).toBeGreaterThan(95);
+  });
+});

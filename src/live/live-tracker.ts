@@ -82,6 +82,11 @@ export interface LiveState {
   /** Bonus permanents accumules : gemmes de sang, or en plus, rales doubles. */
   bonuses: PlayerBonus[];
   /**
+   * Plafond de degats d'un combat, tel que le jeu l'annonce, `null` s'il n'y
+   * en a pas (fin de partie). Il monte au fil de la partie : 2, 5, 10, 15.
+   */
+  damageCap: number | null;
+  /**
    * cardId de tous les serviteurs vus passer : taverne, plateau, adversaires.
    *
    * Sert a deduire les types actifs du lobby, que rien ne declare. C'est de
@@ -104,6 +109,8 @@ export interface CombatBoards {
   playerBoard: BoardMinion[];
   /** Plateau adverse au debut du combat. */
   opponentBoard: BoardMinion[];
+  /** Plafond de degats en vigueur pour ce combat, `null` s'il n'y en a pas. */
+  damageCap: number | null;
 }
 
 /** Combat commence, dont on attend l'issue. */
@@ -142,9 +149,26 @@ export function emptyState(): LiveState {
     nextOpponentHero: null,
     currentCombat: null,
     bonuses: [],
+    damageCap: null,
     seenCardIds: [],
     heroOffers: [],
   };
+}
+
+/**
+ * Plafond de degats d'un combat, porte par l'entite de partie (voir
+ * docs/LOG_FORMAT.md). Le jeu l'annonce lui-meme, palier par palier, et le
+ * desactive en fin de partie : on le lit plutot que de recopier une regle qui
+ * changerait au prochain patch.
+ */
+const DAMAGE_CAP_TAG = 'BACON_COMBAT_DAMAGE_CAP';
+const DAMAGE_CAP_ENABLED_TAG = 'BACON_COMBAT_DAMAGE_CAP_ENABLED';
+
+function readDamageCap(game: Game): number | null {
+  const tags = game.gameEntityId === null ? undefined : game.entities.get(game.gameEntityId)?.tags;
+  if (tags?.get(DAMAGE_CAP_ENABLED_TAG) !== '1') return null;
+  const cap = Number(tags.get(DAMAGE_CAP_TAG));
+  return Number.isFinite(cap) && cap > 0 ? cap : null;
 }
 
 function numberTag(value: string | undefined): number | null {
@@ -258,6 +282,9 @@ export class LiveTracker {
     if (id === null) return;
 
     if (id === game.gameEntityId) {
+      if (event.tag === DAMAGE_CAP_TAG || event.tag === DAMAGE_CAP_ENABLED_TAG) {
+        this.#state = { ...this.#state, damageCap: readDamageCap(game) };
+      }
       if (event.tag === 'TURN') {
         this.#state = { ...this.#state, turn: gameTurn(Number(event.value)) };
         this.#rememberTavern(game);
@@ -518,6 +545,7 @@ export class LiveTracker {
         opponentHero: combat.opponentHero,
         playerBoard: combat.playerBoard,
         opponentBoard: combat.board,
+        damageCap: this.#state.damageCap,
       },
     };
   }

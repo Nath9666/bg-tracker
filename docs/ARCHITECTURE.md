@@ -136,8 +136,12 @@ Les deux interfaces React partagent une compilation Vite à deux entrées (`app/
   (HearthstoneJSON, qui ne sert qu'à afficher des noms). Le simulateur y lit les effets propres à
   chaque carte — râles d'agonie, cris de guerre, invocations — que **rien dans les logs ne
   déclare**. 42 Mo, mis en cache dans `data/cards/firestone-cards.json` par `npm run sim-cards`.
-- `combat.ts` traduit un plateau vers le format du moteur et lance la simulation. **1000
-  simulations** par défaut : mesuré à 98 ms, et à un point près du résultat à 5000.
+- `combat.ts` traduit un plateau vers le format du moteur et joue le combat **un par un**
+  (`simulateSingleCombat`), 1000 fois par défaut, en 60 à 80 ms. Un par un parce que la version
+  groupée ne rend que des moyennes : ici on connaît les dégâts bruts de chaque combat, on leur
+  applique le **plafond annoncé par le jeu** (`BACON_COMBAT_DAMAGE_CAP`, voir
+  `docs/LOG_FORMAT.md`), puis on en tire la moyenne et le létal. Le plafond de Firestone, une table
+  codée en dur, n'est pas utilisé : il ignore le plafond de 2 du premier tour.
 - `combat-odds.ts` estime le **combat en cours**, et fournit `oddsSignature`, qui évite de
   relancer 1000 simulations à chaque lot de lignes.
 

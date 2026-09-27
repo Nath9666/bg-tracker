@@ -561,3 +561,41 @@ describe('heros proposes', () => {
     expect(live.state.heroOffers).toEqual([]);
   });
 });
+
+describe('plafond de degats', () => {
+  const plafond = (valeur: number) =>
+    power(`TAG_CHANGE Entity=GameEntity tag=BACON_COMBAT_DAMAGE_CAP value=${valeur}`);
+  const actif = (valeur: 0 | 1) =>
+    power(`TAG_CHANGE Entity=GameEntity tag=BACON_COMBAT_DAMAGE_CAP_ENABLED value=${valeur}`);
+
+  it('suit le plafond annonce par le jeu, palier par palier', () => {
+    // Releve le 27/09/2026 : 2, puis 5, puis 10, puis 15 au fil de la partie.
+    expect(tracker([...OPENING, actif(1), plafond(2)]).state.damageCap).toBe(2);
+    expect(tracker([...OPENING, actif(1), plafond(2), plafond(10)]).state.damageCap).toBe(10);
+  });
+
+  it('n’annonce plus de plafond une fois desactive', () => {
+    // En fin de partie le jeu le desactive : plus de limite aux degats.
+    const live = tracker([...OPENING, actif(1), plafond(15), actif(0)]);
+    expect(live.state.damageCap).toBeNull();
+  });
+
+  it('ignore un plafond jamais active', () => {
+    expect(tracker([...OPENING, plafond(10)]).state.damageCap).toBeNull();
+  });
+
+  it('fige le plafond du combat avec ses plateaux', () => {
+    const live = tracker([
+      ...OPENING,
+      actif(1),
+      plafond(10),
+      power('TAG_CHANGE Entity=GameEntity tag=TURN value=4'),
+      power('FULL_ENTITY - Creating ID=500 CardID=BG30_HERO_304'),
+      power('TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1'),
+      power('TAG_CHANGE Entity=Bob le barman tag=HERO_ENTITY value=500'),
+      ...minion(600, 'BG35_143', 15, 1),
+      power('TAG_CHANGE Entity=600 tag=ATTACKING value=1'),
+    ]);
+    expect(live.state.currentCombat?.damageCap).toBe(10);
+  });
+});

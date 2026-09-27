@@ -61,6 +61,8 @@ export function combatOdds(
       },
       // Les deux plateaux viennent du combat en cours : rien de perime.
       opponentBoardTurn: combat.turn,
+      // Le plafond en vigueur au debut de ce combat, tel que le jeu l'annonce.
+      damageCap: combat.damageCap,
     },
     options,
   );

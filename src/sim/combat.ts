@@ -8,7 +8,7 @@
  * la principale source d'erreur : entre-temps l'adversaire a acheté, vendu et
  * ameliore. D'ou `staleTurns`, qui dit a quel point l'estimation est vieille.
  */
-import { simulateBattle } from '@firestone-hs/simulate-bgs-battle';
+import { simulateSingleCombat } from '@firestone-hs/simulate-bgs-battle';
 import { currentHealth, type BoardMinion } from '../types.js';
 import type { SimCards } from './sim-cards.js';
 
@@ -29,6 +29,12 @@ export interface CombatInput {
   opponent: CombatSide;
   /** Tour ou le plateau adverse a ete vu. `null` si jamais affronte. */
   opponentBoardTurn: number | null;
+  /**
+   * Plafond de degats du combat, tel que le jeu l'annonce. `null` : aucun
+   * (fin de partie). Il decide du letal : sous un plafond de 10, un joueur a
+   * 12 PV ne peut pas mourir ce tour-ci.
+   */
+  damageCap?: number | null;
 }
 
 export interface CombatOdds {
@@ -45,6 +51,8 @@ export interface CombatOdds {
   durationMs: number;
   /** Nombre de tours ecoules depuis que le plateau adverse a ete vu. */
   staleTurns: number | null;
+  /** Plafond applique, `null` s'il n'y en avait pas. */
+  damageCap: number | null;
 }
 
 export interface SimulateOptions {
@@ -98,6 +106,18 @@ function toBoard(side: CombatSide, firstEntityId: number): Record<string, unknow
  * Renvoie `null` quand il n'y a rien a simuler : les deux plateaux vides, ou
  * aucun plateau adverse connu.
  */
+/**
+ * Estime le combat en le jouant `simulations` fois, un combat a la fois.
+ *
+ * Un par un plutot que par `simulateBattle` : celui-ci ne rend que des
+ * moyennes, et son plafond de degats suit une table codee en dur (5, 10, 15)
+ * qui ne correspond pas a ce que le jeu annonce (2 au premier tour, verifie
+ * le 27/09/2026). Joues un par un, les degats bruts de chaque combat sont
+ * connus : on y applique le vrai plafond, puis on en tire moyenne et letal.
+ * Mesure : 1 000 combats en 60 a 80 ms, plus vite que la version groupee.
+ *
+ * Renvoie `null` quand il n'y a rien a simuler : les deux plateaux vides.
+ */
 export function simulateCombat(
   sim: SimCards,
   input: CombatInput,
@@ -106,33 +126,60 @@ export function simulateCombat(
   if (input.player.board.length === 0 && input.opponent.board.length === 0) return null;
 
   const simulations = options.simulations ?? DEFAULT_SIMULATIONS;
+  const plafond = input.damageCap ?? null;
   const info = {
     playerBoard: toBoard(input.player, 1000),
     opponentBoard: toBoard(input.opponent, 2000),
-    options: {
-      numberOfSimulations: simulations,
-      maxAcceptableDuration: options.maxDurationMs ?? 2000,
-    },
+    options: { numberOfSimulations: 1, maxAcceptableDuration: options.maxDurationMs ?? 2000 },
     gameState: { currentTurn: input.turn, anomalies: [] },
   };
 
   const debut = Date.now();
-  const iterator = simulateBattle(info as never, sim.cards, sim.cardsData);
-  let step = iterator.next();
-  while (step.done !== true) step = iterator.next();
-  const result = step.value;
+  const limite = debut + (options.maxDurationMs ?? 2000);
+  let gagnes = 0;
+  let nuls = 0;
+  let perdus = 0;
+  let infliges = 0;
+  let subis = 0;
+  let letalInflige = 0;
+  let letalSubi = 0;
+  let joues = 0;
+
+  for (; joues < simulations && Date.now() < limite; joues += 1) {
+    const combat = simulateSingleCombat(info as never, sim.cards, sim.cardsData);
+    if (combat === null) break;
+
+    // `damageDealt` : degats bruts du vainqueur, recus quand on perd.
+    const degats = plafond === null ? combat.damageDealt : Math.min(combat.damageDealt, plafond);
+    if (combat.result === 'won') {
+      gagnes += 1;
+      infliges += degats;
+      // PV adverses inconnus (jamais affronte) : pas de letal annonce.
+      if (input.opponent.health !== null && degats >= input.opponent.health) letalInflige += 1;
+    } else if (combat.result === 'lost') {
+      perdus += 1;
+      subis += degats;
+      if (input.player.health !== null && degats >= input.player.health) letalSubi += 1;
+    } else {
+      nuls += 1;
+    }
+  }
+
+  if (joues === 0) return null;
+  const pourcent = (n: number): number => (100 * n) / joues;
 
   return {
-    winPercent: result.wonPercent,
-    tiePercent: result.tiedPercent,
-    lossPercent: result.lostPercent,
-    lethalDealtPercent: result.wonLethalPercent,
-    lethalTakenPercent: result.lostLethalPercent,
-    averageDamageDealt: result.averageDamageWon,
-    averageDamageTaken: result.averageDamageLost,
-    simulations,
+    winPercent: pourcent(gagnes),
+    tiePercent: pourcent(nuls),
+    lossPercent: pourcent(perdus),
+    lethalDealtPercent: pourcent(letalInflige),
+    lethalTakenPercent: pourcent(letalSubi),
+    averageDamageDealt: gagnes === 0 ? 0 : infliges / gagnes,
+    averageDamageTaken: perdus === 0 ? 0 : subis / perdus,
+    simulations: joues,
     durationMs: Date.now() - debut,
     staleTurns:
       input.opponentBoardTurn === null ? null : Math.max(0, input.turn - input.opponentBoardTurn),
+    damageCap: plafond,
   };
 }

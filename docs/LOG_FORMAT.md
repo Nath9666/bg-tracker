@@ -471,6 +471,26 @@ n'a jamais ete choisi.
 Consequence : un heros verrouille ne doit pas compter comme « propose » dans le taux de
 selection (`hero_offers.locked`).
 
+## Plafond de degats d'un combat
+
+Les degats qu'un joueur recoit a la fin d'un combat sont plafonnes, et le jeu annonce ce plafond sur
+l'**entite de partie** :
+
+| Tag                               | Sens                                       |
+| --------------------------------- | ------------------------------------------ |
+| `BACON_COMBAT_DAMAGE_CAP_ENABLED` | `1` : plafond actif ; `0` : plus de limite |
+| `BACON_COMBAT_DAMAGE_CAP`         | la valeur du plafond                       |
+
+Releve le 27/09/2026 sur une partie : **2** a la creation, puis **5**, **10** et **15** au fil des
+tours. La regle retenue de memoire par l'utilisateur (10 puis 15) oubliait les deux premiers
+paliers. `_ENABLED` passe a `0` en fin de partie (vers le tour 24 dans deux parties longues de
+l'archive) ; selon l'utilisateur, quand il ne reste que 4 joueurs, ce qui n'a pas ete recompte.
+
+On lit ces tags plutot qu'une table : le simulateur de Firestone en a une, codee en dur (5 avant le
+tour 4, 10 avant le 8, puis 15), qui ignore le plafond de 2 et suppose connu le nombre de joueurs
+vivants. Le plafond change le **letal** : sous un plafond de 10, un joueur a 12 PV ne peut pas
+mourir ce tour-ci.
+
 ## Statistiques de carriere : absentes des logs
 
 Les statistiques de profil des Champs de bataille affichees par le jeu (tops 4, victoires,

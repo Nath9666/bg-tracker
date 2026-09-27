@@ -27,6 +27,7 @@ function combat(over: Partial<CombatBoards> = {}): CombatBoards {
     opponentHero: 'BG26_HERO_104',
     playerBoard: [minion()],
     opponentBoard: [minion()],
+    damageCap: null,
     ...over,
   };
 }
