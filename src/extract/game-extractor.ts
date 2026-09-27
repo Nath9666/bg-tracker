@@ -27,6 +27,8 @@ export const BATTLEGROUNDS = 'GT_BATTLEGROUNDS';
 
 /** `ChoiceType` du choix de heros, en debut de partie. */
 const MULLIGAN = 'MULLIGAN';
+/** Heros propose mais non choisissable, faute de Passe de taverne. */
+const LOCKED_HERO_TAG = 'BACON_LOCKED_MULLIGAN_HERO';
 
 /**
  * Tour de jeu a partir du compteur `TURN`.
@@ -80,6 +82,8 @@ interface ChoiceInProgress {
   turn: number | null;
   sourceCardId: string;
   options: string[];
+  /** Options proposees mais verrouillees (heros sans Passe de taverne). */
+  locked: string[];
   chosen: string | null;
 }
 
@@ -199,6 +203,7 @@ export class GameExtractor {
           turn: accumulator.turn > 0 ? gameTurn(accumulator.turn) : null,
           sourceCardId: '',
           options: [],
+          locked: [],
           chosen: null,
         });
         accumulator.answering = event.id;
@@ -215,7 +220,17 @@ export class GameExtractor {
         // options proposees : seule la source les distingue.
         if (event.source !== 'choices') break;
         const choice = accumulator.choices.get(accumulator.answering ?? -1);
-        if (choice !== undefined) choice.options.push(cardIdOf(event.entity, game));
+        if (choice === undefined) break;
+        const cardId = cardIdOf(event.entity, game);
+        choice.options.push(cardId);
+        // Sans Passe de taverne, deux des quatre heros sont verrouilles. Le tag
+        // est pose juste avant la liste des options et jamais retire : il se
+        // lit ici (voir docs/LOG_FORMAT.md).
+        const id =
+          event.entity.kind === 'entity' || event.entity.kind === 'id' ? event.entity.id : null;
+        if (id !== null && game.entities.get(id)?.tags.get(LOCKED_HERO_TAG) === '1') {
+          choice.locked.push(cardId);
+        }
         break;
       }
 
@@ -438,6 +453,7 @@ export class GameExtractor {
       gameType: game.meta.get('GameType') ?? '',
       playerName: localPlayer?.name ?? '',
       heroOffered: mulligan?.options ?? [],
+      heroLocked: mulligan?.locked ?? [],
       heroChosen: mulligan?.chosen ?? hero?.cardId ?? '',
       heroSkinParentDbfId: skinParent === undefined ? null : Number(skinParent),
       finalPlace: place === undefined ? null : Number(place),

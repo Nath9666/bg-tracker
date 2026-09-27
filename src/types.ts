@@ -169,6 +169,11 @@ export interface GameSummary {
   playerName: string;
   /** cardIds des heros proposes au mulligan. */
   heroOffered: string[];
+  /**
+   * Heros proposes mais verrouilles : sans le Passe de taverne, le jeu en
+   * montre quatre et n'en laisse choisir que deux.
+   */
+  heroLocked: string[];
   /** cardId du heros retenu. */
   heroChosen: string;
   /**

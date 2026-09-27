@@ -230,6 +230,7 @@ describe('affichage des noms dans parse', () => {
     gameType: 'GT_BATTLEGROUNDS',
     playerName: 'AkiLif#2498',
     heroOffered: ['BG22_HERO_000_SKIN_A'],
+    heroLocked: [],
     heroChosen: 'BG22_HERO_000_SKIN_A',
     heroSkinParentDbfId: 77987,
     finalPlace: 3,

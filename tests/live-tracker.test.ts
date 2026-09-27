@@ -545,8 +545,13 @@ describe('heros proposes', () => {
       if (live.state.heroOffers.length > vus.length) vus = live.state.heroOffers;
     }
 
-    expect(vus.length).toBeGreaterThanOrEqual(2);
-    expect([...vus].sort()).toEqual([...(partie?.heroOffered ?? [])].sort());
+    // Seuls les heros choisissables : les verrouilles n'ont rien a faire dans
+    // l'aide au choix. Dans la partie de reference, Le Recousu et Tavish.
+    const choisissables = (partie?.heroOffered ?? []).filter(
+      (h) => !partie?.heroLocked.includes(h),
+    );
+    expect([...vus].sort()).toEqual([...choisissables].sort());
+    expect(vus).toHaveLength(2);
     // Une fois le heros choisi, le panneau d'aide n'a plus lieu d'etre.
     expect(live.state.heroOffers).toEqual([]);
   });

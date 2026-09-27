@@ -82,6 +82,7 @@ function game(over: Partial<GameSummary> = {}): GameSummary {
     gameType: 'GT_BATTLEGROUNDS',
     playerName: 'AkiLif#2498',
     heroOffered: [],
+    heroLocked: [],
     heroChosen: 'BG26_HERO_104',
     heroSkinParentDbfId: null,
     finalPlace: 4,
@@ -183,6 +184,7 @@ describe('heroStats', () => {
         gameSeed: '1',
         heroChosen: 'BG26_HERO_104',
         heroOffered: ['BG26_HERO_104', 'BG22_HERO_000'],
+        heroLocked: [],
       }),
       game({ gameSeed: '2', heroChosen: 'BG26_HERO_104', heroOffered: ['BG26_HERO_104'] }),
     ]);
@@ -203,6 +205,7 @@ describe('heroStats', () => {
         heroChosen: 'TB_BaconShop_HERO_201_SKIN_D',
         heroSkinParentDbfId: 71463,
         heroOffered: ['TB_BaconShop_HERO_201_SKIN_D'],
+        heroLocked: [],
       }),
     ]);
 
@@ -455,6 +458,7 @@ describe('heroPickCard', () => {
         gameSeed: '3',
         heroChosen: 'BG20_HERO_201',
         heroOffered: ['BG26_HERO_104', 'BG20_HERO_201'],
+        heroLocked: [],
       }),
     ]);
 
@@ -666,5 +670,32 @@ describe('timeline, illustrations du heros', () => {
       heroCardId: 'BG22_HERO_000_SKIN_A',
       heroBaseId: 'BG22_HERO_000',
     });
+  });
+});
+
+describe('heroStats, heros verrouilles', () => {
+  it('ne compte pas un heros verrouille comme propose', () => {
+    // Vol'jin est montre mais verrouille : sans Passe de taverne, il n'etait
+    // pas choisissable, son taux de selection ne doit pas en souffrir.
+    const db = seeded([
+      game({
+        gameSeed: '1',
+        heroChosen: 'BG26_HERO_104',
+        heroOffered: ['BG26_HERO_104', 'BG20_HERO_201', 'BG22_HERO_000'],
+        heroLocked: ['BG20_HERO_201'],
+      }),
+      game({
+        gameSeed: '2',
+        heroChosen: 'BG20_HERO_201',
+        heroOffered: ['BG20_HERO_201', 'BG26_HERO_104'],
+        heroLocked: [],
+      }),
+    ]);
+
+    const voljin = heroStats(db).find((h) => h.heroBaseId === 'BG20_HERO_201');
+    expect(voljin).toMatchObject({ played: 1, offered: 1, pickRate: 1 });
+
+    const cariel = heroStats(db).find((h) => h.heroBaseId === 'BG26_HERO_104');
+    expect(cariel).toMatchObject({ played: 1, offered: 2, pickRate: 0.5 });
   });
 });

@@ -226,7 +226,7 @@ export interface HeroStat {
   heroName: string;
   /** Parties jouees avec ce heros. */
   played: number;
-  /** Parties ou il a ete propose au mulligan. */
+  /** Parties ou il a ete propose au mulligan, et choisissable (non verrouille). */
   offered: number;
   /** `played / offered`, entre 0 et 1. */
   pickRate: number | null;
@@ -264,10 +264,12 @@ export function heroStats(db: Db, filters: StatsFilters = {}): HeroStat[] {
   // pas ici, mais la base de cartes permet de reconnaitre un skin.
   const offers = db
     .prepare(
+      // Un heros verrouille (sans Passe de taverne) n'etait pas choisissable :
+      // le compter comme « propose » ferait baisser a tort son taux de selection.
       `SELECT o.card_id AS cardId
        FROM hero_offers o
        JOIN games g ON g.id = o.game_id
-       WHERE ${where.clause}`,
+       WHERE ${where.clause} AND o.locked = 0`,
     )
     .all(where.params) as { cardId: string }[];
 

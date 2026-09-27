@@ -89,8 +89,9 @@ export interface LiveState {
    */
   seenCardIds: string[];
   /**
-   * Heros proposes au choix de debut de partie, tels qu'ecrits dans le log
-   * (skins compris). Vide avant le choix et des qu'il est fait.
+   * Heros **choisissables** au choix de debut de partie, tels qu'ecrits dans
+   * le log (skins compris) : sans Passe de taverne, les deux heros verrouilles
+   * sont ecartes. Vide avant le choix et des qu'il est fait.
    */
   heroOffers: string[];
 }
@@ -389,6 +390,13 @@ export class LiveTracker {
 
       case 'choiceEntity': {
         if (!this.#choosingMulligan || event.source !== 'choices') return true;
+        // Heros verrouille faute de Passe de taverne : il n'est pas
+        // choisissable, sa fiche n'aiderait en rien a choisir.
+        const id =
+          event.entity.kind === 'entity' || event.entity.kind === 'id' ? event.entity.id : null;
+        if (id !== null && game.entities.get(id)?.tags.get('BACON_LOCKED_MULLIGAN_HERO') === '1') {
+          return true;
+        }
         const cardId = cardIdOf(event.entity, game);
         if (cardId.length > 0 && !this.#state.heroOffers.includes(cardId)) {
           this.#state = { ...this.#state, heroOffers: [...this.#state.heroOffers, cardId] };

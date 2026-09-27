@@ -242,6 +242,7 @@ describe('aller-retour avec la base', () => {
     gameType: 'GT_BATTLEGROUNDS',
     playerName: 'AkiLif#2498',
     heroOffered: ['BG32_HERO_001'],
+    heroLocked: [],
     heroChosen: 'BG32_HERO_001',
     heroSkinParentDbfId: null,
     finalPlace: 1,

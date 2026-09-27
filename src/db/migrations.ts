@@ -242,4 +242,17 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    name: 'hero_offers.locked',
+    sql: `
+      -- Sans le Passe de taverne, le jeu propose quatre heros mais n'en laisse
+      -- choisir que deux (tag BACON_LOCKED_MULLIGAN_HERO, voir
+      -- docs/LOG_FORMAT.md). Un heros verrouille n'a pas ete « ecarte » : il
+      -- ne compte pas dans le taux de selection.
+      --
+      -- La version du schema change, donc toute l'archive est relue au
+      -- prochain import : les anciennes parties recoivent aussi ce drapeau.
+      ALTER TABLE hero_offers ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];

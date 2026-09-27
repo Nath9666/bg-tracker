@@ -72,6 +72,7 @@ function game(over: Partial<GameSummary> = {}): GameSummary {
     gameType: 'GT_BATTLEGROUNDS',
     playerName: 'AkiLif#2498',
     heroOffered: [],
+    heroLocked: [],
     heroChosen: 'BG26_HERO_104',
     heroSkinParentDbfId: null,
     finalPlace: 2,

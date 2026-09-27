@@ -449,6 +449,28 @@ sur le Chaton de Kel'Thuzad), pas la cote du joueur.
 Hearthstone Deck Tracker l'obtient en **lisant la memoire du processus** (bibliotheque
 HearthMirror). Voir `CLAUDE.md` pour la decision du projet sur ce point.
 
+## Heros verrouilles au choix (sans Passe de taverne)
+
+Sans le Passe de taverne, le jeu propose **quatre** heros mais n'en laisse choisir que **deux**.
+Les deux autres portent `BACON_LOCKED_MULLIGAN_HERO value=1`, pose juste **avant** la liste des
+options du `MULLIGAN`, et jamais remis a zero :
+
+```
+TAG_CHANGE Entity=118 tag=BACON_LOCKED_MULLIGAN_HERO value=1
+TAG_CHANGE Entity=119 tag=BACON_LOCKED_MULLIGAN_HERO value=1
+DebugPrintEntityChoices() - id=1 Player=AkiLif#2498 TaskList= ChoiceType=MULLIGAN CountMin=1 CountMax=1
+  Entities[0]=[... id=118 ... cardId=TB_BaconShop_HERO_201_SKIN_G ...]   <- verrouille
+  Entities[1]=[... id=121 ... cardId=BG30_HERO_304 ...]                  <- choisi
+```
+
+Verifie le 27/09/2026 sur deux parties et sur l'extrait versionne (Drek'Thar et Tras'tath
+verrouilles, Le Recousu et Tavish libres). **La position ne dit rien** : les verrouilles etaient
+en `zonePos` 1-2 dans une partie, 3-4 dans l'autre. Seul le tag fait foi. Aucun heros verrouille
+n'a jamais ete choisi.
+
+Consequence : un heros verrouille ne doit pas compter comme « propose » dans le taux de
+selection (`hero_offers.locked`).
+
 ## Statistiques de carriere : absentes des logs
 
 Les statistiques de profil des Champs de bataille affichees par le jeu (tops 4, victoires,

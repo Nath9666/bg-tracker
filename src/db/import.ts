@@ -118,7 +118,7 @@ export function importGames(
   // OR REPLACE : un meme cardId propose deux fois au mulligan ne doit pas faire
   // echouer tout l'import.
   const insertHeroOffer = db.prepare(
-    'INSERT OR REPLACE INTO hero_offers (game_id, card_id, position, chosen) VALUES (?, ?, ?, ?)',
+    'INSERT OR REPLACE INTO hero_offers (game_id, card_id, position, chosen, locked) VALUES (?, ?, ?, ?, ?)',
   );
   const insertTierUp = db.prepare('INSERT INTO tier_ups (game_id, tier, turn) VALUES (?, ?, ?)');
   const insertPick = db.prepare(`
@@ -189,7 +189,13 @@ export function importGames(
       clear.decisions.run(id);
 
       summary.heroOffered.forEach((cardId, position) => {
-        insertHeroOffer.run(id, cardId, position, cardId === summary.heroChosen ? 1 : 0);
+        insertHeroOffer.run(
+          id,
+          cardId,
+          position,
+          cardId === summary.heroChosen ? 1 : 0,
+          summary.heroLocked.includes(cardId) ? 1 : 0,
+        );
       });
 
       for (const tierUp of summary.tierUps) {
