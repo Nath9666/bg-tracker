@@ -361,8 +361,19 @@ input.cote::placeholder {
 }
 
 /* Colonne de texte dans un tableau dont les nombres sont alignes a droite. */
-th.a-gauche {
+th.a-gauche,
+td.a-gauche {
   text-align: left;
+}
+
+/* Un nombre ne se coupe jamais : « 80 % » sur deux lignes ne se lit plus. */
+td {
+  white-space: nowrap;
+}
+
+/* Sauf les cellules faites de blocs, qui gerent leur propre retour a la ligne. */
+td.a-gauche {
+  white-space: normal;
 }
 
 /* --- statistiques de carriere --- */
@@ -477,4 +488,60 @@ th.a-gauche {
 
 .portrait-heros .initiales {
   font-size: 11px;
+}
+
+/* --- types joues par heros --- */
+
+.types-joues {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 220px;
+}
+
+.type-joue {
+  display: grid;
+  grid-template-columns: 88px 1fr 38px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.type-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Barre fine, depart a gauche, fond discret : la longueur porte la part. */
+.type-barre {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bord);
+  overflow: hidden;
+}
+
+.type-barre > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.type-part {
+  text-align: right;
+  color: var(--attenue);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tableau des heros : la 2e colonne est un nombre (parties jouees), pas du
+   texte. La regle generale lui donnerait 40 % de la largeur. */
+.tableau-heros th:nth-child(2),
+.tableau-heros td:nth-child(2) {
+  width: auto;
+  text-align: right;
+}
+
+.tableau-heros th:first-child {
+  width: 30%;
 }

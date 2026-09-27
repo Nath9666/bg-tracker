@@ -667,3 +667,68 @@ export function finalBoards(db: Db, filters: StatsFilters = {}): Record<string, 
   }
   return parPartie;
 }
+
+/** Part des parties d'un heros jouees avec un type dominant donne. */
+export interface RaceShare {
+  race: string;
+  games: number;
+  /** Entre 0 et 1. */
+  share: number;
+}
+
+/**
+ * Pour chaque heros, la repartition des types dominants de ses plateaux
+ * finaux : « 50 % Huran, 25 % Bete, 25 % Meca ».
+ *
+ * Meme definition que `finalBoardRaces` : le type dominant d'une partie est
+ * celui qui revient le plus sur le plateau du dernier combat, `aucun` s'il n'y
+ * en a pas. Une seule requete pour tous les heros ; du type le plus joue au
+ * moins joue.
+ */
+export function heroRaceShares(db: Db, filters: StatsFilters = {}): Record<string, RaceShare[]> {
+  const where = buildWhere(filters);
+  const rows = db
+    .prepare(
+      `SELECT b.game_id AS gameId, g.hero_base_id AS hero, c.races AS races
+       FROM boards b
+       JOIN (SELECT game_id, MAX(turn) AS turn FROM boards GROUP BY game_id) dernier
+         ON dernier.game_id = b.game_id AND dernier.turn = b.turn
+       JOIN games g ON g.id = b.game_id
+       LEFT JOIN cards c ON c.card_id = b.card_id
+       WHERE ${where.clause} AND g.final_place IS NOT NULL`,
+    )
+    .all(where.params) as { gameId: string; hero: string; races: string | null }[];
+
+  const parties = new Map<string, { hero: string; counts: Map<string, number> }>();
+  for (const row of rows) {
+    const partie = parties.get(row.gameId) ?? { hero: row.hero, counts: new Map() };
+    for (const race of (row.races ?? '').split(',')) {
+      if (race.length > 0) partie.counts.set(race, (partie.counts.get(race) ?? 0) + 1);
+    }
+    parties.set(row.gameId, partie);
+  }
+
+  const parHeros = new Map<string, Map<string, number>>();
+  for (const partie of parties.values()) {
+    const dominant =
+      [...partie.counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'aucun';
+    const compte = parHeros.get(partie.hero) ?? new Map<string, number>();
+    compte.set(dominant, (compte.get(dominant) ?? 0) + 1);
+    parHeros.set(partie.hero, compte);
+  }
+
+  const resultat: Record<string, RaceShare[]> = {};
+  for (const [hero, compte] of parHeros) {
+    const total = [...compte.values()].reduce((a, b) => a + b, 0);
+    resultat[hero] = [...compte]
+      .map(([race, games]) => ({ race, games, share: games / total }))
+      // A egalite, un vrai type avant « aucun » : il en dit plus.
+      .sort(
+        (a, b) =>
+          b.games - a.games ||
+          Number(a.race === 'aucun') - Number(b.race === 'aucun') ||
+          a.race.localeCompare(b.race),
+      );
+  }
+  return resultat;
+}

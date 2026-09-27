@@ -312,6 +312,32 @@ function Carriere({
   );
 }
 
+/**
+ * Types joues avec un heros : une mini-barre par type, du plus joue au moins
+ * joue. Une seule couleur : le nom ecrit dit quel type est lequel, ce qui
+ * reste lisible au-dela de huit types et sans distinguer les couleurs.
+ */
+function TypesJoues({ parts }: { parts: Dashboard['heroRaces'][string] | undefined }): JSX.Element {
+  if (parts === undefined || parts.length === 0) return <span className="attenue">—</span>;
+  return (
+    <div className="types-joues">
+      {parts.map((part) => (
+        <div
+          key={part.race}
+          className="type-joue"
+          title={`${raceName(part.race)} : ${part.games} partie${part.games > 1 ? 's' : ''}`}
+        >
+          <span className="type-nom">{raceName(part.race)}</span>
+          <span className="type-barre">
+            <span style={{ width: `${Math.round(part.share * 100)}%` }} />
+          </span>
+          <span className="type-part">{Math.round(part.share * 100)} %</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Lecture sure d'une preference : le stockage peut etre indisponible. */
 function preference(clef: string, defaut: boolean): boolean {
   try {
@@ -645,7 +671,7 @@ export default function App(): JSX.Element {
             aide="Le taux de sélection dit si un héros est choisi quand il se présente."
           >
             <div className="defile">
-              <table>
+              <table className="tableau-heros">
                 <thead>
                   <tr>
                     <th>Héros</th>
@@ -654,6 +680,7 @@ export default function App(): JSX.Element {
                     <th>Sélection</th>
                     <th>Place moy.</th>
                     <th>Top 4</th>
+                    <th className="a-gauche">Types joués</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -669,6 +696,9 @@ export default function App(): JSX.Element {
                         <td>{percent(ligne.pickRate)}</td>
                         <td>{place(ligne.averagePlace)}</td>
                         <td>{percent(ligne.top4Rate)}</td>
+                        <td className="a-gauche">
+                          <TypesJoues parts={donnees.heroRaces[ligne.heroBaseId]} />
+                        </td>
                       </tr>
                     ))}
                 </tbody>

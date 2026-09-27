@@ -21,6 +21,7 @@ import { toLocalIso } from '../../src/extract/log-clock.js';
 import {
   finalBoardRaces,
   finalBoards,
+  heroRaceShares,
   heroStats,
   overview,
   placeDistribution,
@@ -40,6 +41,8 @@ export interface Dashboard {
   races: ReturnType<typeof finalBoardRaces>;
   /** Liste pour le filtre par heros. */
   playedHeroes: ReturnType<typeof playedHeroes>;
+  /** Repartition des types dominants de chaque heros, par heros de base. */
+  heroRaces: ReturnType<typeof heroRaceShares>;
   /** Plateau final de chaque partie, par identifiant de partie. */
   finalBoards: ReturnType<typeof finalBoards>;
   /** Statistiques de carriere, avec leur progression sur 7 jours. `null` sans releve. */
@@ -59,6 +62,7 @@ function buildDashboard(filters: StatsFilters): Dashboard {
     races: finalBoardRaces(handle, filters),
     playedHeroes: playedHeroes(handle),
     finalBoards: finalBoards(handle, filters),
+    heroRaces: heroRaceShares(handle, filters),
     // Independantes des filtres : ce sont des compteurs de toute la carriere.
     career: careerView(handle, toLocalIso(new Date(Date.now() - 7 * 86_400_000)).slice(0, 10)),
     warbands: recentWarbands(handle, 5),

@@ -8,6 +8,7 @@ import { parseStatsArgs } from '../src/cli/stats.js';
 import {
   finalBoardRaces,
   finalBoards,
+  heroRaceShares,
   heroPickCard,
   restingView,
   heroStats,
@@ -697,5 +698,67 @@ describe('heroStats, heros verrouilles', () => {
 
     const cariel = heroStats(db).find((h) => h.heroBaseId === 'BG26_HERO_104');
     expect(cariel).toMatchObject({ played: 1, offered: 2, pickRate: 0.5 });
+  });
+});
+
+describe('heroRaceShares', () => {
+  function avecPlateau(seed: string, hero: string, cards: string[]): GameSummary {
+    return game({
+      gameSeed: seed,
+      heroChosen: hero,
+      turns: [
+        {
+          turn: 8,
+          tavernTier: 4,
+          gold: 10,
+          health: 20,
+          opponentHero: null,
+          combatResult: 'win',
+          damageTaken: 0,
+          board: cards.map((cardId, index) => ({
+            position: index + 1,
+            cardId,
+            atk: 1,
+            health: 1,
+            damage: 0,
+            golden: false,
+            keywords: emptyKeywords(),
+          })),
+        },
+      ],
+    });
+  }
+
+  it('donne la part de chaque type dominant, par heros', () => {
+    const db = seeded([
+      avecPlateau('1', 'BG26_HERO_104', ['BG28_300', 'BG28_300']), // mort-vivant
+      avecPlateau('2', 'BG26_HERO_104', ['BG28_300']), // mort-vivant
+      avecPlateau('3', 'BG26_HERO_104', ['BG36_760', 'BG36_760']), // murloc/pirate
+      avecPlateau('4', 'BG26_HERO_104', ['BG35_143']), // aucun type
+    ]);
+
+    expect(heroRaceShares(db)['BG26_HERO_104']).toEqual([
+      { race: 'UNDEAD', games: 2, share: 0.5 },
+      // A egalite, un vrai type passe avant « aucun ». Macaron est murloc et
+      // pirate : l'ordre alphabetique fait de murloc le dominant.
+      { race: 'MURLOC', games: 1, share: 0.25 },
+      { race: 'aucun', games: 1, share: 0.25 },
+    ]);
+  });
+
+  it('separe les heros', () => {
+    const db = seeded([
+      avecPlateau('1', 'BG26_HERO_104', ['BG28_300']),
+      avecPlateau('2', 'BG20_HERO_201', ['BG36_760']),
+    ]);
+    const parts = heroRaceShares(db);
+
+    expect(Object.keys(parts).sort()).toEqual(['BG20_HERO_201', 'BG26_HERO_104']);
+    expect(parts['BG20_HERO_201']?.[0]?.share).toBe(1);
+  });
+
+  it('ignore une partie inachevee, sans place', () => {
+    const db = seeded([{ ...avecPlateau('1', 'BG26_HERO_104', ['BG28_300']), finalPlace: null }]);
+    expect(heroRaceShares(db)).toEqual({});
   });
 });
