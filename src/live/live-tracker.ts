@@ -111,6 +111,16 @@ export interface CombatBoards {
   opponentBoard: BoardMinion[];
   /** Plafond de degats en vigueur pour ce combat, `null` s'il n'y en a pas. */
   damageCap: number | null;
+  /**
+   * PV du joueur (armure comprise) et palier, **au debut du combat**.
+   *
+   * Figes comme les plateaux : lus plus tard, ils seraient deja entames par
+   * le combat lui-meme. Une estimation calculee apres coup (overlay relance
+   * en cours de partie, qui relit la session d'un bloc) voyait alors 3 PV au
+   * lieu de 20, et annoncait un letal a 100 % sur 17 degats.
+   */
+  playerHealth: number | null;
+  playerTavernTier: number | null;
 }
 
 /** Combat commence, dont on attend l'issue. */
@@ -127,6 +137,9 @@ interface PendingCombat {
    * battre, donc il est deja entame quelques millisecondes plus tard.
    */
   playerBoard: BoardMinion[] | null;
+  /** Figes a la premiere attaque, avec les plateaux (voir `CombatBoards`). */
+  playerHealth: number | null;
+  playerTavernTier: number | null;
   armorBefore: number;
   damageBefore: number;
 }
@@ -353,6 +366,8 @@ export class LiveTracker {
     if (event.tag === 'ATTACKING' && event.value === '1' && this.#combat?.board === null) {
       this.#combat.board = readBoard(game, game.proxyPlayerEntityId);
       this.#combat.playerBoard = readBoard(game, game.localPlayerEntityId);
+      this.#combat.playerHealth = this.#state.health;
+      this.#combat.playerTavernTier = this.#state.tavernTier;
       this.#rememberSeen(game, this.#combat.board);
       this.#publishCombat();
     }
@@ -522,6 +537,8 @@ export class LiveTracker {
       opponentEntityId: null,
       board: null,
       playerBoard: null,
+      playerHealth: null,
+      playerTavernTier: null,
       armorBefore: Number(hero?.tags.get('ARMOR') ?? 0),
       damageBefore: Number(hero?.tags.get('DAMAGE') ?? 0),
     };
@@ -546,6 +563,8 @@ export class LiveTracker {
         playerBoard: combat.playerBoard,
         opponentBoard: combat.board,
         damageCap: this.#state.damageCap,
+        playerHealth: combat.playerHealth,
+        playerTavernTier: combat.playerTavernTier,
       },
     };
   }

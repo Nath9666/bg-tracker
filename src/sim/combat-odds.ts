@@ -45,16 +45,20 @@ export function combatOdds(
     sim,
     {
       turn: combat.turn,
+      // Tout vient du debut du combat, fige par le tracker : jamais l'etat
+      // courant, qui peut deja porter les degats de ce combat.
       player: {
         heroCardId: state.heroCardId,
-        health: state.health,
-        tavernTier: state.tavernTier,
+        health: combat.playerHealth,
+        tavernTier: combat.playerTavernTier,
         board: combat.playerBoard,
       },
       opponent: {
         heroCardId: combat.opponentHero,
-        // Les PV adverses ne sont connus que s'il a deja ete affronte. A
-        // defaut, le letal inflige sera sous-estime, jamais surestime.
+        // Ceux du dernier affrontement. Pas ceux du heros en combat : c'est
+        // une copie dont les PV ne sont pas les vrais (verifie le 28/09/2026 :
+        // 2 a 8 PV lus quand il lui en restait 30 a 45). Perimes, ils ne
+        // peuvent que sous-estimer le letal inflige, jamais l'inventer.
         health: opposant?.health ?? null,
         tavernTier: opposant?.tier ?? null,
         board: combat.opponentBoard,

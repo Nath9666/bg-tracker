@@ -28,6 +28,8 @@ function combat(over: Partial<CombatBoards> = {}): CombatBoards {
     playerBoard: [minion()],
     opponentBoard: [minion()],
     damageCap: null,
+    playerHealth: 30,
+    playerTavernTier: 4,
     ...over,
   };
 }
@@ -151,5 +153,36 @@ describe('oddsSignature', () => {
 
   it('distingue l’absence de combat', () => {
     expect(oddsSignature(state({ currentCombat: null }))).not.toBe(oddsSignature(state()));
+  });
+});
+
+describe.skipIf(!moteurDisponible)('PV figes au debut du combat', () => {
+  beforeAll(async () => {
+    sim = await loadSimCards();
+  }, 60_000);
+
+  it('ne voit pas un letal avec les PV d’apres le combat', () => {
+    // Le cas remonte : 20 PV au debut, 3 apres avoir encaisse le coup. Un
+    // calcul fait apres coup lisait 3 PV et annoncait 100 % de letal.
+    const fort = [
+      minion({ position: 1, atk: 20, health: 20 }),
+      minion({ position: 2, atk: 20, health: 20 }),
+      minion({ position: 3, atk: 20, health: 20 }),
+    ];
+    const etat = state({
+      health: 3, // deja entames par ce combat
+      currentCombat: combat({
+        playerBoard: [minion({ atk: 1, health: 1 })],
+        opponentBoard: fort,
+        playerHealth: 20,
+        playerTavernTier: 2,
+      }),
+    });
+
+    const resultat = combatOdds(sim, etat, { simulations: 200 });
+    if (resultat.kind !== 'odds') throw new Error('estimation attendue');
+    // 9 degats (palier 6 + 3 serviteurs) contre 20 PV : jamais letal.
+    expect(resultat.odds.lossPercent).toBeGreaterThan(95);
+    expect(resultat.odds.lethalTakenPercent).toBe(0);
   });
 });

@@ -599,3 +599,30 @@ describe('plafond de degats', () => {
     expect(live.state.currentCombat?.damageCap).toBe(10);
   });
 });
+
+describe('PV figes au debut du combat, sur le log de reference', () => {
+  it('garde les PV du debut du combat, meme une fois les degats encaisses', async () => {
+    const live = new LiveTracker();
+    let pvEntree: number | null = null;
+    let phase: string | null = null;
+    let verifies = 0;
+    let entames = 0;
+
+    for await (const line of readSessionLines(await sampleSessionFolder())) {
+      live.pushLine(line);
+      const s = live.state;
+      if (phase !== 'combat' && s.phase === 'combat') pvEntree = s.health;
+      // Fin de combat : les degats sont encaisses, les PV figes ne bougent pas.
+      if (phase === 'combat' && s.phase === 'recruit' && s.currentCombat !== null) {
+        expect(s.currentCombat.playerHealth).toBe(pvEntree);
+        verifies += 1;
+        if (s.health !== pvEntree) entames += 1;
+      }
+      phase = s.phase;
+    }
+
+    expect(verifies).toBeGreaterThan(5);
+    // Le cas qui piegeait : des combats ou les PV courants ont deja baisse.
+    expect(entames).toBeGreaterThan(0);
+  });
+});
