@@ -252,13 +252,7 @@ function duree(secondes: number): string {
  * Le plus puissant serviteur tient en deux compteurs (attaque, vie) : on les
  * reunit sur une seule carte, comme le fait le jeu.
  */
-function Carriere({
-  carriere,
-  troupes,
-}: {
-  carriere: Carriere;
-  troupes: Dashboard['warbands'];
-}): JSX.Element {
+function Carriere({ carriere }: { carriere: Carriere }): JSX.Element {
   const lignes = carriere.lines
     .filter((l) => l.key !== 'strongestMinionAtk' && l.key !== 'strongestMinionHealth')
     .map((l) => (l.key === 'secondsPlayed' ? { ...l, label: 'Temps de jeu' } : l));
@@ -285,27 +279,6 @@ function Carriere({
             {milliers(atk.value)}/{milliers(vie.value)}
           </span>
           <span className="stat-libelle">Plus puissant serviteur</span>
-        </div>
-      )}
-      {troupes.length > 0 && (
-        <div className="troupes">
-          <h3>{troupes.length} dernières troupes</h3>
-          {troupes.map((troupe, i) => (
-            <div key={i} className="troupe">
-              <span className={troupe.place <= 4 ? 'troupe-place top4' : 'troupe-place'}>
-                {troupe.place}e
-              </span>
-              <span className="troupe-heros">
-                <Heros cardId={troupe.heroCardId} nom={troupe.heroName} taille="grand" />
-              </span>
-              <PlateauFinal
-                board={troupe.minions.map((m, position) => ({
-                  ...m,
-                  position: position + 1,
-                }))}
-              />
-            </div>
-          ))}
         </div>
       )}
     </div>
@@ -740,9 +713,7 @@ export default function App(): JSX.Element {
                 : `Toute ta carrière, lue dans le jeu le ${dateTime(donnees.career.takenAt)}. Indépendant des filtres.`
             }
           >
-            {donnees.career !== null && (
-              <Carriere carriere={donnees.career} troupes={donnees.warbands} />
-            )}
+            {donnees.career !== null && <Carriere carriere={donnees.career} />}
           </Section>
 
           <Section
@@ -770,7 +741,6 @@ export default function App(): JSX.Element {
                     <th>Héros</th>
                     <th>Place</th>
                     <th>Cote</th>
-                    <th>Moy. glissante</th>
                     {plateaux && <th className="a-gauche">Plateau final</th>}
                   </tr>
                 </thead>
@@ -793,7 +763,6 @@ export default function App(): JSX.Element {
                           onEnregistre={() => setRechargement((valeur) => valeur + 1)}
                         />
                       </td>
-                      <td>{turn(ligne.rollingPlace)}</td>
                       {plateaux && (
                         <td>
                           <PlateauFinal board={donnees.finalBoards[ligne.gameId]} />
