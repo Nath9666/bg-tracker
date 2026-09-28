@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { loadDashboard, saveRating, type Dashboard, type StatsFilters } from './api.js';
-import { dateTime, percent, periodLabel, place, raceName, turn } from './format.js';
+import { dateTime, percent, periodLabel, place, raceName } from './format.js';
 import { aggregateTimeline, type TimelineGranularity } from '../../src/stats/stats.js';
 
 const COULEURS = {
